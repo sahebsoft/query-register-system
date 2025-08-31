@@ -109,6 +109,9 @@ public class ExampleQueryConfig {
 
                 .attribute("lifetimeValue")
                 .dbColumn("lifetime_value")
+                .processor(row -> {
+                    return BigDecimal.TEN;
+                })
                 .type(BigDecimal.class)
                 .filterable(false) // Can't filter on calculated aggregate columns in WHERE clause
                 .sortable(true)
@@ -127,12 +130,11 @@ public class ExampleQueryConfig {
                 // Virtual attributes
                 .virtualAttribute("membershipTier")
                 .type(String.class)
-                .processor(obj -> {
-                    Object[] args = (Object[]) obj;
-                    com.balasam.oasis.common.query.core.result.Row row = (com.balasam.oasis.common.query.core.result.Row) args[1];
+                .processor((obj, row, context) -> {
+                    System.out.println(context.getParams());
                     BigDecimal ltv = row.getBigDecimal("lifetimeValue");
                     if (ltv == null)
-                        return "NONE";
+                        return "NONE" + context.getParams().get("status");
                     double amount = ltv.doubleValue();
                     if (amount >= 10000)
                         return "PLATINUM";
@@ -142,7 +144,7 @@ public class ExampleQueryConfig {
                         return "SILVER";
                     if (amount >= 100)
                         return "BRONZE";
-                    return "NONE";
+                    return "NONE" + "-" + context.getParam("status");
                 })
                 .filterable(true)
                 .allowedValues("NONE", "BRONZE", "SILVER", "GOLD", "PLATINUM")
@@ -155,6 +157,18 @@ public class ExampleQueryConfig {
                 .description("Minimum order date for statistics")
                 .build()
 
+                .param("status")
+                .type(String.class)
+                .description("Filter by user status")
+                .defaultValue("ACTIVE")
+                .required(false)
+                .processor((value, context) -> {
+                    System.out.println(value);
+                    return value == null ? null
+                            : value.equals("I") ? "INACTIVE" : value.equals("A") ? "ACTIVE" : value;
+                })
+                .build()
+
                 .param("includeInactive")
                 .type(Boolean.class)
                 .defaultValue(false)
@@ -164,6 +178,7 @@ public class ExampleQueryConfig {
                 // Criteria
                 .criteria("statusFilter")
                 .sql("AND u.status = :status")
+
                 .condition(ctx -> ((com.balasam.oasis.common.query.core.execution.QueryContext) ctx).hasParam("status"))
                 .build()
 
