@@ -1,0 +1,144 @@
+package com.balasam.oasis.common.query.processor.impl;
+
+import com.balasam.oasis.common.query.processor.*;
+
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Currency;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
+/**
+ * Common processor implementations
+ */
+public class CommonProcessors {
+    
+    // Validators
+    public static final Validator EMAIL_VALIDATOR = value -> {
+        if (value == null) return false;
+        String email = value.toString();
+        return Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$").matcher(email).matches();
+    };
+    
+    public static final Validator PHONE_VALIDATOR = value -> {
+        if (value == null) return false;
+        String phone = value.toString().replaceAll("[^0-9]", "");
+        return phone.length() >= 10 && phone.length() <= 15;
+    };
+    
+    public static final Validator NOT_NULL_VALIDATOR = value -> value != null;
+    
+    public static final Validator NOT_EMPTY_VALIDATOR = value -> 
+        value != null && !value.toString().trim().isEmpty();
+    
+    // Formatters
+    public static final Formatter CURRENCY_FORMATTER = value -> {
+        if (value == null) return null;
+        BigDecimal amount = value instanceof BigDecimal ? (BigDecimal) value 
+            : new BigDecimal(value.toString());
+        NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
+        return formatter.format(amount);
+    };
+    
+    public static final Formatter PERCENTAGE_FORMATTER = value -> {
+        if (value == null) return null;
+        double percentage = value instanceof Number ? ((Number) value).doubleValue() 
+            : Double.parseDouble(value.toString());
+        return String.format("%.2f%%", percentage);
+    };
+    
+    public static final Formatter DATE_FORMATTER = value -> {
+        if (value == null) return null;
+        if (value instanceof LocalDate) {
+            return ((LocalDate) value).format(DateTimeFormatter.ISO_LOCAL_DATE);
+        }
+        if (value instanceof LocalDateTime) {
+            return ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        }
+        return value.toString();
+    };
+    
+    // Processors
+    public static final Processor UPPERCASE_PROCESSOR = value -> 
+        value != null ? value.toString().toUpperCase() : null;
+    
+    public static final Processor LOWERCASE_PROCESSOR = value -> 
+        value != null ? value.toString().toLowerCase() : null;
+    
+    public static final Processor TRIM_PROCESSOR = value -> 
+        value != null ? value.toString().trim() : null;
+    
+    public static final Processor MASK_SSN_PROCESSOR = value -> {
+        if (value == null) return null;
+        String ssn = value.toString().replaceAll("[^0-9]", "");
+        if (ssn.length() == 9) {
+            return "***-**-" + ssn.substring(5);
+        }
+        return "***MASKED***";
+    };
+    
+    public static final Processor MASK_EMAIL_PROCESSOR = value -> {
+        if (value == null) return null;
+        String email = value.toString();
+        int atIndex = email.indexOf('@');
+        if (atIndex > 1) {
+            return email.charAt(0) + "***" + email.substring(atIndex);
+        }
+        return "***@***";
+    };
+    
+    // Calculators
+    public static Calculator percentageCalculator(String numeratorField, String denominatorField) {
+        return (value, row, context) -> {
+            Number numerator = row.get(numeratorField, Number.class);
+            Number denominator = row.get(denominatorField, Number.class);
+            if (numerator != null && denominator != null && denominator.doubleValue() != 0) {
+                return (numerator.doubleValue() / denominator.doubleValue()) * 100;
+            }
+            return 0.0;
+        };
+    }
+    
+    public static Calculator sumCalculator(String... fields) {
+        return (value, row, context) -> {
+            double sum = 0;
+            for (String field : fields) {
+                Number num = row.get(field, Number.class);
+                if (num != null) {
+                    sum += num.doubleValue();
+                }
+            }
+            return sum;
+        };
+    }
+    
+    public static Calculator averageCalculator(String... fields) {
+        return (value, row, context) -> {
+            double sum = 0;
+            int count = 0;
+            for (String field : fields) {
+                Number num = row.get(field, Number.class);
+                if (num != null) {
+                    sum += num.doubleValue();
+                    count++;
+                }
+            }
+            return count > 0 ? sum / count : 0.0;
+        };
+    }
+    
+    public static Calculator tierCalculator(String valueField, double bronze, double silver, double gold) {
+        return (value, row, context) -> {
+            Number num = row.get(valueField, Number.class);
+            if (num == null) return "NONE";
+            double val = num.doubleValue();
+            if (val >= gold) return "GOLD";
+            if (val >= silver) return "SILVER";
+            if (val >= bronze) return "BRONZE";
+            return "NONE";
+        };
+    }
+}
