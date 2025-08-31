@@ -42,7 +42,7 @@ public class DynamicRowMapper {
             }
         }
         
-        // Map attributes based on definition
+        // First pass: Map non-virtual attributes
         for (Map.Entry<String, AttributeDef> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef attr = entry.getValue();
@@ -55,12 +55,8 @@ public class DynamicRowMapper {
             // Check security
             if (attr.isSecured() && context.getSecurityContext() != null) {
                 if (!attr.getSecurityRule().apply(context.getSecurityContext())) {
-                    // Attribute is restricted
-                    if (attr.isMasked()) {
-                        rowData.put(attrName, "***MASKED***");
-                    } else {
-                        rowData.put(attrName, null);
-                    }
+                    // Attribute is restricted - set to null or apply processor for masking
+                    rowData.put(attrName, null);
                     continue;
                 }
             }
@@ -80,35 +76,10 @@ public class DynamicRowMapper {
                 }
             }
             
-            // Apply converter
+            // Apply automatic type conversion based on attr.getType()
             Object convertedValue = rawValue;
-            if (attr.hasConverter()) {
-                try {
-                    convertedValue = attr.getConverter().apply(new Object[]{rawValue, attr.getType()});
-                } catch (Exception e) {
-                    log.warn("Failed to convert value for attribute {}: {}", attrName, e.getMessage());
-                }
-            } else if (rawValue != null && attr.getType() != null) {
-                // Apply default type conversion
+            if (rawValue != null && attr.getType() != null) {
                 convertedValue = convertToType(rawValue, attr.getType());
-            }
-            
-            // Apply processor
-            if (attr.hasProcessor()) {
-                try {
-                    convertedValue = attr.getProcessor().apply(convertedValue);
-                } catch (Exception e) {
-                    log.warn("Failed to process value for attribute {}: {}", attrName, e.getMessage());
-                }
-            }
-            
-            // Apply formatter
-            if (attr.hasFormatter()) {
-                try {
-                    convertedValue = attr.getFormatter().apply(convertedValue);
-                } catch (Exception e) {
-                    log.warn("Failed to format value for attribute {}: {}", attrName, e.getMessage());
-                }
             }
             
             // Set default value if null and default exists
@@ -122,22 +93,30 @@ public class DynamicRowMapper {
         // Create Row instance
         Row row = new RowImpl(rowData, rawData, context);
         
-        // Calculate calculated fields (non-virtual)
+        // Second pass: Apply processors to non-virtual attributes (now that we have the Row)
         for (Map.Entry<String, AttributeDef> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef attr = entry.getValue();
             
-            if (attr.isCalculated() && !attr.isVirtual() && attr.hasCalculator()) {
+            // Skip virtual attributes
+            if (attr.isVirtual()) {
+                continue;
+            }
+            
+            // Apply processor with full context (value, row, context)
+            if (attr.hasProcessor()) {
                 try {
                     Object currentValue = row.get(attrName);
-                    Object calculatedValue = attr.getCalculator().apply(
-                        new Object[]{currentValue, row, context});
-                    row.set(attrName, calculatedValue);
+                    Object processedValue = attr.getProcessor().process(currentValue, row, context);
+                    row.set(attrName, processedValue);
                 } catch (Exception e) {
-                    log.warn("Failed to calculate value for attribute {}: {}", attrName, e.getMessage());
+                    log.warn("Failed to process value for attribute {}: {}", attrName, e.getMessage());
                 }
             }
         }
+        
+        // Calculate calculated fields (non-virtual) - now handled by processor
+        // Virtual fields are calculated separately by VirtualAttributeProcessor
         
         return row;
     }

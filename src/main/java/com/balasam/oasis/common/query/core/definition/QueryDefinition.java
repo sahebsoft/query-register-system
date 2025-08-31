@@ -38,9 +38,6 @@ public class QueryDefinition {
     List<Function<Object, Object>> postProcessors = ImmutableList.of();
     
     @Builder.Default
-    Map<String, Function<Object, Object>> calculators = ImmutableMap.of();
-    
-    @Builder.Default
     List<ValidationRule> validationRules = ImmutableList.of();
     
     CacheConfig cacheConfig;
@@ -86,10 +83,6 @@ public class QueryDefinition {
     
     public boolean hasPostProcessors() {
         return postProcessors != null && !postProcessors.isEmpty();
-    }
-    
-    public boolean hasCalculators() {
-        return calculators != null && !calculators.isEmpty();
     }
     
     public boolean hasValidationRules() {

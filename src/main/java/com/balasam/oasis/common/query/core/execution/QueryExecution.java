@@ -127,11 +127,24 @@ public class QueryExecution {
                 }
             }
             
-            // Validate parameter values
+            // Process and validate parameter values
             if (context.hasParam(name)) {
                 Object value = context.getParam(name);
-                if (paramDef.hasValidator() && !paramDef.getValidator().apply(value)) {
-                    violations.add("Parameter validation failed: " + name);
+                
+                // Apply processor if exists (handles validation and transformation)
+                if (paramDef.hasProcessor()) {
+                    try {
+                        Object processedValue = paramDef.getProcessor().process(value, context);
+                        // Update the parameter with processed value
+                        context.addParam(name, processedValue);
+                    } catch (Exception e) {
+                        violations.add("Parameter validation/processing failed for " + name + ": " + e.getMessage());
+                    }
+                } else {
+                    // Use the built-in validation method
+                    if (!paramDef.isValid(value, context)) {
+                        violations.add("Parameter validation failed: " + name);
+                    }
                 }
             }
         });

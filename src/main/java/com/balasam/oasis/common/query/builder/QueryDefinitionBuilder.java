@@ -1,7 +1,12 @@
 package com.balasam.oasis.common.query.builder;
 
 import com.balasam.oasis.common.query.core.definition.*;
-import com.balasam.oasis.common.query.processor.*;
+import com.balasam.oasis.common.query.processor.PreProcessor;
+import com.balasam.oasis.common.query.processor.RowProcessor;
+import com.balasam.oasis.common.query.processor.PostProcessor;
+import com.balasam.oasis.common.query.processor.Processor;
+import com.balasam.oasis.common.query.processor.ParamProcessor;
+import com.balasam.oasis.common.query.processor.Validator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -26,7 +31,6 @@ public class QueryDefinitionBuilder {
     private final List<Function<Object, Object>> preProcessors = new ArrayList<>();
     private final List<Function<Object, Object>> rowProcessors = new ArrayList<>();
     private final List<Function<Object, Object>> postProcessors = new ArrayList<>();
-    private final Map<String, Function<Object, Object>> calculators = new LinkedHashMap<>();
     private final List<ValidationRule> validationRules = new ArrayList<>();
     private CacheConfig cacheConfig;
     private int defaultPageSize = 50;
@@ -95,15 +99,6 @@ public class QueryDefinitionBuilder {
         this.postProcessors.add(obj -> processor.process(
             (com.balasam.oasis.common.query.core.result.QueryResult) ((Object[]) obj)[0],
             (com.balasam.oasis.common.query.core.execution.QueryContext) ((Object[]) obj)[1]
-        ));
-        return this;
-    }
-    
-    public QueryDefinitionBuilder calculator(String name, Calculator calc) {
-        this.calculators.put(name, obj -> calc.calculate(
-            ((Object[]) obj)[0],
-            (com.balasam.oasis.common.query.core.result.Row) ((Object[]) obj)[1],
-            (com.balasam.oasis.common.query.core.execution.QueryContext) ((Object[]) obj)[2]
         ));
         return this;
     }
@@ -205,7 +200,6 @@ public class QueryDefinitionBuilder {
             .preProcessors(ImmutableList.copyOf(preProcessors))
             .rowProcessors(ImmutableList.copyOf(rowProcessors))
             .postProcessors(ImmutableList.copyOf(postProcessors))
-            .calculators(ImmutableMap.copyOf(calculators))
             .validationRules(ImmutableList.copyOf(validationRules))
             .cacheConfig(cacheConfig)
             .defaultPageSize(defaultPageSize)
@@ -263,17 +257,10 @@ public class QueryDefinitionBuilder {
         private boolean sortable = false;
         private boolean calculated = false;
         private boolean primaryKey = false;
-        private boolean required = false;
-        private boolean masked = false;
         private Set<FilterOp> allowedOperators = new HashSet<>();
         private List<String> allowedValues = new ArrayList<>();
-        private Object defaultFilterValue;
         private Object defaultValue;
-        private Function<Object, Boolean> validator;
-        private Function<Object, Object> converter;
-        private Function<Object, Object> processor;
-        private Function<Object, String> formatter;
-        private Function<Object, Object> calculator;
+        private Processor processor;  // Handles all transformations
         private Function<Object, Boolean> securityRule;
         private String description;
         
@@ -314,15 +301,6 @@ public class QueryDefinitionBuilder {
             return this;
         }
         
-        public AttributeBuilder required(boolean required) {
-            this.required = required;
-            return this;
-        }
-        
-        public AttributeBuilder masked(boolean masked) {
-            this.masked = masked;
-            return this;
-        }
         
         public AttributeBuilder filterOperators(FilterOp... ops) {
             this.allowedOperators = new HashSet<>(Arrays.asList(ops));
@@ -331,11 +309,6 @@ public class QueryDefinitionBuilder {
         
         public AttributeBuilder allowedValues(String... values) {
             this.allowedValues = Arrays.asList(values);
-            return this;
-        }
-        
-        public AttributeBuilder defaultFilterValue(Object value) {
-            this.defaultFilterValue = value;
             return this;
         }
         
@@ -349,28 +322,26 @@ public class QueryDefinitionBuilder {
             return this;
         }
         
-        public AttributeBuilder validator(Function<Object, Boolean> validator) {
-            this.validator = validator;
-            return this;
-        }
-        
-        public AttributeBuilder converter(Function<Object, Object> converter) {
-            this.converter = converter;
-            return this;
-        }
-        
-        public AttributeBuilder processor(Function<Object, Object> processor) {
+        public AttributeBuilder processor(Processor processor) {
             this.processor = processor;
             return this;
         }
         
-        public AttributeBuilder formatter(Function<Object, String> formatter) {
-            this.formatter = formatter;
+        // Convenience method for simple processing
+        public AttributeBuilder processor(Function<Object, Object> func) {
+            this.processor = Processor.simple(func);
             return this;
         }
         
-        public AttributeBuilder calculator(Function<Object, Object> calculator) {
-            this.calculator = calculator;
+        // Convenience method for masking
+        public AttributeBuilder masked() {
+            this.processor = Processor.mask("***");
+            return this;
+        }
+        
+        // Convenience method for formatting
+        public AttributeBuilder formatter(Function<Object, String> formatter) {
+            this.processor = Processor.formatter(formatter);
             return this;
         }
         
@@ -388,17 +359,10 @@ public class QueryDefinitionBuilder {
                 .sortable(sortable)
                 .calculated(calculated)
                 .primaryKey(primaryKey)
-                .required(required)
-                .masked(masked)
                 .allowedOperators(ImmutableSet.copyOf(allowedOperators))
                 .allowedValues(ImmutableList.copyOf(allowedValues))
-                .defaultFilterValue(defaultFilterValue)
                 .defaultValue(defaultValue)
-                .validator(validator)
-                .converter(converter)
                 .processor(processor)
-                .formatter(formatter)
-                .calculator(calculator)
                 .securityRule(securityRule)
                 .description(description)
                 .build();
@@ -435,17 +399,10 @@ public class QueryDefinitionBuilder {
                 .calculated(true)
                 .virtual(true)
                 .primaryKey(false)
-                .required(super.required)
-                .masked(super.masked)
                 .allowedOperators(ImmutableSet.copyOf(super.allowedOperators))
                 .allowedValues(ImmutableList.copyOf(super.allowedValues))
-                .defaultFilterValue(super.defaultFilterValue)
                 .defaultValue(super.defaultValue)
-                .validator(super.validator)
-                .converter(super.converter)
                 .processor(super.processor)
-                .formatter(super.formatter)
-                .calculator(super.calculator)
                 .securityRule(super.securityRule)
                 .dependencies(ImmutableSet.copyOf(dependencies))
                 .description(super.description)
@@ -466,15 +423,8 @@ public class QueryDefinitionBuilder {
         private Class<?> genericType;
         private Object defaultValue;
         private boolean required = false;
-        private Function<Object, Boolean> validator;
-        private Function<Object, Object> processor;
-        private Function<Object, Object> converter;
+        private ParamProcessor processor;  // Handles validation and transformation
         private String description;
-        private Integer minValue;
-        private Integer maxValue;
-        private Integer minLength;
-        private Integer maxLength;
-        private String pattern;
         
         ParamBuilder(QueryDefinitionBuilder parent, String name) {
             this.parent = parent;
@@ -501,18 +451,23 @@ public class QueryDefinitionBuilder {
             return this;
         }
         
-        public ParamBuilder validator(Function<Object, Boolean> validator) {
-            this.validator = validator;
-            return this;
-        }
-        
-        public ParamBuilder processor(Function<Object, Object> processor) {
+        public ParamBuilder processor(ParamProcessor processor) {
             this.processor = processor;
             return this;
         }
         
-        public ParamBuilder converter(Function<Object, Object> converter) {
-            this.converter = converter;
+        // Convenience method for simple processing
+        public ParamBuilder processor(Function<Object, Object> func) {
+            this.processor = ParamProcessor.simple(func);
+            return this;
+        }
+        
+        // Convenience method for validation-only processor
+        public ParamBuilder validator(Function<Object, Boolean> validator) {
+            this.processor = ParamProcessor.validator(
+                value -> validator.apply(value),
+                "Validation failed for parameter: " + name
+            );
             return this;
         }
         
@@ -521,28 +476,21 @@ public class QueryDefinitionBuilder {
             return this;
         }
         
-        public ParamBuilder minValue(int min) {
-            this.minValue = min;
+        // Convenience method for range validation
+        public ParamBuilder range(int min, int max) {
+            this.processor = ParamProcessor.range(min, max);
             return this;
         }
         
-        public ParamBuilder maxValue(int max) {
-            this.maxValue = max;
+        // Convenience method for string length validation
+        public ParamBuilder lengthBetween(int min, int max) {
+            this.processor = ParamProcessor.lengthBetween(min, max);
             return this;
         }
         
-        public ParamBuilder minLength(int min) {
-            this.minLength = min;
-            return this;
-        }
-        
-        public ParamBuilder maxLength(int max) {
-            this.maxLength = max;
-            return this;
-        }
-        
+        // Convenience method for pattern validation
         public ParamBuilder pattern(String pattern) {
-            this.pattern = pattern;
+            this.processor = ParamProcessor.pattern(pattern);
             return this;
         }
         
@@ -553,15 +501,8 @@ public class QueryDefinitionBuilder {
                 .genericType(genericType)
                 .defaultValue(defaultValue)
                 .required(required)
-                .validator(validator)
                 .processor(processor)
-                .converter(converter)
                 .description(description)
-                .minValue(minValue)
-                .maxValue(maxValue)
-                .minLength(minLength)
-                .maxLength(maxLength)
-                .pattern(pattern)
                 .build();
             
             parent.addParam(param);

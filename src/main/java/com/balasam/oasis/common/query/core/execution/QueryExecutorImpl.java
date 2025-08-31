@@ -100,11 +100,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             // Execute query
             List<Row> rows = executeQuery(context, finalSql, params);
             
-            // Run row processors
+            // Run row processors (includes virtual attribute calculation)
             rows = runRowProcessors(context, rows);
-            
-            // Calculate virtual attributes
-            rows = calculateVirtualAttributes(context, rows);
             
             // Build initial result
             QueryResult result = QueryResult.builder()
@@ -185,6 +182,24 @@ public class QueryExecutorImpl implements QueryExecutor {
     
     private List<Row> runRowProcessors(QueryContext context, List<Row> rows) {
         QueryDefinition definition = context.getDefinition();
+        
+        // Process virtual attributes first
+        var virtualAttrs = definition.getAttributes().values().stream()
+            .filter(attr -> attr.isVirtual() && attr.hasProcessor())
+            .toList();
+        
+        // Apply virtual attribute processors
+        if (!virtualAttrs.isEmpty()) {
+            for (Row row : rows) {
+                for (var attr : virtualAttrs) {
+                    // Processor handles virtual attribute calculation with full context
+                    Object value = attr.getProcessor().process(null, row, context);
+                    row.setVirtual(attr.getName(), value);
+                }
+            }
+        }
+        
+        // Then run row processors if any
         if (!definition.hasRowProcessors()) {
             return rows;
         }
@@ -203,30 +218,6 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
         
         return processedRows;
-    }
-    
-    private List<Row> calculateVirtualAttributes(QueryContext context, List<Row> rows) {
-        QueryDefinition definition = context.getDefinition();
-        
-        // Find virtual attributes
-        var virtualAttrs = definition.getAttributes().values().stream()
-            .filter(attr -> attr.isVirtual() && attr.hasCalculator())
-            .collect(ImmutableList.toImmutableList());
-        
-        if (virtualAttrs.isEmpty()) {
-            return rows;
-        }
-        
-        // Calculate virtual values for each row
-        for (Row row : rows) {
-            for (var attr : virtualAttrs) {
-                Object[] args = new Object[] { null, row, context };
-                Object value = attr.getCalculator().apply(args);
-                row.setVirtual(attr.getName(), value);
-            }
-        }
-        
-        return rows;
     }
     
     private QueryResult runPostProcessors(QueryContext context, QueryResult result) {

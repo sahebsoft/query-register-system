@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Value;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableList;
+import com.balasam.oasis.common.query.processor.Processor;
 
 import java.util.Set;
 import java.util.List;
@@ -11,13 +12,14 @@ import java.util.function.Function;
 
 /**
  * Immutable attribute definition for query fields
+ * Simplified to reduce redundancy - all transformations handled by processor
  */
 @Value
 @Builder(toBuilder = true)
 public class AttributeDef {
     String name;                    // Frontend/API name
     String dbColumn;                 // Database column name
-    Class<?> type;                   // Java type
+    Class<?> type;                   // Java type for automatic conversion
     
     @Builder.Default
     boolean filterable = false;
@@ -35,25 +37,17 @@ public class AttributeDef {
     boolean primaryKey = false;
     
     @Builder.Default
-    boolean required = false;
-    
-    @Builder.Default
-    boolean masked = false;          // Should be masked in responses
-    
-    @Builder.Default
     Set<FilterOp> allowedOperators = ImmutableSet.of(FilterOp.EQUALS);
     
     @Builder.Default
     List<String> allowedValues = ImmutableList.of();
     
-    Object defaultFilterValue;
-    Object defaultValue;
+    Object defaultValue;             // Default value when null
     
-    Function<Object, Boolean> validator;
-    Function<Object, Object> converter;
-    Function<Object, Object> processor;
-    Function<Object, String> formatter;
-    Function<Object, Object> calculator;
+    // Single processor handles: conversion, formatting, masking, calculation
+    Processor processor;
+    
+    // Security rule determines if user can see this attribute
     Function<Object, Boolean> securityRule;
     
     @Builder.Default
@@ -65,24 +59,8 @@ public class AttributeDef {
         return securityRule != null;
     }
     
-    public boolean hasValidator() {
-        return validator != null;
-    }
-    
-    public boolean hasConverter() {
-        return converter != null;
-    }
-    
     public boolean hasProcessor() {
         return processor != null;
-    }
-    
-    public boolean hasFormatter() {
-        return formatter != null;
-    }
-    
-    public boolean hasCalculator() {
-        return calculator != null;
     }
     
     public boolean hasAllowedValues() {
