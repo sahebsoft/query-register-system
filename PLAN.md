@@ -103,11 +103,10 @@ Based on the SPEC.md and CLAUDE.md requirements, I will implement a production-r
 - Unit tests for all components
 - Integration tests with TestContainers (PostgreSQL, MySQL)
 - REST API tests with MockMvc
-- Performance tests for large datasets
 - Security tests for role-based access  
 
 
-12. Additional Features  
+1.  Additional Features  
 
 
 - Support for CTEs, UNION, Window Functions

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 
 /**
  * Example query configurations
@@ -178,16 +179,44 @@ public class ExampleQueryConfig {
                 // Criteria
                 .criteria("statusFilter")
                 .sql("AND u.status = :status")
-
-                .condition(ctx -> ((com.balasam.oasis.common.query.core.execution.QueryContext) ctx).hasParam("status"))
+                .condition(ctx -> ctx.hasParam("status"))
                 .build()
 
                 .criteria("dateFilter")
                 .sql("AND u.created_date >= :minDate")
                 .condition(
-                        ctx -> ((com.balasam.oasis.common.query.core.execution.QueryContext) ctx).hasParam("minDate"))
+                        ctx -> ctx.hasParam("minDate"))
                 .build()
-
+                .preProcessor(context -> {
+                    // Set minDate to 1 year ago if not provided
+                    if (!context.hasParam("minDate")) {
+                        context.addParam("minDate", LocalDate.now().minusYears(100));
+                    }
+                })
+                .rowProcessor((row, context) -> {
+                    // Mask email in result set for non-admin users
+                    String email = row.get("email", String.class);
+                    if (email != null && !email.isEmpty()) {
+                        int atIndex = email.indexOf("@");
+                        if (atIndex > 1) {
+                            row.set("email", email.charAt(0) + "***" + email.substring(atIndex));
+                        } else {
+                            row.set("email", "***@***");
+                        }
+                    }
+                    return row;
+                })
+                .postProcessor((queryResult, context) -> {
+                    queryResult.getRows().forEach(row -> {
+                        // Add a summary field based on existing data
+                        String tier = row.get("membershipTier", String.class);
+                        Integer orders = row.get("totalOrders", Integer.class);
+                        row.set("summary", String.format("%s - %d orders", tier, orders != null ? orders : 0));
+                    });
+                    // Example post-processing: log result size
+                    System.out.println("Query returned " + queryResult.getRows().size() + " rows.");
+                    return queryResult.toBuilder().summary(Map.of("processedAt", LocalDate.now().toString())).build();
+                })
                 // Configuration
                 .defaultPageSize(50)
                 .maxPageSize(500)
@@ -243,12 +272,14 @@ public class ExampleQueryConfig {
                 // Add criteria for department filter
                 .criteria("departmentFilter")
                 .sql("AND department_id = :deptId")
-                .condition(ctx -> ((com.balasam.oasis.common.query.core.execution.QueryContext) ctx).hasParam("deptId"))
+                .condition(ctx -> ctx.hasParam("deptId"))
                 .build()
 
                 // Add findByKey criteria for single object retrieval
-                .findByKey("findByKey")
+                .criteria("findByKey")
                 .sql("AND id = :id AND username = :username")
+                .condition(
+                        ctx -> ctx.hasParam("username"))
                 .description("Find single user by id and username")
                 .build()
 
