@@ -5,7 +5,7 @@ import com.balasam.oasis.common.query.core.execution.QueryContext;
 import com.balasam.oasis.common.query.processor.PreProcessor;
 import com.balasam.oasis.common.query.processor.RowProcessor;
 import com.balasam.oasis.common.query.processor.PostProcessor;
-import com.balasam.oasis.common.query.processor.Processor;
+import com.balasam.oasis.common.query.processor.AttributeProcessor;
 import com.balasam.oasis.common.query.processor.ParamProcessor;
 import com.balasam.oasis.common.query.processor.Validator;
 import com.google.common.base.Preconditions;
@@ -259,7 +259,7 @@ public class QueryDefinitionBuilder {
         private Set<FilterOp> allowedOperators = new HashSet<>();
         private List<String> allowedValues = new ArrayList<>();
         private Object defaultValue;
-        private Processor processor; // Handles all transformations
+        private AttributeProcessor processor; // Handles all transformations
         private Function<Object, Boolean> securityRule;
         private String description;
 
@@ -320,26 +320,26 @@ public class QueryDefinitionBuilder {
             return this;
         }
 
-        public AttributeBuilder processor(Processor processor) {
+        public AttributeBuilder processor(AttributeProcessor processor) {
             this.processor = processor;
             return this;
         }
 
         // Convenience method for simple processing
         public AttributeBuilder processor(Function<Object, Object> func) {
-            this.processor = Processor.simple(func);
+            this.processor = AttributeProcessor.simple(func);
             return this;
         }
 
         // Convenience method for masking
         public AttributeBuilder masked() {
-            this.processor = Processor.mask("***");
+            this.processor = AttributeProcessor.mask("***");
             return this;
         }
 
         // Convenience method for formatting
         public AttributeBuilder formatter(Function<Object, String> formatter) {
-            this.processor = Processor.formatter(formatter);
+            this.processor = AttributeProcessor.formatter(formatter);
             return this;
         }
 

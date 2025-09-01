@@ -36,7 +36,7 @@ public class CommonProcessors {
     public static final Validator NOT_EMPTY_VALIDATOR = value -> value != null && !value.toString().trim().isEmpty();
 
     // Formatters
-    public static final Processor CURRENCY_FORMATTER = (value, row, context) -> {
+    public static final AttributeProcessor CURRENCY_FORMATTER = (value, row, context) -> {
         if (value == null)
             return null;
         BigDecimal amount = value instanceof BigDecimal ? (BigDecimal) value
@@ -45,7 +45,7 @@ public class CommonProcessors {
         return formatter.format(amount);
     };
 
-    public static final Processor PERCENTAGE_FORMATTER = (value, row, context) -> {
+    public static final AttributeProcessor PERCENTAGE_FORMATTER = (value, row, context) -> {
         if (value == null)
             return null;
         double percentage = value instanceof Number ? ((Number) value).doubleValue()
@@ -53,7 +53,7 @@ public class CommonProcessors {
         return String.format("%.2f%%", percentage);
     };
 
-    public static final Processor DATE_FORMATTER = (value, row, context) -> {
+    public static final AttributeProcessor DATE_FORMATTER = (value, row, context) -> {
         if (value == null)
             return null;
         if (value instanceof LocalDate) {
@@ -66,16 +66,17 @@ public class CommonProcessors {
     };
 
     // Processors
-    public static final Processor UPPERCASE_PROCESSOR = (value, row,
+    public static final AttributeProcessor UPPERCASE_PROCESSOR = (value, row,
             context) -> value != null ? value.toString().toUpperCase() : null;
 
-    public static final Processor LOWERCASE_PROCESSOR = (value, row,
+    public static final AttributeProcessor LOWERCASE_PROCESSOR = (value, row,
             context) -> value != null ? value.toString().toLowerCase() : null;
 
-    public static final Processor TRIM_PROCESSOR = (value, row, context) -> value != null ? value.toString().trim()
+    public static final AttributeProcessor TRIM_PROCESSOR = (value, row, context) -> value != null
+            ? value.toString().trim()
             : null;
 
-    public static final Processor MASK_SSN_PROCESSOR = (value, row, context) -> {
+    public static final AttributeProcessor MASK_SSN_PROCESSOR = (value, row, context) -> {
         if (value == null)
             return null;
         String ssn = value.toString().replaceAll("[^0-9]", "");
@@ -85,7 +86,7 @@ public class CommonProcessors {
         return "***MASKED***";
     };
 
-    public static final Processor MASK_EMAIL_PROCESSOR = (value, row, context) -> {
+    public static final AttributeProcessor MASK_EMAIL_PROCESSOR = (value, row, context) -> {
         if (value == null)
             return null;
         String email = value.toString();
@@ -97,7 +98,7 @@ public class CommonProcessors {
     };
 
     // Calculators
-    public static Processor percentageCalculator(String numeratorField, String denominatorField) {
+    public static AttributeProcessor percentageCalculator(String numeratorField, String denominatorField) {
         return (value, row, context) -> {
             Number numerator = row.get(numeratorField, Number.class);
             Number denominator = row.get(denominatorField, Number.class);
@@ -108,7 +109,7 @@ public class CommonProcessors {
         };
     }
 
-    public static Processor sumCalculator(String... fields) {
+    public static AttributeProcessor sumCalculator(String... fields) {
         return (value, row, context) -> {
             double sum = 0;
             for (String field : fields) {
@@ -121,7 +122,7 @@ public class CommonProcessors {
         };
     }
 
-    public static Processor averageCalculator(String... fields) {
+    public static AttributeProcessor averageCalculator(String... fields) {
         return (value, row, context) -> {
             double sum = 0;
             int count = 0;
@@ -136,7 +137,7 @@ public class CommonProcessors {
         };
     }
 
-    public static Processor tierCalculator(String valueField, double bronze, double silver, double gold) {
+    public static AttributeProcessor tierCalculator(String valueField, double bronze, double silver, double gold) {
         return (value, row, context) -> {
             Number num = row.get(valueField, Number.class);
             if (num == null)
