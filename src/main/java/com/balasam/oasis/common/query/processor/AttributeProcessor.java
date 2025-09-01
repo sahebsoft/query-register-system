@@ -9,7 +9,7 @@ import com.balasam.oasis.common.query.core.execution.QueryContext;
  * access
  */
 @FunctionalInterface
-public interface AttributeProcessor {
+public interface AttributeProcessor<T> {
     /**
      * Process a value with optional row and context access
      * 
@@ -18,26 +18,26 @@ public interface AttributeProcessor {
      * @param context the query context (may be null for simple processing)
      * @return the processed/calculated value
      */
-    Object process(Object value, Row row, QueryContext context);
+    Object process(T value, Row row, QueryContext context);
 
     /**
      * Convenience static method for simple value-only processing
      */
-    static AttributeProcessor simple(java.util.function.Function<Object, Object> func) {
+    static <T> AttributeProcessor<T> simple(java.util.function.Function<T, Object> func) {
         return (value, row, context) -> func.apply(value);
     }
 
     /**
      * Convenience static method for masking values
      */
-    static AttributeProcessor mask(String maskValue) {
+    static AttributeProcessor<String> mask(String maskValue) {
         return (value, row, context) -> maskValue;
     }
 
     /**
      * Convenience static method for formatting
      */
-    static AttributeProcessor formatter(java.util.function.Function<Object, String> formatter) {
+    static AttributeProcessor<String> formatter(java.util.function.Function<Object, String> formatter) {
         return (value, row, context) -> formatter.apply(value);
     }
 }

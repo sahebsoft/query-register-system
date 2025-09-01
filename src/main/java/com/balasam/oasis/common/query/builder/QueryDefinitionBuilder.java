@@ -7,7 +7,6 @@ import com.balasam.oasis.common.query.processor.RowProcessor;
 import com.balasam.oasis.common.query.processor.PostProcessor;
 import com.balasam.oasis.common.query.processor.AttributeProcessor;
 import com.balasam.oasis.common.query.processor.ParamProcessor;
-import com.balasam.oasis.common.query.processor.Validator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -60,16 +59,16 @@ public class QueryDefinitionBuilder {
         return this;
     }
 
-    public AttributeBuilder attribute(String name) {
-        return new AttributeBuilder(this, name);
+    public <T> AttributeBuilder<T> attribute(String name, Class<T> type) {
+        return new AttributeBuilder<>(this, name, type);
     }
 
-    public VirtualAttributeBuilder virtualAttribute(String name) {
-        return new VirtualAttributeBuilder(this, name);
+    public <T> VirtualAttributeBuilder<T> virtualAttribute(String name, Class<T> type) {
+        return new VirtualAttributeBuilder<>(this, name, type);
     }
 
-    public ParamBuilder param(String name) {
-        return new ParamBuilder(this, name);
+    public ParamBuilder param(String name, Class<?> type) {
+        return new ParamBuilder(this, name, type);
     }
 
     public CriteriaBuilder criteria(String name) {
@@ -247,11 +246,11 @@ public class QueryDefinitionBuilder {
     /**
      * Attribute builder for regular attributes
      */
-    public static class AttributeBuilder {
+    public static class AttributeBuilder<T> {
         private final QueryDefinitionBuilder parent;
         private final String name;
         private String dbColumn;
-        private Class<?> type = String.class;
+        private final Class<T> type;
         private boolean filterable = false;
         private boolean sortable = false;
         private boolean calculated = false;
@@ -259,91 +258,75 @@ public class QueryDefinitionBuilder {
         private Set<FilterOp> allowedOperators = new HashSet<>();
         private List<String> allowedValues = new ArrayList<>();
         private Object defaultValue;
-        private AttributeProcessor processor; // Handles all transformations
+        private AttributeProcessor<T> processor; // Handles all transformations
         private Function<Object, Boolean> securityRule;
         private String description;
 
-        AttributeBuilder(QueryDefinitionBuilder parent, String name) {
+        AttributeBuilder(QueryDefinitionBuilder parent, String name, Class<T> type) {
             this.parent = parent;
             this.name = name;
             this.dbColumn = name; // Default to same as name
             this.allowedOperators.add(FilterOp.EQUALS); // Default operator
+            this.type = type;
         }
 
-        public AttributeBuilder dbColumn(String column) {
+        public AttributeBuilder<T> dbColumn(String column) {
             this.dbColumn = column;
             return this;
         }
 
-        public AttributeBuilder type(Class<?> type) {
-            this.type = type;
-            return this;
-        }
-
-        public AttributeBuilder filterable(boolean filterable) {
+        public AttributeBuilder<T> filterable(boolean filterable) {
             this.filterable = filterable;
             return this;
         }
 
-        public AttributeBuilder sortable(boolean sortable) {
+        public AttributeBuilder<T> sortable(boolean sortable) {
             this.sortable = sortable;
             return this;
         }
 
-        public AttributeBuilder calculated(boolean calculated) {
+        public AttributeBuilder<T> calculated(boolean calculated) {
             this.calculated = calculated;
             return this;
         }
 
-        public AttributeBuilder primaryKey(boolean pk) {
+        public AttributeBuilder<T> primaryKey(boolean pk) {
             this.primaryKey = pk;
             return this;
         }
 
-        public AttributeBuilder filterOperators(FilterOp... ops) {
+        public AttributeBuilder<T> filterOperators(FilterOp... ops) {
             this.allowedOperators = new HashSet<>(Arrays.asList(ops));
             return this;
         }
 
-        public AttributeBuilder allowedValues(String... values) {
+        public AttributeBuilder<T> allowedValues(String... values) {
             this.allowedValues = Arrays.asList(values);
             return this;
         }
 
-        public AttributeBuilder defaultValue(Object value) {
+        public AttributeBuilder<T> defaultValue(Object value) {
             this.defaultValue = value;
             return this;
         }
 
-        public AttributeBuilder secure(Function<Object, Boolean> rule) {
+        public AttributeBuilder<T> secure(Function<Object, Boolean> rule) {
             this.securityRule = rule;
             return this;
         }
 
-        public AttributeBuilder processor(AttributeProcessor processor) {
+        public AttributeBuilder<T> processor(AttributeProcessor<T> processor) {
             this.processor = processor;
             return this;
         }
 
         // Convenience method for simple processing
-        public AttributeBuilder processor(Function<Object, Object> func) {
+        public AttributeBuilder<T> processor(Function<T, Object> func) {
             this.processor = AttributeProcessor.simple(func);
             return this;
         }
 
-        // Convenience method for masking
-        public AttributeBuilder masked() {
-            this.processor = AttributeProcessor.mask("***");
-            return this;
-        }
-
-        // Convenience method for formatting
-        public AttributeBuilder formatter(Function<Object, String> formatter) {
-            this.processor = AttributeProcessor.formatter(formatter);
-            return this;
-        }
-
-        public AttributeBuilder description(String description) {
+        public AttributeBuilder<T> description(String description) {
             this.description = description;
             return this;
         }
@@ -373,15 +356,15 @@ public class QueryDefinitionBuilder {
     /**
      * Virtual attribute builder for computed fields
      */
-    public static class VirtualAttributeBuilder extends AttributeBuilder {
+    public static class VirtualAttributeBuilder<T> extends AttributeBuilder<T> {
         private Set<String> dependencies = new HashSet<>();
 
-        VirtualAttributeBuilder(QueryDefinitionBuilder parent, String name) {
-            super(parent, name);
+        VirtualAttributeBuilder(QueryDefinitionBuilder parent, String name, Class<T> type) {
+            super(parent, name, type);
             super.calculated(true); // Virtual attributes are always calculated
         }
 
-        public VirtualAttributeBuilder dependencies(String... deps) {
+        public VirtualAttributeBuilder<T> dependencies(String... deps) {
             this.dependencies = new HashSet<>(Arrays.asList(deps));
             return this;
         }
@@ -424,14 +407,10 @@ public class QueryDefinitionBuilder {
         private ParamProcessor processor; // Handles validation and transformation
         private String description;
 
-        ParamBuilder(QueryDefinitionBuilder parent, String name) {
+        ParamBuilder(QueryDefinitionBuilder parent, String name, Class<?> type) {
             this.parent = parent;
             this.name = name;
-        }
-
-        public ParamBuilder type(Class<?> type) {
             this.type = type;
-            return this;
         }
 
         public ParamBuilder genericType(Class<?> genericType) {

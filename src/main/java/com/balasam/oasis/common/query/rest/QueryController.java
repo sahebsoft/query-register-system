@@ -3,6 +3,8 @@ package com.balasam.oasis.common.query.rest;
 import com.balasam.oasis.common.query.core.execution.QueryExecutor;
 import com.balasam.oasis.common.query.core.result.QueryResult;
 import com.balasam.oasis.common.query.exception.QueryException;
+import com.balasam.oasis.common.query.exception.QueryValidationException;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -61,7 +63,7 @@ public class QueryController {
             // Check if this is a findByKey query (has key.* parameters)
             boolean hasKeyParams = allParams.keySet().stream()
                     .anyMatch(key -> key.startsWith("key."));
-            
+
             if (hasKeyParams) {
                 // Execute as single object query
                 Object singleResult = queryExecutor.execute(queryName)
@@ -69,7 +71,7 @@ public class QueryController {
                         .withFilters(queryRequest.getFilters())
                         .includeMetadata(!"none".equals(_meta))
                         .executeSingle();
-                
+
                 // Build single object response
                 return responseBuilder.buildSingle(singleResult, _format, queryName);
             } else {
@@ -209,9 +211,9 @@ public class QueryController {
             builder.code(qe.getErrorCode())
                     .queryName(qe.getQueryName());
 
-            if (qe instanceof com.balasam.oasis.common.query.exception.QueryValidationException) {
+            if (qe instanceof QueryValidationException) {
                 builder.details(Map.of("violations",
-                        ((com.balasam.oasis.common.query.exception.QueryValidationException) qe).getViolations()));
+                        ((QueryValidationException) qe).getViolations()));
             }
         } else {
             builder.code("INTERNAL_ERROR");

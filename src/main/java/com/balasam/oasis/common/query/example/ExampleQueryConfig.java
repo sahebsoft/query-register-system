@@ -44,93 +44,88 @@ public class ExampleQueryConfig {
                 .description("User dashboard with order statistics")
 
                 // Basic user attributes
-                .attribute("id")
+                .attribute("id", Long.class)
                 .dbColumn("id")
-                .type(Long.class)
                 .primaryKey(true)
                 .sortable(true)
                 .build()
 
-                .attribute("username")
+                .attribute("username", String.class)
                 .dbColumn("username")
-                .type(String.class)
+
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.LIKE, FilterOp.IN)
                 .build()
 
-                .attribute("email")
+                .attribute("email", String.class)
                 .dbColumn("email")
-                .type(String.class)
                 .filterable(true)
                 .sortable(true)
-                .processor(CommonProcessors.LOWERCASE_PROCESSOR::process)
+                .processor(CommonProcessors.UPPERCASE_PROCESSOR)
                 .secure(ctx -> true) // In real app, check permissions
                 .build()
 
-                .attribute("fullName")
+                .attribute("fullName", String.class)
                 .dbColumn("full_name")
-                .type(String.class)
+
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.LIKE, FilterOp.STARTS_WITH)
                 .build()
 
-                .attribute("status")
+                .attribute("status", String.class)
                 .dbColumn("status")
-                .type(String.class)
+
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.IN)
                 .allowedValues("ACTIVE", "INACTIVE", "SUSPENDED", "PENDING")
                 .build()
 
-                .attribute("createdDate")
+                .attribute("createdDate", LocalDate.class)
                 .dbColumn("created_date")
-                .type(LocalDate.class)
+
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.BETWEEN, FilterOp.GREATER_THAN, FilterOp.LESS_THAN)
                 .build()
 
-                .attribute("lastLogin")
+                .attribute("lastLogin", LocalDate.class)
                 .dbColumn("last_login")
-                .type(LocalDate.class)
+
                 .filterable(true)
                 .sortable(true)
                 .build()
 
                 // Order statistics
-                .attribute("totalOrders")
+                .attribute("totalOrders", Integer.class)
                 .dbColumn("total_orders")
-                .type(Integer.class)
+
                 .sortable(true)
                 .calculated(true)
                 .build()
 
-                .attribute("lifetimeValue")
+                .attribute("lifetimeValue", BigDecimal.class)
                 .dbColumn("lifetime_value")
                 .processor(row -> {
                     return BigDecimal.TEN;
                 })
-                .type(BigDecimal.class)
                 .filterable(false) // Can't filter on calculated aggregate columns in WHERE clause
                 .sortable(true)
                 .calculated(true)
                 // .formatter(CommonProcessors.CURRENCY_FORMATTER::format) // Disabled for now
                 .build()
 
-                .attribute("averageOrderValue")
+                .attribute("averageOrderValue", BigDecimal.class)
                 .dbColumn("average_order_value")
-                .type(BigDecimal.class)
                 .sortable(true)
                 .calculated(true)
                 // .formatter(CommonProcessors.CURRENCY_FORMATTER::format) // Disabled for now
                 .build()
 
                 // Virtual attributes
-                .virtualAttribute("membershipTier")
-                .type(String.class)
+                .virtualAttribute("membershipTier", String.class)
                 .processor((obj, row, context) -> {
                     System.out.println(context.getParams());
                     BigDecimal ltv = row.getBigDecimal("lifetimeValue");
@@ -152,14 +147,12 @@ public class ExampleQueryConfig {
                 .build()
 
                 // Parameters
-                .param("minOrderDate")
-                .type(LocalDate.class)
+                .param("minOrderDate", LocalDate.class)
                 .defaultValue(LocalDate.now().minusYears(1))
                 .description("Minimum order date for statistics")
                 .build()
 
-                .param("status")
-                .type(String.class)
+                .param("status", String.class)
                 .description("Filter by user status")
                 .defaultValue("ACTIVE")
                 .required(false)
@@ -170,8 +163,7 @@ public class ExampleQueryConfig {
                 })
                 .build()
 
-                .param("includeInactive")
-                .type(Boolean.class)
+                .param("includeInactive", Boolean.class)
                 .defaultValue(false)
                 .description("Include inactive users")
                 .build()
@@ -230,40 +222,35 @@ public class ExampleQueryConfig {
                 .sql("SELECT * FROM users WHERE 1=1 --departmentFilter --findByKey")
                 .description("Simple user query with findByKey support")
 
-                .attribute("id")
+                .attribute("id", Long.class)
                 .dbColumn("id")
-                .type(Long.class)
                 .primaryKey(true)
                 .sortable(true)
                 .build()
 
-                .attribute("username")
+                .attribute("username", String.class)
                 .dbColumn("username")
-                .type(String.class)
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.LIKE, FilterOp.IN)
                 .build()
 
-                .attribute("email")
+                .attribute("email", String.class)
                 .dbColumn("email")
-                .type(String.class)
                 .filterable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.LIKE)
                 .build()
 
-                .attribute("status")
+                .attribute("status", String.class)
                 .dbColumn("status")
-                .type(String.class)
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.NOT_EQUALS, FilterOp.IN)
                 .allowedValues("ACTIVE", "INACTIVE", "SUSPENDED", "PENDING")
                 .build()
 
-                .attribute("createdDate")
+                .attribute("createdDate", LocalDate.class)
                 .dbColumn("created_date")
-                .type(LocalDate.class)
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.BETWEEN, FilterOp.GREATER_THAN, FilterOp.LESS_THAN)

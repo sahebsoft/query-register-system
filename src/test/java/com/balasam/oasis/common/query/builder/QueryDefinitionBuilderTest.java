@@ -2,12 +2,9 @@ package com.balasam.oasis.common.query.builder;
 
 import com.balasam.oasis.common.query.core.definition.*;
 import com.balasam.oasis.common.query.core.execution.QueryContext;
-import com.balasam.oasis.common.query.core.result.QueryResult;
-import com.balasam.oasis.common.query.core.result.Row;
 import com.balasam.oasis.common.query.processor.PreProcessor;
 import com.balasam.oasis.common.query.processor.RowProcessor;
 import com.balasam.oasis.common.query.processor.PostProcessor;
-import com.balasam.oasis.common.query.processor.Validator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
@@ -15,7 +12,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -37,9 +33,8 @@ class QueryDefinitionBuilderTest {
     void testBasicQueryDefinitionCreation() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("id")
+                .attribute("id", Long.class)
                 .dbColumn("user_id")
-                .type(Long.class)
                 .build()
                 .build();
 
@@ -58,8 +53,7 @@ class QueryDefinitionBuilderTest {
         QueryDefinition query = QueryDefinitionBuilder.builder("userQuery")
                 .sql("SELECT * FROM users")
                 .description("Query to fetch user data with filters")
-                .attribute("username")
-                .type(String.class)
+                .attribute("username", String.class)
                 .build()
                 .build();
 
@@ -71,7 +65,7 @@ class QueryDefinitionBuilderTest {
     void testBuilderValidationRequiresName() {
         assertThatThrownBy(() -> QueryDefinitionBuilder.builder(null)
                 .sql("SELECT * FROM users")
-                .attribute("id").build()
+                .attribute("id", BigDecimal.class).build()
                 .build()).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("Query name cannot be null");
     }
@@ -80,7 +74,7 @@ class QueryDefinitionBuilderTest {
     @DisplayName("Test that SQL is required")
     void testBuilderValidationRequiresSql() {
         assertThatThrownBy(() -> QueryDefinitionBuilder.builder("testQuery")
-                .attribute("id").build()
+                .attribute("id", Long.class).build()
                 .build()).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("SQL cannot be null");
     }
@@ -103,9 +97,8 @@ class QueryDefinitionBuilderTest {
     void testAttributeWithAllProperties() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("email")
+                .attribute("email", String.class)
                 .dbColumn("email_address")
-                .type(String.class)
                 .filterable(true)
                 .sortable(true)
                 .calculated(false)
@@ -132,8 +125,7 @@ class QueryDefinitionBuilderTest {
     void testAttributeWithFilterOperators() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("status")
-                .type(String.class)
+                .attribute("status", String.class)
                 .filterable(true)
                 .filterOperators(FilterOp.EQUALS, FilterOp.IN, FilterOp.NOT_EQUALS)
                 .build()
@@ -149,8 +141,7 @@ class QueryDefinitionBuilderTest {
     void testAttributeWithAllowedValues() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("role")
-                .type(String.class)
+                .attribute("role", String.class)
                 .allowedValues("ADMIN", "USER", "GUEST", "MODERATOR")
                 .defaultValue("USER")
                 .build()
@@ -171,8 +162,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("salary")
-                .type(BigDecimal.class)
+                .attribute("salary", BigDecimal.class)
                 .secure(securityRule)
                 .build()
                 .build();
@@ -195,8 +185,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM products")
-                .attribute("price")
-                .type(BigDecimal.class)
+                .attribute("price", BigDecimal.class)
                 .processor((value, row, context) -> {
                     // Processor handles all transformations
                     if (value == null)
@@ -220,12 +209,10 @@ class QueryDefinitionBuilderTest {
     void testPrimaryKeyAttribute() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("id")
-                .type(Long.class)
+                .attribute("id", Long.class)
                 .primaryKey(true)
                 .build()
-                .attribute("name")
-                .type(String.class)
+                .attribute("name", String.class)
                 .primaryKey(false)
                 .build()
                 .build();
@@ -241,19 +228,16 @@ class QueryDefinitionBuilderTest {
     @Test
     @DisplayName("Test virtual attribute creation")
     void testVirtualAttributeCreation() {
-        Function<Object, Object> tierCalculator = value -> {
-            // Simulate tier calculation
-            return "GOLD";
-        };
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM customers")
-                .attribute("customerId")
-                .type(Long.class)
+                .attribute("customerId", Long.class)
                 .build()
-                .virtualAttribute("membershipTier")
-                .type(String.class)
-                .processor(tierCalculator)
+                .virtualAttribute("membershipTier", String.class)
+                .processor(value -> {
+                    // Simulate tier calculation
+                    return "GOLD";
+                })
                 .allowedValues("BRONZE", "SILVER", "GOLD", "PLATINUM")
                 .build()
                 .build();
@@ -271,10 +255,9 @@ class QueryDefinitionBuilderTest {
     void testVirtualAttributeWithDependencies() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM orders")
-                .attribute("quantity").type(Integer.class).build()
-                .attribute("price").type(BigDecimal.class).build()
-                .virtualAttribute("totalAmount")
-                .type(BigDecimal.class)
+                .attribute("quantity", Integer.class).build()
+                .attribute("price", BigDecimal.class).build()
+                .virtualAttribute("totalAmount", BigDecimal.class)
                 .processor(value -> BigDecimal.valueOf(100))
                 .build()
                 .build();
@@ -290,9 +273,8 @@ class QueryDefinitionBuilderTest {
     void testVirtualAttributeAutoCalculated() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("id").type(Long.class).build()
-                .virtualAttribute("displayName")
-                .type(String.class)
+                .attribute("id", Long.class).build()
+                .virtualAttribute("displayName", String.class)
                 .processor(value -> "User Display")
                 .build()
                 .build();
@@ -314,9 +296,8 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM products WHERE price > :minPrice")
-                .attribute("id").type(Long.class).build()
-                .param("minPrice")
-                .type(BigDecimal.class)
+                .attribute("id", Long.class).build()
+                .param("minPrice", BigDecimal.class)
                 .validator(validator)
                 .description("Minimum price filter")
                 .build()
@@ -333,9 +314,8 @@ class QueryDefinitionBuilderTest {
     void testParameterWithDefaultValue() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM orders WHERE status = :status")
-                .attribute("id").type(Long.class).build()
-                .param("status")
-                .type(String.class)
+                .attribute("id", Long.class).build()
+                .param("status", String.class)
                 .defaultValue("ACTIVE")
                 .required(false)
                 .build()
@@ -351,9 +331,8 @@ class QueryDefinitionBuilderTest {
     void testRequiredParameter() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users WHERE department_id = :deptId")
-                .attribute("id").type(Long.class).build()
-                .param("deptId")
-                .type(Long.class)
+                .attribute("id", Long.class).build()
+                .param("deptId", Long.class)
                 .required(true)
                 .build()
                 .build();
@@ -367,14 +346,12 @@ class QueryDefinitionBuilderTest {
     void testParameterWithConstraints() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM products WHERE name LIKE :searchTerm")
-                .attribute("id").type(Long.class).build()
-                .param("searchTerm")
-                .type(String.class)
+                .attribute("id", Long.class).build()
+                .param("searchTerm", String.class)
                 .lengthBetween(3, 50)
                 .pattern("[a-zA-Z0-9 ]+")
                 .build()
-                .param("pageSize")
-                .type(Integer.class)
+                .param("pageSize", Integer.class)
                 .range(1, 100)
                 .defaultValue(20)
                 .build()
@@ -396,17 +373,15 @@ class QueryDefinitionBuilderTest {
     @Test
     @DisplayName("Test criteria with condition")
     void testCriteriaWithCondition() {
-        Predicate<Object> condition = ctx -> {
-            QueryContext context = (QueryContext) ctx;
-            return context.hasParam("status");
-        };
-
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users WHERE 1=1 --statusFilter")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .criteria("statusFilter")
                 .sql("AND status = :status")
-                .condition(condition)
+                .condition(ctx -> {
+                    QueryContext context = (QueryContext) ctx;
+                    return context.hasParam("status");
+                })
                 .description("Apply status filter when status param is provided")
                 .build()
                 .build();
@@ -429,7 +404,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM orders WHERE 1=1 --recentFilter")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .criteria("recentFilter")
                 .dynamic(true)
                 .generator(generator)
@@ -446,7 +421,7 @@ class QueryDefinitionBuilderTest {
     void testSecurityRelatedCriteria() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM documents WHERE 1=1 --securityFilter")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .criteria("securityFilter")
                 .sql("AND department_id IN (SELECT id FROM departments WHERE manager_id = :userId)")
                 .securityRelated(true)
@@ -464,7 +439,7 @@ class QueryDefinitionBuilderTest {
     void testCriteriaPriority() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM products WHERE 1=1 --priceFilter --categoryFilter --stockFilter")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .criteria("priceFilter")
                 .sql("AND price > :minPrice")
                 .priority(1)
@@ -498,7 +473,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .preProcessor(preProcessor)
                 .build();
 
@@ -517,7 +492,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM orders")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .rowProcessor(rowProcessor)
                 .build();
 
@@ -537,7 +512,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM products")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .postProcessor(postProcessor)
                 .build();
 
@@ -554,7 +529,7 @@ class QueryDefinitionBuilderTest {
     void testCacheConfiguration() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM static_data")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .cache(true)
                 .build();
 
@@ -567,7 +542,7 @@ class QueryDefinitionBuilderTest {
     void testCacheTTL() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM reference_data")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .cache(true)
                 .cacheTTL(Duration.ofMinutes(30))
                 .build();
@@ -582,7 +557,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM cached_data")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .cache(true)
                 .cacheKey(keyGenerator)
                 .build();
@@ -600,7 +575,7 @@ class QueryDefinitionBuilderTest {
     void testPaginationSettings() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM large_table")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .defaultPageSize(25)
                 .maxPageSize(500)
                 .paginationEnabled(true)
@@ -616,7 +591,7 @@ class QueryDefinitionBuilderTest {
     void testQueryTimeout() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM slow_view")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .queryTimeout(30)
                 .build();
 
@@ -628,7 +603,7 @@ class QueryDefinitionBuilderTest {
     void testAuditAndMetrics() {
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM sensitive_data")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .auditEnabled(true)
                 .metricsEnabled(true)
                 .build();
@@ -653,7 +628,7 @@ class QueryDefinitionBuilderTest {
 
         QueryDefinition query = QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM events")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .validationRule(rule1)
                 .validationRule("contextCheck", rule2Logic, "Context is required")
                 .build();
@@ -702,55 +677,48 @@ class QueryDefinitionBuilderTest {
                 .description("Complex analytics query with CTEs and aggregations")
 
                 // Regular attributes
-                .attribute("id")
+                .attribute("id", Long.class)
                 .dbColumn("id")
-                .type(Long.class)
                 .primaryKey(true)
                 .build()
 
-                .attribute("name")
+                .attribute("name", String.class)
                 .dbColumn("name")
-                .type(String.class)
                 .filterable(true)
                 .sortable(true)
                 .filterOperators(FilterOp.LIKE, FilterOp.STARTS_WITH)
                 .build()
 
-                .attribute("email")
+                .attribute("email", String.class)
                 .dbColumn("email")
-                .type(String.class)
                 .filterable(true)
                 .secure(ctx -> true)
                 .processor(email -> email.toString().replaceAll("(?<=.{3}).(?=.*@)", "*"))
                 .build()
 
-                .attribute("status")
+                .attribute("status", String.class)
                 .dbColumn("status")
-                .type(String.class)
                 .filterable(true)
                 .sortable(true)
                 .allowedValues("ACTIVE", "INACTIVE", "SUSPENDED")
                 .defaultValue("ACTIVE")
                 .build()
 
-                .attribute("monthlyTotal")
+                .attribute("monthlyTotal", BigDecimal.class)
                 .dbColumn("monthly_total")
-                .type(BigDecimal.class)
                 .calculated(true)
                 .sortable(true)
                 .processor(value -> String.format("$%,.2f", value))
                 .build()
 
-                .attribute("orderCount")
+                .attribute("orderCount", Integer.class)
                 .dbColumn("order_count")
-                .type(Integer.class)
                 .calculated(true)
                 .sortable(true)
                 .build()
 
                 // Virtual attributes
-                .virtualAttribute("customerTier")
-                .type(String.class)
+                .virtualAttribute("customerTier", String.class)
                 .processor(value -> {
                     // Complex tier calculation
                     return "GOLD";
@@ -759,33 +727,28 @@ class QueryDefinitionBuilderTest {
                 .filterable(true)
                 .build()
 
-                .virtualAttribute("riskScore")
-                .type(Integer.class)
+                .virtualAttribute("riskScore", Integer.class)
                 .processor(value -> 75)
                 .build()
 
                 // Parameters
-                .param("startDate")
-                .type(LocalDate.class)
+                .param("startDate", LocalDate.class)
                 .required(true)
                 .description("Start date for analysis")
                 .build()
 
-                .param("endDate")
-                .type(LocalDate.class)
+                .param("endDate", LocalDate.class)
                 .required(true)
                 .validator(value -> true)
                 .description("End date for analysis")
                 .build()
 
-                .param("region")
-                .type(String.class)
+                .param("region", String.class)
                 .defaultValue("US")
                 .description("Region filter")
                 .build()
 
-                .param("minOrderCount")
-                .type(Integer.class)
+                .param("minOrderCount", Integer.class)
                 .defaultValue(0)
                 .range(0, 1000)
                 .build()
@@ -867,21 +830,21 @@ class QueryDefinitionBuilderTest {
     void testQueryWithMultipleAttributes() {
         QueryDefinition query = QueryDefinitionBuilder.builder("multiAttributeQuery")
                 .sql("SELECT * FROM comprehensive_view")
-                .attribute("id").type(Long.class).primaryKey(true).build()
-                .attribute("name").type(String.class).filterable(true).sortable(true).build()
-                .attribute("email").type(String.class).filterable(true).processor(v -> "***").build()
-                .attribute("phone").type(String.class).processor(v -> "***").build()
-                .attribute("address").type(String.class).build()
-                .attribute("city").type(String.class).filterable(true).build()
-                .attribute("state").type(String.class).filterable(true).allowedValues("CA", "NY", "TX").build()
-                .attribute("zipCode").type(String.class).build()
-                .attribute("country").type(String.class).defaultValue("US").build()
-                .attribute("createdDate").type(LocalDate.class).sortable(true).build()
-                .attribute("lastModified").type(LocalDate.class).sortable(true).build()
-                .attribute("status").type(String.class).filterable(true).sortable(true).build()
-                .attribute("balance").type(BigDecimal.class).sortable(true).build()
-                .attribute("creditLimit").type(BigDecimal.class).build()
-                .attribute("isActive").type(Boolean.class).filterable(true).defaultValue(true).build()
+                .attribute("id", Long.class).primaryKey(true).build()
+                .attribute("name", String.class).filterable(true).sortable(true).build()
+                .attribute("email", String.class).filterable(true).processor(v -> "***").build()
+                .attribute("phone", String.class).processor(v -> "***").build()
+                .attribute("address", String.class).build()
+                .attribute("city", String.class).filterable(true).build()
+                .attribute("state", String.class).filterable(true).allowedValues("CA", "NY", "TX").build()
+                .attribute("zipCode", String.class).build()
+                .attribute("country", String.class).defaultValue("US").build()
+                .attribute("createdDate", LocalDate.class).sortable(true).build()
+                .attribute("lastModified", LocalDate.class).sortable(true).build()
+                .attribute("status", String.class).filterable(true).sortable(true).build()
+                .attribute("balance", BigDecimal.class).sortable(true).build()
+                .attribute("creditLimit", BigDecimal.class).build()
+                .attribute("isActive", Boolean.class).filterable(true).defaultValue(true).build()
                 .build();
 
         assertThat(query.getAttributes()).hasSize(15);
@@ -912,7 +875,7 @@ class QueryDefinitionBuilderTest {
                         --regionFilter
                         --fraudFilter
                         """)
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
 
                 .criteria("amountFilter")
                 .sql("AND t.amount BETWEEN :minAmount AND :maxAmount")
@@ -985,7 +948,7 @@ class QueryDefinitionBuilderTest {
     void testCriteriaPlaceholderValidation() {
         assertThatThrownBy(() -> QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users WHERE 1=1")
-                .attribute("id").type(Long.class).build()
+                .attribute("id", Long.class).build()
                 .criteria("missingPlaceholder")
                 .sql("AND status = :status")
                 .build()
@@ -999,9 +962,8 @@ class QueryDefinitionBuilderTest {
         // Required parameter not referenced in SQL should throw exception
         assertThatThrownBy(() -> QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("id").type(Long.class).build()
-                .param("unreferencedParam")
-                .type(String.class)
+                .attribute("id", Long.class).build()
+                .param("unreferencedParam", String.class)
                 .required(true)
                 .build()
                 .build()).isInstanceOf(IllegalArgumentException.class)
@@ -1010,9 +972,8 @@ class QueryDefinitionBuilderTest {
         // Optional parameter not referenced should be OK
         assertThatNoException().isThrownBy(() -> QueryDefinitionBuilder.builder("testQuery")
                 .sql("SELECT * FROM users")
-                .attribute("id").type(Long.class).build()
-                .param("optionalParam")
-                .type(String.class)
+                .attribute("id", Long.class).build()
+                .param("optionalParam", String.class)
                 .required(false)
                 .build()
                 .build());
@@ -1026,14 +987,14 @@ class QueryDefinitionBuilderTest {
                 .sql("SELECT * FROM test WHERE param2 = :param2 --criteria1")
                 .description("Test chaining")
                 // Test chaining multiple attributes
-                .attribute("field1").type(String.class).build()
-                .attribute("field2").type(Integer.class).filterable(true).build()
-                .attribute("field3").type(Boolean.class).sortable(true).build()
+                .attribute("field1", String.class).build()
+                .attribute("field2", Integer.class).filterable(true).build()
+                .attribute("field3", Boolean.class).sortable(true).build()
                 // Test chaining virtual attributes
-                .virtualAttribute("virtual1").type(String.class).processor(v -> "test").build()
+                .virtualAttribute("virtual1", String.class).processor(v -> "test").build()
                 // Test chaining parameters
-                .param("param1").type(String.class).build()
-                .param("param2").type(Integer.class).required(true).build()
+                .param("param1", String.class).build()
+                .param("param2", Integer.class).required(true).build()
                 // Test chaining criteria
                 .criteria("criteria1").sql("AND test = :test").build()
                 // Test chaining processors

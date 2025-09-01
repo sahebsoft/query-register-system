@@ -7,7 +7,6 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Currency;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -36,7 +35,7 @@ public class CommonProcessors {
     public static final Validator NOT_EMPTY_VALIDATOR = value -> value != null && !value.toString().trim().isEmpty();
 
     // Formatters
-    public static final AttributeProcessor CURRENCY_FORMATTER = (value, row, context) -> {
+    public static final AttributeProcessor<BigDecimal> CURRENCY_FORMATTER = (value, row, context) -> {
         if (value == null)
             return null;
         BigDecimal amount = value instanceof BigDecimal ? (BigDecimal) value
@@ -45,7 +44,7 @@ public class CommonProcessors {
         return formatter.format(amount);
     };
 
-    public static final AttributeProcessor PERCENTAGE_FORMATTER = (value, row, context) -> {
+    public static final AttributeProcessor<Number> PERCENTAGE_FORMATTER = (value, row, context) -> {
         if (value == null)
             return null;
         double percentage = value instanceof Number ? ((Number) value).doubleValue()
@@ -53,12 +52,18 @@ public class CommonProcessors {
         return String.format("%.2f%%", percentage);
     };
 
-    public static final AttributeProcessor DATE_FORMATTER = (value, row, context) -> {
+    public static final AttributeProcessor<LocalDate> DATE_FORMATTER = (value, row, context) -> {
         if (value == null)
             return null;
         if (value instanceof LocalDate) {
             return ((LocalDate) value).format(DateTimeFormatter.ISO_LOCAL_DATE);
         }
+        return value.toString();
+    };
+
+    public static final AttributeProcessor<LocalDateTime> DATETIME_FORMATTER = (value, row, context) -> {
+        if (value == null)
+            return null;
         if (value instanceof LocalDateTime) {
             return ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         }
@@ -66,17 +71,17 @@ public class CommonProcessors {
     };
 
     // Processors
-    public static final AttributeProcessor UPPERCASE_PROCESSOR = (value, row,
+    public static final AttributeProcessor<String> UPPERCASE_PROCESSOR = (value, row,
             context) -> value != null ? value.toString().toUpperCase() : null;
 
-    public static final AttributeProcessor LOWERCASE_PROCESSOR = (value, row,
+    public static final AttributeProcessor<String> LOWERCASE_PROCESSOR = (value, row,
             context) -> value != null ? value.toString().toLowerCase() : null;
 
-    public static final AttributeProcessor TRIM_PROCESSOR = (value, row, context) -> value != null
+    public static final AttributeProcessor<String> TRIM_PROCESSOR = (value, row, context) -> value != null
             ? value.toString().trim()
             : null;
 
-    public static final AttributeProcessor MASK_SSN_PROCESSOR = (value, row, context) -> {
+    public static final AttributeProcessor<String> MASK_SSN_PROCESSOR = (value, row, context) -> {
         if (value == null)
             return null;
         String ssn = value.toString().replaceAll("[^0-9]", "");
@@ -86,7 +91,7 @@ public class CommonProcessors {
         return "***MASKED***";
     };
 
-    public static final AttributeProcessor MASK_EMAIL_PROCESSOR = (value, row, context) -> {
+    public static final AttributeProcessor<String> MASK_EMAIL_PROCESSOR = (value, row, context) -> {
         if (value == null)
             return null;
         String email = value.toString();
@@ -97,59 +102,4 @@ public class CommonProcessors {
         return "***@***";
     };
 
-    // Calculators
-    public static AttributeProcessor percentageCalculator(String numeratorField, String denominatorField) {
-        return (value, row, context) -> {
-            Number numerator = row.get(numeratorField, Number.class);
-            Number denominator = row.get(denominatorField, Number.class);
-            if (numerator != null && denominator != null && denominator.doubleValue() != 0) {
-                return (numerator.doubleValue() / denominator.doubleValue()) * 100;
-            }
-            return 0.0;
-        };
-    }
-
-    public static AttributeProcessor sumCalculator(String... fields) {
-        return (value, row, context) -> {
-            double sum = 0;
-            for (String field : fields) {
-                Number num = row.get(field, Number.class);
-                if (num != null) {
-                    sum += num.doubleValue();
-                }
-            }
-            return sum;
-        };
-    }
-
-    public static AttributeProcessor averageCalculator(String... fields) {
-        return (value, row, context) -> {
-            double sum = 0;
-            int count = 0;
-            for (String field : fields) {
-                Number num = row.get(field, Number.class);
-                if (num != null) {
-                    sum += num.doubleValue();
-                    count++;
-                }
-            }
-            return count > 0 ? sum / count : 0.0;
-        };
-    }
-
-    public static AttributeProcessor tierCalculator(String valueField, double bronze, double silver, double gold) {
-        return (value, row, context) -> {
-            Number num = row.get(valueField, Number.class);
-            if (num == null)
-                return "NONE";
-            double val = num.doubleValue();
-            if (val >= gold)
-                return "GOLD";
-            if (val >= silver)
-                return "SILVER";
-            if (val >= bronze)
-                return "BRONZE";
-            return "NONE";
-        };
-    }
 }
