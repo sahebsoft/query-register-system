@@ -206,7 +206,7 @@ src/main/java/com/balasam/oasis/common/query/
 ├── core/                 # Core domain (as is)
 ├── builder/              # Expanded with AttributeBuilder, ParamBuilder, CriteriaBuilder
 ├── processor/            # Processing interfaces (as is)
-├── rest/                 # Enhanced with metadata, export formats
+├── rest/                 # REST API with JSON responses
 ├── config/               # Configuration (as is)
 ├── security/             # NEW - Security layer (SecurityContext, filters)
 ├── cache/                # NEW - Caching layer (CacheManager, providers)

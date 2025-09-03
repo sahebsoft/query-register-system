@@ -1,5 +1,20 @@
 package com.balasam.oasis.common.query.rest;
 
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.balasam.oasis.common.query.core.execution.QueryExecutor;
 import com.balasam.oasis.common.query.core.result.QueryResult;
 import com.balasam.oasis.common.query.exception.QueryException;
@@ -8,14 +23,6 @@ import com.balasam.oasis.common.query.exception.QueryValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * REST controller for query execution
@@ -50,8 +57,6 @@ public class QueryController {
 
             @RequestParam(defaultValue = "full") @Parameter(description = "Metadata level: full, minimal, none") String _meta,
 
-            @RequestParam(defaultValue = "json") @Parameter(description = "Response format: json, csv, excel") String _format,
-
             @RequestParam MultiValueMap<String, String> allParams) {
 
         log.info("Executing query: {} with params: {}", queryName, allParams);
@@ -73,7 +78,7 @@ public class QueryController {
                         .executeSingle();
 
                 // Build single object response
-                return responseBuilder.buildSingle(singleResult, _format, queryName);
+                return responseBuilder.buildSingle(singleResult, queryName);
             } else {
                 // Execute as list query
                 QueryResult result = queryExecutor.execute(queryName)
@@ -84,8 +89,8 @@ public class QueryController {
                         .includeMetadata(!"none".equals(_meta))
                         .execute();
 
-                // Build response based on format
-                return responseBuilder.build(result, _format, queryName);
+                // Build JSON response
+                return responseBuilder.build(result, queryName);
             }
 
         } catch (QueryException e) {
@@ -119,8 +124,8 @@ public class QueryController {
                     .includeMetadata(body.isIncludeMetadata())
                     .execute();
 
-            // Build response
-            return responseBuilder.build(result, body.getFormat(), queryName);
+            // Build JSON response
+            return responseBuilder.build(result, queryName);
 
         } catch (QueryException e) {
             log.error("Query execution failed: {}", e.getMessage());
@@ -151,34 +156,6 @@ public class QueryController {
         }
     }
 
-    @GetMapping("/{queryName}/export/{format}")
-    @Operation(summary = "Export query results", description = "Export query results in specified format")
-    public ResponseEntity<?> exportQuery(
-            @PathVariable String queryName,
-            @PathVariable String format,
-            @RequestParam MultiValueMap<String, String> allParams) {
-
-        try {
-            // Parse request
-            QueryRequest queryRequest = requestParser.parse(allParams, 0, Integer.MAX_VALUE, "none");
-
-            // Execute query without pagination for export
-            QueryResult result = queryExecutor.execute(queryName)
-                    .withParams(queryRequest.getParams())
-                    .withFilters(queryRequest.getFilters())
-                    .withSort(queryRequest.getSorts())
-                    .includeMetadata(false)
-                    .execute();
-
-            // Build export response
-            return responseBuilder.buildExport(result, format, queryName);
-
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildErrorResponse(e));
-        }
-    }
 
     private HttpStatus determineHttpStatus(QueryException e) {
         String errorCode = e.getErrorCode();
@@ -186,19 +163,13 @@ public class QueryController {
             return HttpStatus.INTERNAL_SERVER_ERROR;
         }
 
-        switch (errorCode) {
-            case "NOT_FOUND":
-                return HttpStatus.NOT_FOUND;
-            case "VALIDATION_ERROR":
-            case "DEFINITION_ERROR":
-                return HttpStatus.BAD_REQUEST;
-            case "SECURITY_ERROR":
-                return HttpStatus.FORBIDDEN;
-            case "TIMEOUT_ERROR":
-                return HttpStatus.REQUEST_TIMEOUT;
-            default:
-                return HttpStatus.INTERNAL_SERVER_ERROR;
-        }
+        return switch (errorCode) {
+            case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "VALIDATION_ERROR", "DEFINITION_ERROR" -> HttpStatus.BAD_REQUEST;
+            case "SECURITY_ERROR" -> HttpStatus.FORBIDDEN;
+            case "TIMEOUT_ERROR" -> HttpStatus.REQUEST_TIMEOUT;
+            default -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
     }
 
     private ErrorResponse buildErrorResponse(Exception e) {
@@ -206,14 +177,13 @@ public class QueryController {
                 .message(e.getMessage())
                 .timestamp(System.currentTimeMillis());
 
-        if (e instanceof QueryException) {
-            QueryException qe = (QueryException) e;
+        if (e instanceof QueryException qe) {
             builder.code(qe.getErrorCode())
                     .queryName(qe.getQueryName());
 
-            if (qe instanceof QueryValidationException) {
+            if (qe instanceof QueryValidationException queryValidationException) {
                 builder.details(Map.of("violations",
-                        ((QueryValidationException) qe).getViolations()));
+                        queryValidationException.getViolations()));
             }
         } else {
             builder.code("INTERNAL_ERROR");

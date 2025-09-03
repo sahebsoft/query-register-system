@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Request body for POST query execution
+ * Request body for POST query execution (JSON only)
  */
 @Data
 public class QueryRequestBody {
@@ -17,5 +17,4 @@ public class QueryRequestBody {
     private int start = 0;
     private int end = 50;
     private boolean includeMetadata = true;
-    private String format = "json";
 }

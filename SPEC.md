@@ -32,7 +32,7 @@ A Spring Boot library providing a declarative query registration system with Jdb
 - Full security layer (SecurityContext, SecurityProvider, filters)
 - Cache providers (CaffeineCacheProvider, CacheKeyGenerator)
 - Filter and Sort parsers as separate components
-- CSV/Excel export formats
+- Export formats (JSON only)
 - Comprehensive metadata in responses
 - Query registry and discovery
 
@@ -333,10 +333,9 @@ GET /api/query/{queryName}?
     sort=lifetimeValue.desc,name.asc&
 
     // Include/exclude metadata
-    _meta=full&  // full, minimal, none
+    _meta=full  // full, minimal, none
 
-    // Format
-    _format=json  // json, csv, excel
+    // Response format is JSON only
 ```
 
 ### 6.2 Filter Operator Shortcuts
@@ -546,7 +545,7 @@ query.registration:
     max-page-size: 1000
     enable-cors: true
     enable-compression: true
-    response-format: json  # json, xml
+    # JSON response format only
     parameter-format: standard  # standard, graphql-like
   cache:
     enabled: true
@@ -949,8 +948,7 @@ QueryException (base)
 
 ### Phase 4: Enhanced REST API (Priority: Medium)
 - [ ] Add comprehensive metadata in responses
-- [ ] Implement CSV export format
-- [ ] Implement Excel export format
+- [x] JSON response format only
 - [ ] Add GraphQL-like query syntax support
 - [ ] Create OpenAPI/Swagger documentation generator
 - [ ] Add pagination links (HATEOAS)

@@ -156,32 +156,6 @@ public class ParamDef<T> {
             return this;
         }
 
-        // Convenience method for range validation (numbers)
-        public BuilderStage<T> range(int min, int max) {
-            if (!Number.class.isAssignableFrom(type)) {
-                throw new IllegalStateException("Range validation only applies to numeric types");
-            }
-            this.processor = (ParamProcessor<T>) ParamProcessor.range(min, max);
-            return this;
-        }
-
-        // Convenience method for string length validation
-        public BuilderStage<T> lengthBetween(int min, int max) {
-            if (!String.class.isAssignableFrom(type)) {
-                throw new IllegalStateException("Length validation only applies to String type");
-            }
-            this.processor = (ParamProcessor<T>) ParamProcessor.lengthBetween(min, max);
-            return this;
-        }
-
-        // Convenience method for pattern validation
-        public BuilderStage<T> pattern(String pattern) {
-            if (!String.class.isAssignableFrom(type)) {
-                throw new IllegalStateException("Pattern validation only applies to String type");
-            }
-            this.processor = (ParamProcessor<T>) ParamProcessor.pattern(pattern);
-            return this;
-        }
 
         public BuilderStage<T> description(String description) {
             this.description = description;

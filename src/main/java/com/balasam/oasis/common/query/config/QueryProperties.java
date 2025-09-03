@@ -14,11 +14,6 @@ import java.time.Duration;
 public class QueryProperties {
     
     /**
-     * Enable Query Registration System
-     */
-    private boolean enabled = true;
-    
-    /**
      * Database dialect (ORACLE_11G or ORACLE_12C)
      */
     private String databaseDialect = "ORACLE_11G";
@@ -35,7 +30,6 @@ public class QueryProperties {
     
     @Data
     public static class RestProperties {
-        private boolean enabled = true;
         private String prefix = "/api/query";
         private int defaultPageSize = 50;
         private int maxPageSize = 1000;
