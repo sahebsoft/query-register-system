@@ -30,11 +30,11 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final SqlBuilder sqlBuilder;
     private final DynamicRowMapper rowMapper;
     
-    public QueryExecutorImpl(JdbcTemplate jdbcTemplate) {
+    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.queryRegistry = new ConcurrentHashMap<>();
-        this.sqlBuilder = new SqlBuilder();
+        this.sqlBuilder = sqlBuilder;
         this.rowMapper = new DynamicRowMapper();
     }
     
@@ -166,7 +166,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         try {
             // Build count query without pagination
             String baseSql = sqlResult.getBaseSql();
-            String countSql = "SELECT COUNT(*) FROM (" + baseSql + ") AS count_query";
+            // Oracle doesn't require the AS keyword for subquery aliases
+            String countSql = "SELECT COUNT(*) FROM (" + baseSql + ") count_query";
             Map<String, Object> params = sqlResult.getParamsWithoutPagination();
             
             log.debug("Executing count query: {}", countSql);

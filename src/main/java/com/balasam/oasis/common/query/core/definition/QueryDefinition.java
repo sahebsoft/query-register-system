@@ -1,13 +1,14 @@
 package com.balasam.oasis.common.query.core.definition;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 import lombok.Builder;
 import lombok.Value;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableList;
-
-import java.util.Map;
-import java.util.List;
-import java.util.function.Function;
 
 /**
  * Immutable query definition containing all metadata and configuration
@@ -20,10 +21,10 @@ public class QueryDefinition {
     String description;
     
     @Builder.Default
-    Map<String, AttributeDef> attributes = ImmutableMap.of();
+    Map<String, AttributeDef<?>> attributes = ImmutableMap.of();
     
     @Builder.Default
-    Map<String, ParamDef> params = ImmutableMap.of();
+    Map<String, ParamDef<?>> params = ImmutableMap.of();
     
     @Builder.Default
     Map<String, CriteriaDef> criteria = ImmutableMap.of();
@@ -93,11 +94,11 @@ public class QueryDefinition {
         return cacheConfig != null && cacheConfig.isEnabled();
     }
     
-    public AttributeDef getAttribute(String name) {
+    public AttributeDef<?> getAttribute(String name) {
         return attributes.get(name);
     }
     
-    public ParamDef getParam(String name) {
+    public ParamDef<?> getParam(String name) {
         return params.get(name);
     }
     

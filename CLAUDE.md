@@ -14,34 +14,34 @@ Read @SPEC.md for detailed requirements and specifications.
 ### Build and Test
 ```bash
 # Build the project
-mvn clean compile
+mvnw clean compile
 
 # Run all tests
-mvn test
+mvnw test
 
 # Run a specific test class
-mvn test -Dtest=QueryExecutorIntegrationTest
+mvnw test -Dtest=QueryExecutorIntegrationTest
 
 # Run tests with specific pattern
-mvn test -Dtest=*ControllerTest
+mvnw test -Dtest=*ControllerTest
 
 # Build without tests
-mvn clean install -DskipTests
+mvnw clean install -DskipTests
 
 # Generate test coverage report
-mvn jacoco:report
+mvnw jacoco:report
 ```
 
 ### Running the Application
 ```bash
 # Run with Maven
-mvn spring-boot:run
+mvnw spring-boot:run
 
 # Run with specific profile
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Run with debug enabled
-mvn spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 ```
 
 ### Database Access
@@ -63,29 +63,29 @@ mvn spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_
 ### Core Architecture Pattern
 The system follows a layered architecture with clear separation of concerns:
 
-1. **Definition Layer** (`core.definition`): Immutable domain models that define queries, attributes, parameters, and criteria. All definitions use the Builder pattern with validation at build time.
+1. **Definition Layer** (`core.definition`): Immutable domain models that define queries, attributes, parameters, and criteria. All definitions use @Value with Lombok for immutability. Includes generic typing for type-safety (AttributeDef<T>, ParamDef<T>).
 
-2. **Execution Layer** (`core.execution`): Stateless execution engine that processes query definitions. Uses JdbcTemplate for database operations and implements dynamic SQL generation with named parameters.
+2. **Execution Layer** (`core.execution`): Stateless execution engine that processes query definitions. Uses JdbcTemplate for database operations, implements dynamic SQL generation with named parameters, and supports Oracle database dialects (11g and 12c+).
 
-3. **Processing Layer** (`processor`): Functional interfaces for extensibility - PreProcessor, RowProcessor, PostProcessor, Calculator, Validator, Converter, Formatter. Allows composition of processing logic.
+3. **Processing Layer** (`processor`): Functional interfaces for extensibility - PreProcessor, RowProcessor, PostProcessor, AttributeProcessor<T>, AttributeFormatter<T>, ParamProcessor<T>, Validator, CriteriaGenerator. Allows composition of processing logic with type-safe generics.
 
-4. **REST API Layer** (`rest`): Automatic REST endpoint generation for queries. Handles parameter parsing, filter operations, pagination, and response building with comprehensive metadata.
+4. **REST API Layer** (`rest`): Basic REST endpoint generation for queries via QueryController. Handles parameter parsing, basic filter operations, and pagination. Response building with QueryResponseBuilder (metadata support is planned).
 
-5. **Configuration Layer** (`config`): Spring Boot auto-configuration with @EnableQueryRegistration annotation. Manages global processors, caching, security integration.
+5. **Configuration Layer** (`config`): Spring Boot auto-configuration with @EnableQueryRegistration annotation. Includes QueryProperties for configuration, GlobalProcessors for shared logic. Security integration is partially implemented.
 
 ### Key Design Patterns
 
-- **Immutable Objects**: All definitions are immutable with builders (QueryDefinition, AttributeDef, ParamDef, CriteriaDef)
-- **Fluent Builder Pattern**: Hierarchical builders that return parent for continuation (QueryDefinitionBuilder -> AttributeBuilder -> QueryDefinitionBuilder)
-- **Functional Composition**: Processors and calculators can be composed for complex logic
-- **Dynamic SQL Generation**: Comment-based placeholders (`--placeholderName`) in SQL replaced at runtime
+- **Immutable Objects**: All definitions are immutable using @Value with Lombok (QueryDefinition, AttributeDef<T>, ParamDef<T>, CriteriaDef)
+- **Builder Pattern**: Currently using inline builders with lambda customizers. Separate fluent builders (AttributeBuilder, ParamBuilder, CriteriaBuilder) are planned
+- **Generic Types**: Type-safe definitions with generics (AttributeDef<T>, ParamDef<T>, processors with <T>)
+- **Functional Composition**: Processors can be composed for complex logic using functional interfaces
+- **Dynamic SQL Generation**: Comment-based placeholders (`--placeholderName`) in SQL replaced at runtime by SqlBuilder
 - **Named Parameters**: Always use `:paramName` instead of `?` for SQL injection prevention
+- **Database Dialect Support**: DatabaseDialect enum for multi-database compatibility
 
 ### SQL Placeholder System
 SQL queries use comment placeholders that are dynamically replaced:
-- `--filters`: Where filter conditions are injected
 - `--orderBy`: Where ORDER BY clause is added
-- `--limit`: Where LIMIT/OFFSET is added
 - `--criteriaName`: Custom criteria injection points
 
 Example:
@@ -95,7 +95,6 @@ WHERE active = true
 --statusFilter
 --dateFilter
 --orderBy
---limit
 ```
 
 ## Tech Stack
@@ -109,8 +108,7 @@ WHERE active = true
 - **spring-boot-starter-security**: Optional security integration
 
 ### Database
-- **H2 Database**: Default for development
-- **PostgreSQL/MySQL**: Production support via TestContainers
+- **Oracle Database**: Support for both 11g and 12c+ versions
 - **HikariCP**: Connection pooling (included with Spring Boot)
 - **P6Spy**: SQL logging in development
 
@@ -143,9 +141,9 @@ WHERE active = true
 - Batch operations for multiple rows
 
 ### 3. Builder Pattern Rules
-- Fluent builders return self or parent for chaining
-- Validate at build(), not during construction
-- Child builders return parent via build() method
+- Currently using inline builders with lambda customizers for attributes and params
+- Validate at build(), not during construction  
+- Future: Implement separate fluent builders that return parent for chaining
 
 ### 4. Functional Programming Rules
 - Use functional interfaces for extensibility
@@ -184,17 +182,35 @@ WHERE active = true
 - Use SecurityContext for role-based access
 
 ### 10. Code Organization
+
+#### Current Structure
 ```
 src/main/java/com/balasam/oasis/common/query/
 ├── core/
-│   ├── definition/        # Immutable definitions
-│   ├── execution/         # Execution engine
-│   └── result/           # Result handling
-├── builder/              # All builder classes
-├── processor/            # Processing interfaces
-├── rest/                 # REST controllers
-├── config/               # Configuration
-└── exception/            # Custom exceptions
+│   ├── definition/        # Immutable definitions (AttributeDef<T>, ParamDef<T>, etc.)
+│   ├── execution/         # Execution engine (QueryExecutor, SqlBuilder, DynamicRowMapper)
+│   └── result/           # Result handling (QueryResult, Row, RowImpl)
+├── builder/              # QueryDefinitionBuilder (inline builders for now)
+├── processor/            # Processing interfaces with generics
+│   └── impl/            # Common processor implementations
+├── rest/                 # REST controllers and request/response handling
+├── config/               # Auto-configuration and properties
+├── exception/            # Custom exception hierarchy
+└── example/             # Example query configurations
+```
+
+#### Planned Structure (Future)
+```
+src/main/java/com/balasam/oasis/common/query/
+├── core/                 # Core domain (as is)
+├── builder/              # Expanded with AttributeBuilder, ParamBuilder, CriteriaBuilder
+├── processor/            # Processing interfaces (as is)
+├── rest/                 # Enhanced with metadata, export formats
+├── config/               # Configuration (as is)
+├── security/             # NEW - Security layer (SecurityContext, filters)
+├── cache/                # NEW - Caching layer (CacheManager, providers)
+├── exception/            # Exception hierarchy (as is)
+└── example/             # Examples (as is)
 ```
 
 ## REST API Patterns
@@ -220,10 +236,18 @@ GET /api/query/{queryName}?
 
 ## Important Implementation Notes
 
-1. **QueryRegistry**: All queries must be registered as Spring beans or via QueryRegistry
-2. **Dynamic Criteria**: Use CriteriaDef with condition predicates for conditional SQL
-3. **Virtual Attributes**: Calculated fields not from database, use dependencies
-4. **Row Processing**: Chain processors - Pre -> Row -> Post
-5. **Metadata**: Always include comprehensive metadata in REST responses
-6. **Caching**: Query results cached by default with Caffeine, configurable TTL
-7. **Validation**: All inputs validated at multiple levels (parameter, filter, execution)
+### Current Implementation
+1. **Query Definition**: Use QueryDefinitionBuilder with inline builders for attributes/params
+2. **Dynamic Criteria**: CriteriaDef with condition predicates working
+3. **Type Safety**: Generic types (AttributeDef<T>, ParamDef<T>) ensure compile-time safety
+4. **Row Processing**: Chain processors - Pre -> Row -> Post implemented
+5. **Database Support**: Oracle dialects supported (11g with ROWNUM, 12c+ with FETCH/OFFSET)
+6. **REST API**: Basic QueryController with parameter/filter parsing
+
+### Planned Features
+1. **QueryRegistry**: Implement query discovery and registration
+2. **Virtual Attributes**: Complete virtual fields implementation
+3. **Metadata**: Add comprehensive metadata in REST responses
+4. **Caching**: Implement Caffeine cache provider with configurable TTL
+5. **Security**: Add SecurityContext and field-level security
+6. **Validation**: Enhance multi-level validation (parameter, filter, execution)

@@ -1,14 +1,14 @@
 package com.balasam.oasis.common.query.core.execution;
 
-import com.balasam.oasis.common.query.core.definition.AttributeDef;
-import com.balasam.oasis.common.query.core.definition.ParamDef;
-import com.balasam.oasis.common.query.core.definition.QueryDefinition;
-import com.balasam.oasis.common.query.core.result.QueryResult;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.balasam.oasis.common.query.core.definition.AttributeDef;
+import com.balasam.oasis.common.query.core.definition.ParamDef;
+import com.balasam.oasis.common.query.core.definition.QueryDefinition;
+import com.balasam.oasis.common.query.core.result.QueryResult;
 
 /**
  * Builds metadata for query results
@@ -42,7 +42,8 @@ public class MetadataBuilder {
 
         QueryContext.Pagination pagination = context.getPagination();
         // Use the total count from context if available, otherwise use result size
-        int total = context.getTotalCount() != null ? context.getTotalCount() : result.getRows().size();
+        Integer totalCount = context.getTotalCount();
+        int total = (totalCount != null) ? totalCount : result.getRows().size();
         int pageSize = pagination.getPageSize();
         int pageCount = (total + pageSize - 1) / pageSize;
         int currentPage = pagination.getStart() / pageSize + 1;
@@ -67,9 +68,9 @@ public class MetadataBuilder {
         Map<String, QueryResult.QueryMetadata.AttributeMetadata> metadata = new HashMap<>();
         QueryDefinition definition = context.getDefinition();
 
-        for (Map.Entry<String, AttributeDef> entry : definition.getAttributes().entrySet()) {
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
-            AttributeDef attr = entry.getValue();
+            AttributeDef<?> attr = entry.getValue();
 
             // Check if attribute has active filter
             QueryContext.Filter activeFilter = context.getFilters().get(attrName);
@@ -98,7 +99,8 @@ public class MetadataBuilder {
             boolean restricted = false;
             String restrictionReason = null;
             if (attr.isSecured() && context.getSecurityContext() != null) {
-                if (!attr.getSecurityRule().apply(context.getSecurityContext())) {
+                Boolean allowed = attr.getSecurityRule().apply(context.getSecurityContext());
+                if (!Boolean.TRUE.equals(allowed)) {
                     restricted = true;
                     restrictionReason = "INSUFFICIENT_PERMISSIONS";
                 }
@@ -110,14 +112,9 @@ public class MetadataBuilder {
                     .type(attr.getType() != null ? attr.getType().getSimpleName() : "Object")
                     .filterable(attr.isFilterable())
                     .sortable(attr.isSortable())
-                    .calculated(attr.isCalculated())
                     .virtual(attr.isVirtual())
                     .restricted(restricted)
                     .restrictionReason(restrictionReason)
-                    .allowedOperators(attr.getAllowedOperators().stream()
-                            .map(Enum::name)
-                            .collect(Collectors.toList()))
-                    .allowedValues(attr.getAllowedValues())
                     .currentFilter(filterMetadata)
                     .currentSort(currentSort)
                     .build();
@@ -151,10 +148,10 @@ public class MetadataBuilder {
     private List<QueryResult.QueryMetadata.SortMetadata> buildAppliedSort() {
         return context.getSorts().stream()
                 .map(sort -> QueryResult.QueryMetadata.SortMetadata.builder()
-                        .field(sort.getAttribute())
-                        .direction(sort.getDirection().name())
-                        .priority(context.getSorts().indexOf(sort))
-                        .build())
+                .field(sort.getAttribute())
+                .direction(sort.getDirection().name())
+                .priority(context.getSorts().indexOf(sort))
+                .build())
                 .collect(Collectors.toList());
     }
 
@@ -162,9 +159,9 @@ public class MetadataBuilder {
         Map<String, QueryResult.QueryMetadata.ParameterMetadata> metadata = new HashMap<>();
         QueryDefinition definition = context.getDefinition();
 
-        for (Map.Entry<String, ParamDef> entry : definition.getParams().entrySet()) {
+        for (Map.Entry<String, ParamDef<?>> entry : definition.getParams().entrySet()) {
             String paramName = entry.getKey();
-            ParamDef paramDef = entry.getValue();
+            ParamDef<?> paramDef = entry.getValue();
 
             Object value = context.getParam(paramName);
             if (value == null && paramDef.hasDefaultValue()) {
@@ -175,7 +172,6 @@ public class MetadataBuilder {
                     .builder()
                     .name(paramName)
                     .value(value)
-                    .defaultValue(paramDef.getDefaultValue())
                     .type(paramDef.getType() != null ? paramDef.getType().getSimpleName() : "Object")
                     .required(paramDef.isRequired())
                     .build();

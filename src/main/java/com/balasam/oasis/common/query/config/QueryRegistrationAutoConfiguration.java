@@ -2,10 +2,12 @@ package com.balasam.oasis.common.query.config;
 
 import com.balasam.oasis.common.query.core.execution.QueryExecutor;
 import com.balasam.oasis.common.query.core.execution.QueryExecutorImpl;
+import com.balasam.oasis.common.query.core.execution.SqlBuilder;
 import com.balasam.oasis.common.query.rest.QueryController;
 import com.balasam.oasis.common.query.rest.QueryRequestParser;
 import com.balasam.oasis.common.query.rest.QueryResponseBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -27,8 +29,14 @@ public class QueryRegistrationAutoConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
-    public QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate) {
-        return new QueryExecutorImpl(jdbcTemplate);
+    public SqlBuilder sqlBuilder(@Value("${query.registration.database.dialect:ORACLE_12C}") String dialect) {
+        return new SqlBuilder(dialect);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder) {
+        return new QueryExecutorImpl(jdbcTemplate, sqlBuilder);
     }
     
     @Bean

@@ -1,18 +1,28 @@
 package com.balasam.oasis.common.query.core.execution;
 
-import com.balasam.oasis.common.query.core.definition.AttributeDef;
-import com.balasam.oasis.common.query.core.definition.QueryDefinition;
-import com.balasam.oasis.common.query.core.result.Row;
-import com.balasam.oasis.common.query.core.result.RowImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.balasam.oasis.common.query.core.definition.AttributeDef;
+import com.balasam.oasis.common.query.core.definition.QueryDefinition;
+import com.balasam.oasis.common.query.core.result.Row;
+import com.balasam.oasis.common.query.core.result.RowImpl;
+import com.balasam.oasis.common.query.processor.AttributeProcessor;
 
 /**
  * Dynamic row mapper that maps ResultSet to Row based on QueryDefinition
@@ -42,9 +52,9 @@ public class DynamicRowMapper {
         }
 
         // First pass: Map non-virtual attributes
-        for (Map.Entry<String, AttributeDef> entry : definition.getAttributes().entrySet()) {
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
-            AttributeDef attr = entry.getValue();
+            AttributeDef<?> attr = entry.getValue();
 
             // Skip virtual attributes (they're calculated later)
             if (attr.isVirtual()) {
@@ -53,7 +63,8 @@ public class DynamicRowMapper {
 
             // Check security
             if (attr.isSecured() && context.getSecurityContext() != null) {
-                if (!attr.getSecurityRule().apply(context.getSecurityContext())) {
+                Boolean allowed = attr.getSecurityRule().apply(context.getSecurityContext());
+                if (!Boolean.TRUE.equals(allowed)) {
                     // Attribute is restricted - set to null or apply processor for masking
                     rowData.put(attrName, null);
                     continue;
@@ -62,16 +73,16 @@ public class DynamicRowMapper {
 
             // Get value from ResultSet
             Object rawValue = null;
-            String dbColumn = attr.getDbColumn();
+            String aliasName = attr.getAliasName();
 
-            if (dbColumn != null) {
+            if (aliasName != null) {
                 // Try different variations of the column name
-                rawValue = rawData.get(dbColumn.toLowerCase());
+                rawValue = rawData.get(aliasName.toLowerCase());
                 if (rawValue == null) {
-                    rawValue = rawData.get(dbColumn.toUpperCase());
+                    rawValue = rawData.get(aliasName.toUpperCase());
                 }
                 if (rawValue == null) {
-                    rawValue = rawData.get(dbColumn);
+                    rawValue = rawData.get(aliasName);
                 }
             }
 
@@ -79,11 +90,6 @@ public class DynamicRowMapper {
             Object convertedValue = rawValue;
             if (rawValue != null && attr.getType() != null) {
                 convertedValue = convertToType(rawValue, attr.getType());
-            }
-
-            // Set default value if null and default exists
-            if (convertedValue == null && attr.getDefaultValue() != null) {
-                convertedValue = attr.getDefaultValue();
             }
 
             rowData.put(attrName, convertedValue);
@@ -94,9 +100,9 @@ public class DynamicRowMapper {
 
         // Second pass: Apply processors to non-virtual attributes (now that we have the
         // Row)
-        for (Map.Entry<String, AttributeDef> entry : definition.getAttributes().entrySet()) {
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
-            AttributeDef attr = entry.getValue();
+            AttributeDef<?> attr = entry.getValue();
 
             // Skip virtual attributes
             if (attr.isVirtual()) {
@@ -107,7 +113,8 @@ public class DynamicRowMapper {
             if (attr.hasProcessor()) {
                 try {
                     Object currentValue = row.get(attrName);
-                    Object processedValue = attr.getProcessor().process(currentValue, row, context);
+                    AttributeProcessor<Object> processor = (AttributeProcessor<Object>) attr.getProcessor();
+                    Object processedValue = processor.process(currentValue, row, context);
                     row.set(attrName, processedValue);
                 } catch (Exception e) {
                     log.warn("Failed to process value for attribute {}: {}", attrName, e.getMessage());
@@ -117,74 +124,71 @@ public class DynamicRowMapper {
 
         // Calculate calculated fields (non-virtual) - now handled by processor
         // Virtual fields are calculated separately by VirtualAttributeProcessor
-
         return row;
     }
 
     private Object extractValue(ResultSet rs, int columnIndex, int sqlType) throws SQLException {
         // Handle NULL values
-        Object value = rs.getObject(columnIndex);
+        rs.getObject(columnIndex);
         if (rs.wasNull()) {
             return null;
         }
 
         // Extract based on SQL type for better type preservation
         switch (sqlType) {
-            case Types.VARCHAR:
-            case Types.CHAR:
-            case Types.LONGVARCHAR:
+            case Types.VARCHAR, Types.CHAR, Types.LONGVARCHAR -> {
                 return rs.getString(columnIndex);
-
-            case Types.INTEGER:
-            case Types.SMALLINT:
-            case Types.TINYINT:
+            }
+            case Types.INTEGER, Types.SMALLINT, Types.TINYINT -> {
                 return rs.getInt(columnIndex);
-
-            case Types.BIGINT:
+            }
+            case Types.BIGINT -> {
                 return rs.getLong(columnIndex);
+            }
 
-            case Types.DECIMAL:
-            case Types.NUMERIC:
+            case Types.DECIMAL, Types.NUMERIC -> {
                 return rs.getBigDecimal(columnIndex);
-
-            case Types.FLOAT:
-            case Types.REAL:
+            }
+            case Types.FLOAT, Types.REAL -> {
                 return rs.getFloat(columnIndex);
-
-            case Types.DOUBLE:
+            }
+            case Types.DOUBLE -> {
                 return rs.getDouble(columnIndex);
+            }
 
-            case Types.BOOLEAN:
-            case Types.BIT:
+            case Types.BOOLEAN, Types.BIT -> {
                 return rs.getBoolean(columnIndex);
+            }
 
-            case Types.DATE:
+            case Types.DATE -> {
                 Date date = rs.getDate(columnIndex);
                 return date != null ? date.toLocalDate() : null;
-
-            case Types.TIME:
+            }
+            case Types.TIME -> {
                 Time time = rs.getTime(columnIndex);
                 return time != null ? time.toLocalTime() : null;
+            }
 
-            case Types.TIMESTAMP:
+            case Types.TIMESTAMP -> {
                 Timestamp timestamp = rs.getTimestamp(columnIndex);
                 return timestamp != null ? timestamp.toLocalDateTime() : null;
-
-            case Types.BINARY:
-            case Types.VARBINARY:
-            case Types.LONGVARBINARY:
+            }
+            case Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY -> {
                 return rs.getBytes(columnIndex);
+            }
 
-            case Types.CLOB:
+            case Types.CLOB -> {
                 Clob clob = rs.getClob(columnIndex);
                 return clob != null ? clob.getSubString(1, (int) clob.length()) : null;
+            }
 
-            case Types.BLOB:
+            case Types.BLOB -> {
                 Blob blob = rs.getBlob(columnIndex);
                 return blob != null ? blob.getBytes(1, (int) blob.length()) : null;
-
-            default:
+            }
+            default -> {
                 return rs.getObject(columnIndex);
+            }
         }
     }
 
@@ -206,29 +210,29 @@ public class DynamicRowMapper {
 
             // Numeric conversions
             if (targetType == Integer.class || targetType == int.class) {
-                if (value instanceof Number) {
-                    return ((Number) value).intValue();
+                if (value instanceof Number numberValue) {
+                    return numberValue.intValue();
                 }
                 return Integer.valueOf(value.toString());
             }
 
             if (targetType == Long.class || targetType == long.class) {
-                if (value instanceof Number) {
-                    return ((Number) value).longValue();
+                if (value instanceof Number number) {
+                    return number.longValue();
                 }
                 return Long.valueOf(value.toString());
             }
 
             if (targetType == Double.class || targetType == double.class) {
-                if (value instanceof Number) {
-                    return ((Number) value).doubleValue();
+                if (value instanceof Number number) {
+                    return number.doubleValue();
                 }
                 return Double.valueOf(value.toString());
             }
 
             if (targetType == Float.class || targetType == float.class) {
-                if (value instanceof Number) {
-                    return ((Number) value).floatValue();
+                if (value instanceof Number number) {
+                    return number.floatValue();
                 }
                 return Float.valueOf(value.toString());
             }
@@ -248,8 +252,8 @@ public class DynamicRowMapper {
                 if (value instanceof Boolean) {
                     return value;
                 }
-                if (value instanceof Number) {
-                    return ((Number) value).intValue() != 0;
+                if (value instanceof Number number) {
+                    return number.intValue() != 0;
                 }
                 String str = value.toString().toLowerCase();
                 return "true".equals(str) || "1".equals(str) || "yes".equals(str) || "y".equals(str);
@@ -260,11 +264,11 @@ public class DynamicRowMapper {
                 if (value instanceof LocalDate) {
                     return value;
                 }
-                if (value instanceof Date) {
-                    return ((Date) value).toLocalDate();
+                if (value instanceof Date date) {
+                    return date.toLocalDate();
                 }
-                if (value instanceof LocalDateTime) {
-                    return ((LocalDateTime) value).toLocalDate();
+                if (value instanceof LocalDateTime localDateTime) {
+                    return localDateTime.toLocalDate();
                 }
             }
 
@@ -272,11 +276,14 @@ public class DynamicRowMapper {
                 if (value instanceof LocalDateTime) {
                     return value;
                 }
-                if (value instanceof Timestamp) {
-                    return ((Timestamp) value).toLocalDateTime();
+                if (value instanceof Timestamp timestamp) {
+                    return timestamp.toLocalDateTime();
                 }
             }
 
+        } catch (NumberFormatException e) {
+            log.warn("Failed to convert value {} to type {}: {}",
+                    value, targetType.getSimpleName(), e.getMessage());
         } catch (Exception e) {
             log.warn("Failed to convert value {} to type {}: {}",
                     value, targetType.getSimpleName(), e.getMessage());

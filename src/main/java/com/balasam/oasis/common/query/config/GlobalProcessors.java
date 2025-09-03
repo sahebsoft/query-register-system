@@ -1,12 +1,13 @@
 package com.balasam.oasis.common.query.config;
 
-import com.balasam.oasis.common.query.processor.AttributeProcessor;
-import com.balasam.oasis.common.query.processor.Validator;
-import lombok.Builder;
-import lombok.Data;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.balasam.oasis.common.query.processor.AttributeProcessor;
+import com.balasam.oasis.common.query.processor.Validator;
+
+import lombok.Builder;
+import lombok.Data;
 
 /**
  * Global processors and validators shared across queries
@@ -21,11 +22,11 @@ public class GlobalProcessors {
     private final Map<String, Validator> validators = new HashMap<>();
 
     @Builder.Default
-    private final Map<String, AttributeProcessor> processors = new HashMap<>();
+    private final Map<String, AttributeProcessor<?>> processors = new HashMap<>();
 
     public static class GlobalProcessorsBuilder {
         private Map<String, Validator> validators = new HashMap<>();
-        private Map<String, AttributeProcessor> processors = new HashMap<>();
+        private Map<String, AttributeProcessor<?>> processors = new HashMap<>();
 
         public GlobalProcessorsBuilder addValidator(String name, Validator validator) {
             if (this.validators == null) {
@@ -35,7 +36,7 @@ public class GlobalProcessors {
             return this;
         }
 
-        public GlobalProcessorsBuilder addProcessor(String name, AttributeProcessor processor) {
+        public GlobalProcessorsBuilder addProcessor(String name, AttributeProcessor<?> processor) {
             if (this.processors == null) {
                 this.processors = new HashMap<>();
             }

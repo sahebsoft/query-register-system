@@ -6,19 +6,35 @@
 
 A Spring Boot library providing a declarative query registration system with JdbcTemplate that supports metadata, pagination, dynamic criteria, row processing, and automatic REST API publication with GET endpoints.
 
-### 1.2 Core Features
+### 1.2 Current Implementation Status
 
+#### ✅ Implemented Features
 - SQL queries with comment-based placeholders (`--placeholderName`)
-- Attribute name mapping (frontend names vs DB column names)
+- Attribute name mapping (frontend names vs DB column names using `aliasName`)
 - Builder pattern for QueryDefinition
 - Automatic type conversion between SQL and Java types
-- Calculated and virtual attributes
+- Generic attribute typing with `AttributeDef<T>`
 - Pre/post processors and row processors
-- Security integration with role-based attribute access
-- Auto-generated REST GET endpoints
-- Complex query support (GROUP BY, UNION, CTEs)
+- Basic REST GET endpoints via QueryController
 - Parameter validation and default values
 - Dynamic criteria with bind parameters
+- Database dialect support (Oracle 11g and 12c+)
+- Integration with Spring Boot auto-configuration
+
+#### 🚧 Partially Implemented
+- Calculated and virtual attributes (structure exists, needs full implementation)
+- Security integration (basic structure, needs SecurityContext implementation)
+- Complex query support (SQL builder supports it, needs testing)
+- Caching (CacheConfig exists, needs cache provider implementation)
+
+#### ❌ Not Yet Implemented
+- AttributeBuilder, ParamBuilder, CriteriaBuilder (only QueryDefinitionBuilder exists)
+- Full security layer (SecurityContext, SecurityProvider, filters)
+- Cache providers (CaffeineCacheProvider, CacheKeyGenerator)
+- Filter and Sort parsers as separate components
+- CSV/Excel export formats
+- Comprehensive metadata in responses
+- Query registry and discovery
 
 ## 2. Core Components
 
@@ -40,42 +56,43 @@ public class QueryDefinition {
 }
 ```
 
-### 2.2 AttributeDef
+### 2.2 AttributeDef (Current Implementation)
 
 ```java
-public class AttributeDef {
-    private String name;           // Frontend name
-    private String dbColumn;       // Database column name
-    private Class<?> type;
-    private boolean filterable;
-    private boolean sortable;
-    private boolean calculated;
-    private boolean virtual;       // Not from DB
-    private boolean primaryKey;
-    private Set<FilterOp> allowedOperators;
-    private List<String> allowedValues;
-    private Object defaultFilterValue;
-    private SecurityRule securityRule;
-    private Converter converter;
-    private Calculator calculator;
-    private Formatter formatter;
-    private Processor processor;
-    private Set<String> dependencies;  // For virtual attributes
+@Value
+public class AttributeDef<T> {
+    String name;                    // Frontend/API name
+    String aliasName;              // Database column name
+    Class<T> type;                 // Java type with generics
+    boolean filterable;
+    boolean sortable;
+    boolean virtual;              // Not from database
+    boolean primaryKey;
+    
+    // Processors
+    AttributeProcessor<T> processor;  // Single processor for all transformations
+    AttributeFormatter<T> formatter;  // String formatting
+    
+    // Security
+    Function<Object, Boolean> securityRule;
+    
+    String description;
 }
 ```
 
-### 2.3 ParamDef
+### 2.3 ParamDef (Current Implementation)
 
 ```java
-public class ParamDef {
-    private String name;
-    private Class<?> type;
-    private Class<?> genericType;  // For collections
-    private Object defaultValue;
-    private boolean required;
-    private Validator validator;
-    private Processor processor;
-    private String description;
+@Value
+public class ParamDef<T> {
+    String name;
+    Class<T> type;              // Type-safe parameter type
+    T defaultValue;             // Type-safe default value
+    boolean required;
+    Validator validator;
+    ParamProcessor<T> processor; // Type-safe processor
+    String description;
+    // Note: genericType for collections not yet implemented
 }
 ```
 
@@ -95,55 +112,66 @@ public class CriteriaDef {
 
 ## 3. Builder API
 
-### 3.1 QueryDefinition Builder
+### 3.1 Current Implementation - QueryDefinitionBuilder
 
 ```java
 public class QueryDefinitionBuilder {
+    // Core methods
+    public QueryDefinitionBuilder name(String name);
     public QueryDefinitionBuilder sql(String sql);
-    public AttributeBuilder attribute(String name);
-    public VirtualAttributeBuilder virtualAttribute(String name);
-    public ParamBuilder param(String name);
-    public CriteriaBuilder criteria(String name);
+    public QueryDefinitionBuilder dialect(DatabaseDialect dialect);
+    
+    // Inline attribute definition (current approach)
+    public <T> QueryDefinitionBuilder attribute(String name, Class<T> type, 
+                                                Function<AttributeDef.Builder<T>, AttributeDef.Builder<T>> customizer);
+    
+    // Parameter definition
+    public <T> QueryDefinitionBuilder param(String name, Class<T> type,
+                                            Function<ParamDef.ParamBuilder<T>, ParamDef.ParamBuilder<T>> customizer);
+    
+    // Criteria definition
+    public QueryDefinitionBuilder criteria(String name, String sql);
+    public QueryDefinitionBuilder criteria(String name, String sql, 
+                                          Predicate<QueryContext> condition);
+    
+    // Processors
     public QueryDefinitionBuilder preProcessor(PreProcessor processor);
     public QueryDefinitionBuilder rowProcessor(RowProcessor processor);
     public QueryDefinitionBuilder postProcessor(PostProcessor processor);
-    public QueryDefinitionBuilder calculator(String name, Calculator calc);
-    public QueryDefinitionBuilder validationRule(ValidationRule rule);
-    public QueryDefinitionBuilder cache(boolean enabled);
-    public QueryDefinitionBuilder cacheKey(Function<QueryContext, String> keyGen);
-    public QueryDefinitionBuilder cacheTTL(Duration ttl);
+    
+    // Cache configuration
+    public QueryDefinitionBuilder cache(CacheConfig config);
+    
+    // Build
     public QueryDefinition build();
 }
 ```
 
-### 3.2 Attribute Builder
+### 3.2 Future Enhancement - Separate Builders
 
 ```java
-public class AttributeBuilder {
-    public AttributeBuilder dbColumn(String column);
-    public AttributeBuilder type(Class<?> type);
-    public AttributeBuilder filterable(boolean filterable);
-    public AttributeBuilder sortable(boolean sortable);
-    public AttributeBuilder calculated(boolean calculated);
-    public AttributeBuilder primaryKey(boolean pk);
-    public AttributeBuilder filterOperators(FilterOp... ops);
-    public AttributeBuilder allowedValues(String... values);
-    public AttributeBuilder defaultFilterValue(Object value);
-    public AttributeBuilder secure(Function<SecurityContext, Boolean> rule);
-    public AttributeBuilder converter(Converter converter);
-    public AttributeBuilder calculator(Calculator calculator);
-    public AttributeBuilder formatter(Formatter formatter);
-    public AttributeBuilder processor(Processor processor);
-    public AttributeBuilder dependencies(String... deps);
-    public QueryDefinitionBuilder build();
+// PLANNED: Fluent builder chain for attributes
+public class AttributeBuilder<T> {
+    public AttributeBuilder<T> dbColumn(String column);
+    public AttributeBuilder<T> filterable(boolean filterable);
+    public AttributeBuilder<T> sortable(boolean sortable);
+    public AttributeBuilder<T> virtual(boolean virtual);
+    public AttributeBuilder<T> primaryKey(boolean pk);
+    public AttributeBuilder<T> secure(Function<SecurityContext, Boolean> rule);
+    public AttributeBuilder<T> processor(AttributeProcessor<T> processor);
+    public AttributeBuilder<T> formatter(AttributeFormatter<T> formatter);
+    public QueryDefinitionBuilder and();  // Return to parent builder
 }
+
+// PLANNED: Similar builders for Param and Criteria
 ```
 
 ## 4. Processing Interfaces
 
-### 4.1 Core Processors
+### 4.1 Current Processing Interfaces
 
 ```java
+// Implemented interfaces
 @FunctionalInterface
 public interface PreProcessor {
     void process(QueryContext context);
@@ -160,13 +188,18 @@ public interface PostProcessor {
 }
 
 @FunctionalInterface
-public interface Calculator {
-    Object calculate(Object value, Row row, QueryContext context);
+public interface AttributeProcessor<T> {
+    T process(T value, Row row, QueryContext context);
 }
 
 @FunctionalInterface
-public interface Processor {
-    Object process(Object value);
+public interface AttributeFormatter<T> {
+    String format(T value);
+}
+
+@FunctionalInterface
+public interface ParamProcessor<T> {
+    T process(T value, QueryContext context);
 }
 
 @FunctionalInterface
@@ -177,6 +210,26 @@ public interface Validator {
 @FunctionalInterface
 public interface CriteriaGenerator {
     String generate(QueryContext context);
+}
+```
+
+### 4.2 Planned Interfaces
+
+```java
+// PLANNED: Additional processing interfaces
+@FunctionalInterface
+public interface Calculator {
+    Object calculate(Object value, Row row, QueryContext context);
+}
+
+@FunctionalInterface
+public interface Converter<S, T> {
+    T convert(S source);
+}
+
+@FunctionalInterface
+public interface SecurityRule {
+    boolean hasAccess(SecurityContext context);
 }
 ```
 
@@ -335,7 +388,6 @@ GET /api/query/{queryName}?
                 "type": "String",
                 "filterable": true,
                 "sortable": true,
-                "filterOperators": ["EQUALS", "LIKE", "IN"],
                 "currentFilter": {
                     "operator": "LIKE",
                     "value": "John%"
@@ -345,7 +397,7 @@ GET /api/query/{queryName}?
                 "type": "Currency",
                 "filterable": true,
                 "sortable": true,
-                "calculated": true,
+                "virtual": true,
                 "currentSort": "DESC"
             },
             "email": {
@@ -359,8 +411,7 @@ GET /api/query/{queryName}?
                 "type": "String",
                 "filterable": true,
                 "sortable": false,
-                "virtual": true,
-                "allowedValues": ["BRONZE", "SILVER", "GOLD", "PLATINUM"]
+                "virtual": true
             }
         },
         "appliedCriteria": [
@@ -597,7 +648,6 @@ public QueryDefinition analyticsQuery() {
             SELECT * FROM aggregated_data
             WHERE 1=1
             --finalFilters
-            --orderByClause
             """)
         .build();
 }
@@ -636,8 +686,8 @@ public class DynamicRowMapper implements RowMapper<Map<String, Object>> {
                     convertedValue = attr.getProcessor().process(convertedValue);
                 }
 
-                // Apply calculator for calculated fields
-                if (attr.isCalculated() && attr.getCalculator() != null) {
+                // Apply calculator for virtual fields
+                if (attr.isVirtual() && attr.getCalculator() != null) {
                     Row rowContext = new RowImpl(row, rs, context);
                     convertedValue = attr.getCalculator()
                         .calculate(convertedValue, rowContext, context);
@@ -678,7 +728,7 @@ public class DynamicRowMapper implements RowMapper<Map<String, Object>> {
 @Bean
 public QueryDefinition simpleUserQuery() {
     return QueryDefinition.builder("users")
-        .sql("SELECT * FROM users WHERE active = true --filters --orderBy --limit")
+        .sql("SELECT * FROM users WHERE active = true ")
         .attribute("id").dbColumn("user_id").type(Long.class).primaryKey(true).build()
         .attribute("name").dbColumn("full_name").type(String.class)
             .filterable(true).sortable(true).build()
@@ -703,10 +753,6 @@ GET /api/query/userDashboard?
     sort=lifetimeValue.desc,name.asc&
     param.scoreMultiplier=2.5&
     _start=0&_end=50&_meta=full
-
-# Export formats
-GET /api/query/userDashboard?filter.status=ACTIVE&_format=csv
-GET /api/query/userDashboard?filter.status=ACTIVE&_format=excel
 ```
 
 ### 10.3 Programmatic Usage
@@ -805,7 +851,7 @@ List<User> users = jdbcTemplate.query(sql,
 @Bean
 public QueryDefinition userQuery() {
     return QueryDefinition.builder("activeUsers")
-        .sql("SELECT * FROM users WHERE 1=1 --statusFilter --dateFilter --orderBy --limit")
+        .sql("SELECT * FROM users WHERE 1=1 --statusFilter --dateFilter")
         .attribute("id").dbColumn("id").type(Long.class).build()
         .attribute("name").dbColumn("name").type(String.class).sortable(true).build()
         .criteria("statusFilter").sql("AND status = :status").build()
@@ -876,4 +922,62 @@ QueryException (base)
 }
 ```
 
-This specification provides a complete blueprint for building the Query Registration System library with all requested features including GET endpoint support and applied criteria names in metadata.
+## 15. Future Development Phases
+
+### Phase 1: Complete Core Builders (Priority: High)
+- [ ] Implement `AttributeBuilder<T>` for fluent attribute configuration
+- [ ] Implement `ParamBuilder<T>` for parameter configuration
+- [ ] Implement `CriteriaBuilder` for dynamic criteria
+- [ ] Create `VirtualAttributeBuilder` for calculated fields
+- [ ] Add builder validation at compile-time
+
+### Phase 2: Security Layer (Priority: High)
+- [ ] Create `SecurityContext` interface
+- [ ] Implement `SecurityContextProvider` for Spring Security integration
+- [ ] Add `AttributeSecurityFilter` for field-level security
+- [ ] Create `CriteriaSecurityFilter` for row-level security
+- [ ] Implement role-based access control (RBAC)
+- [ ] Add audit logging for sensitive queries
+
+### Phase 3: Caching Implementation (Priority: Medium)
+- [ ] Create `QueryCacheManager` interface
+- [ ] Implement `CaffeineCacheProvider` as default
+- [ ] Add `RedisCacheProvider` for distributed caching
+- [ ] Create `CacheKeyGenerator` with context awareness
+- [ ] Implement cache invalidation strategies
+- [ ] Add cache warm-up capabilities
+
+### Phase 4: Enhanced REST API (Priority: Medium)
+- [ ] Add comprehensive metadata in responses
+- [ ] Implement CSV export format
+- [ ] Implement Excel export format
+- [ ] Add GraphQL-like query syntax support
+- [ ] Create OpenAPI/Swagger documentation generator
+- [ ] Add pagination links (HATEOAS)
+- [ ] Implement field projection/selection
+
+### Phase 5: Advanced Query Features (Priority: Low)
+- [ ] Add support for stored procedures
+- [ ] Implement query composition (combining queries)
+- [ ] Add support for multiple result sets
+- [ ] Create query templates with placeholders
+- [ ] Implement query versioning
+- [ ] Add query migration tools
+
+### Phase 6: Monitoring & Observability (Priority: Low)
+- [ ] Integrate with Micrometer metrics
+- [ ] Add distributed tracing support
+- [ ] Create query performance analyzer
+- [ ] Implement slow query logging
+- [ ] Add query usage statistics
+- [ ] Create health check endpoints
+
+### Phase 7: Developer Experience (Priority: Low)
+- [ ] Create IntelliJ IDEA plugin for query completion
+- [ ] Add Spring Boot DevTools integration
+- [ ] Create query testing framework
+- [ ] Add mock query executor for testing
+- [ ] Generate TypeScript types from queries
+- [ ] Create query documentation generator
+
+This specification provides a complete blueprint for the Query Registration System library, documenting both the current implementation and the roadmap for future enhancements.

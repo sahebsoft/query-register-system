@@ -67,12 +67,9 @@ public class QueryResult {
             String type;
             boolean filterable;
             boolean sortable;
-            boolean calculated;
             boolean virtual;
             boolean restricted;
             String restrictionReason;
-            List<String> allowedOperators;
-            List<String> allowedValues;
             FilterMetadata currentFilter;
             String currentSort;
         }
@@ -100,7 +97,6 @@ public class QueryResult {
         public static class ParameterMetadata {
             String name;
             Object value;
-            Object defaultValue;
             String type;
             boolean required;
         }
