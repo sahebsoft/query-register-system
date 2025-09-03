@@ -3,7 +3,6 @@ package com.balasam.oasis.common.query.rest;
 import com.balasam.oasis.common.query.core.definition.FilterOp;
 import com.balasam.oasis.common.query.core.definition.SortDir;
 import com.balasam.oasis.common.query.core.execution.QueryContext;
-import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDate;
@@ -17,7 +16,6 @@ import java.util.stream.Collectors;
 /**
  * Parses HTTP request parameters into query execution parameters
  */
-@Component
 public class QueryRequestParser {
     
     private static final Pattern PARAM_PATTERN = Pattern.compile("^param\\.(.+)$");

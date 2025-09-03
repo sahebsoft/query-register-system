@@ -27,4 +27,10 @@ public interface QueryExecutor {
      * @return a QueryExecution builder for configuring and executing the query
      */
     QueryExecution prepare(QueryDefinition definition);
+    
+    /**
+     * Register a query definition
+     * @param definition the query definition to register
+     */
+    void registerQuery(QueryDefinition definition);
 }

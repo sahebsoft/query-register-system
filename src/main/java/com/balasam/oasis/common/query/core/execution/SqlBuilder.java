@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import com.balasam.oasis.common.query.core.definition.AttributeDef;
 import com.balasam.oasis.common.query.core.definition.CriteriaDef;
-import com.balasam.oasis.common.query.core.definition.DatabaseDialect;
 import com.balasam.oasis.common.query.core.definition.FilterOp;
 import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 import com.balasam.oasis.common.query.exception.QueryExecutionException;
@@ -27,23 +26,16 @@ public class SqlBuilder {
     private static final Logger log = LoggerFactory.getLogger(SqlBuilder.class);
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("--(\\w+)");
     
-    private final DatabaseDialect databaseDialect;
+    private final String databaseDialect;
     
     public SqlBuilder(String dialect) {
-        log.info("Dialect property value: {}", dialect);
-        this.databaseDialect = DatabaseDialect.fromString(dialect);
-        log.info("SqlBuilder initialized with database dialect: {} ({})", 
-            databaseDialect.getDisplayName(), databaseDialect.getVersion());
+        this.databaseDialect = dialect != null ? dialect : "ORACLE_11G";
+        log.info("SqlBuilder initialized with database dialect: {}", this.databaseDialect);
     }
     
-    // Constructor for testing
-    public SqlBuilder(DatabaseDialect dialect) {
-        this.databaseDialect = dialect;
-    }
-    
-    // Default constructor - defaults to Oracle 12c
+    // Default constructor - defaults to Oracle 11g
     public SqlBuilder() {
-        this(DatabaseDialect.ORACLE_12C);
+        this("ORACLE_11G");
     }
     
     public static class SqlResult {
@@ -94,7 +86,7 @@ public class SqlBuilder {
         // Wrap the query to apply filters, sorting, and pagination
         sql = wrapQueryForFiltersAndPagination(sql, context, params);
         
-        log.debug("Built SQL for {}: {}", databaseDialect.getDisplayName(), sql);
+        log.debug("Built SQL for {}: {}", databaseDialect, sql);
         log.debug("Parameters: {}", params);
         
         SqlResult result = new SqlResult(sql, params);
@@ -188,7 +180,7 @@ public class SqlBuilder {
         }
         
         // For Oracle 11g with pagination, we need to use ROWNUM approach
-        if (databaseDialect.requiresRownum() && hasPagination) {
+        if ("ORACLE_11G".equals(databaseDialect) && hasPagination) {
             return buildOracle11gQuery(sql, context, params, hasFilters, hasSorting);
         }
         
@@ -481,18 +473,18 @@ public class SqlBuilder {
         int offset = (offsetValue != null) ? offsetValue : pagination.getStart();
         
         // Handle Oracle database dialects
-        if (databaseDialect.supportsFetchOffset()) {
+        if ("ORACLE_12C".equals(databaseDialect)) {
             // Oracle 12c+ (SQL:2008 standard)
             params.put("offset", offset);
             params.put("limit", limit);
             return "OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
-        } else if (databaseDialect.requiresRownum()) {
+        } else if ("ORACLE_11G".equals(databaseDialect)) {
             // Oracle 11g - handled separately in buildOracle11gQuery
             // This shouldn't be reached, but return empty as a safety
             return "";
         } else {
-            // Should never reach here with only Oracle dialects
-            throw new IllegalStateException("Unsupported database dialect: " + databaseDialect);
+            // Default to Oracle 11g behavior
+            return "";
         }
     }
     
@@ -519,7 +511,7 @@ public class SqlBuilder {
         return cleaned;
     }
     
-    public DatabaseDialect getDatabaseDialect() {
+    public String getDatabaseDialect() {
         return databaseDialect;
     }
 }

@@ -7,30 +7,32 @@ import com.balasam.oasis.common.query.rest.QueryController;
 import com.balasam.oasis.common.query.rest.QueryRequestParser;
 import com.balasam.oasis.common.query.rest.QueryResponseBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Auto-configuration for Query Registration System
+ * Automatically enabled when JdbcTemplate is on classpath
  */
 @AutoConfiguration
-@ConditionalOnClass({JdbcTemplate.class})
+@ConditionalOnClass(JdbcTemplate.class)
+@ConditionalOnProperty(prefix = "query.registration", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(QueryProperties.class)
-@ComponentScan(basePackages = "com.balasam.oasis.common.query")
 public class QueryRegistrationAutoConfiguration {
+    
+    @Autowired
+    private QueryProperties properties;
     
     @Bean
     @ConditionalOnMissingBean
-    public SqlBuilder sqlBuilder(@Value("${query.registration.database.dialect:ORACLE_12C}") String dialect) {
-        return new SqlBuilder(dialect);
+    public SqlBuilder sqlBuilder() {
+        return new SqlBuilder(properties.getDatabaseDialect());
     }
     
     @Bean
@@ -41,39 +43,25 @@ public class QueryRegistrationAutoConfiguration {
     
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "query.registration.rest", name = "enabled", havingValue = "true", matchIfMissing = true)
     public QueryRequestParser queryRequestParser() {
         return new QueryRequestParser();
     }
     
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "query.registration.rest", name = "enabled", havingValue = "true", matchIfMissing = true)
     public QueryResponseBuilder queryResponseBuilder(ObjectMapper objectMapper) {
         return new QueryResponseBuilder(objectMapper);
     }
     
-    @Configuration
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "query.registration.rest", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public static class RestApiConfiguration {
-        
-        @Bean
-        @ConditionalOnMissingBean
-        public QueryController queryController(
-                QueryExecutor queryExecutor,
-                QueryRequestParser requestParser,
-                QueryResponseBuilder responseBuilder) {
-            return new QueryController(queryExecutor, requestParser, responseBuilder);
-        }
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean
-    public QueryRegistrationConfigurer queryRegistrationConfigurer(QueryProperties properties) {
-        return new QueryRegistrationConfigurer(properties);
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean
-    public GlobalProcessors globalProcessors() {
-        return GlobalProcessors.builder().build();
+    public QueryController queryController(
+            QueryExecutor queryExecutor,
+            QueryRequestParser requestParser,
+            QueryResponseBuilder responseBuilder) {
+        return new QueryController(queryExecutor, requestParser, responseBuilder);
     }
 }

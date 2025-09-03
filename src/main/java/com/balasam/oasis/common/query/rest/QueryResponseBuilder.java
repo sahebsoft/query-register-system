@@ -8,7 +8,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -21,7 +20,6 @@ import java.util.Map;
 /**
  * Builds HTTP responses from query results
  */
-@Component
 public class QueryResponseBuilder {
 
     private final ObjectMapper objectMapper;

@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -19,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Default implementation of QueryExecutor using JdbcTemplate
  */
-@Component
 public class QueryExecutorImpl implements QueryExecutor {
     
     private static final Logger log = LoggerFactory.getLogger(QueryExecutorImpl.class);

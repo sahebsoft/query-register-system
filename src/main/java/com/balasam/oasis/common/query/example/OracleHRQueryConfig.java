@@ -4,16 +4,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.balasam.oasis.common.query.builder.QueryDefinitionBuilder;
-import com.balasam.oasis.common.query.config.EnableQueryRegistration;
 import com.balasam.oasis.common.query.core.definition.AttributeDef;
 import com.balasam.oasis.common.query.core.definition.CriteriaDef;
 import com.balasam.oasis.common.query.core.definition.ParamDef;
 import com.balasam.oasis.common.query.core.definition.QueryDefinition;
-import com.balasam.oasis.common.query.core.execution.QueryExecutorImpl;
+import com.balasam.oasis.common.query.core.execution.QueryExecutor;
 
 import jakarta.annotation.PostConstruct;
 
@@ -22,11 +20,10 @@ import jakarta.annotation.PostConstruct;
  * Demonstrates Oracle 11g compatibility with ROWNUM pagination
  */
 @Configuration
-@EnableQueryRegistration
 public class OracleHRQueryConfig {
 
     @Autowired
-    private QueryExecutorImpl queryExecutor;
+    private QueryExecutor queryExecutor;
 
     @PostConstruct
     public void registerQueries() {
@@ -44,8 +41,7 @@ public class OracleHRQueryConfig {
         System.out.println("   GET http://localhost:8080/api/query/departmentStats?param.country=United%20States%20of%20America");
     }
 
-    @Bean
-    public QueryDefinition employeesQuery() {
+    private QueryDefinition employeesQuery() {
         return QueryDefinitionBuilder.builder("employees")
                 .sql("""
                         SELECT 
@@ -186,7 +182,6 @@ public class OracleHRQueryConfig {
                 .attribute(AttributeDef.name("totalCompensation")
                         .type(BigDecimal.class)
                         .virtual(true)
-                        .virtual(true)
                         .processor((value, row, context) -> {
                             BigDecimal salary = row.getBigDecimal("salary");
                             BigDecimal commission = row.getBigDecimal("commissionPct");
@@ -236,8 +231,7 @@ public class OracleHRQueryConfig {
                 .build();
     }
 
-    @Bean
-    public QueryDefinition departmentStatsQuery() {
+    private QueryDefinition departmentStatsQuery() {
         return QueryDefinitionBuilder.builder("departmentStats")
                 .sql("""
                         SELECT 
@@ -284,30 +278,35 @@ public class OracleHRQueryConfig {
                         .aliasName("employee_count")
                         .virtual(true)
                         .sortable(true)
+                        .processor((value, row, context) -> value)
                         .build())
                 .attribute(AttributeDef.name("avgSalary")
                         .type(BigDecimal.class)
                         .aliasName("avg_salary")
                         .virtual(true)
                         .sortable(true)
+                        .processor((value, row, context) -> value)
                         .build())
                 .attribute(AttributeDef.name("minSalary")
                         .type(BigDecimal.class)
                         .aliasName("min_salary")
                         .virtual(true)
                         .sortable(true)
+                        .processor((value, row, context) -> value)
                         .build())
                 .attribute(AttributeDef.name("maxSalary")
                         .type(BigDecimal.class)
                         .aliasName("max_salary")
                         .virtual(true)
                         .sortable(true)
+                        .processor((value, row, context) -> value)
                         .build())
                 .attribute(AttributeDef.name("totalSalary")
                         .type(BigDecimal.class)
                         .aliasName("total_salary")
                         .virtual(true)
                         .sortable(true)
+                        .processor((value, row, context) -> value)
                         .build())
                 .attribute(AttributeDef.name("city")
                         .type(String.class)
