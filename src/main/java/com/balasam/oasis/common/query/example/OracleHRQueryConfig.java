@@ -3,6 +3,7 @@ package com.balasam.oasis.common.query.example;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +13,9 @@ import com.balasam.oasis.common.query.core.definition.AttributeDef;
 import com.balasam.oasis.common.query.core.definition.CriteriaDef;
 import com.balasam.oasis.common.query.core.definition.ParamDef;
 import com.balasam.oasis.common.query.core.definition.QueryDefinition;
+import com.balasam.oasis.common.query.core.execution.QueryExecutorImpl;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * Oracle HR Schema query configurations
@@ -20,6 +24,25 @@ import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 @Configuration
 @EnableQueryRegistration
 public class OracleHRQueryConfig {
+
+    @Autowired
+    private QueryExecutorImpl queryExecutor;
+
+    @PostConstruct
+    public void registerQueries() {
+        // Register all queries defined in this configuration
+        queryExecutor.registerQuery(employeesQuery());
+        queryExecutor.registerQuery(departmentStatsQuery());
+        
+        System.out.println("✅ Oracle HR queries registered successfully!");
+        System.out.println("📊 Available queries: employees, departmentStats");
+        System.out.println("🔗 API Documentation: http://localhost:8080/swagger-ui.html");
+        System.out.println("\n📌 Example API calls:");
+        System.out.println("   GET http://localhost:8080/api/query/employees");
+        System.out.println("   GET http://localhost:8080/api/query/departmentStats");
+        System.out.println("   GET http://localhost:8080/api/query/employees?filter.salary.gt=5000&sort=salary.desc");
+        System.out.println("   GET http://localhost:8080/api/query/departmentStats?param.country=United%20States%20of%20America");
+    }
 
     @Bean
     public QueryDefinition employeesQuery() {

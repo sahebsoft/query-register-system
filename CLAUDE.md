@@ -46,10 +46,11 @@ mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt
 
 ### Database Access
 ```bash
-# H2 Console is available at http://localhost:8080/h2-console
-# JDBC URL: jdbc:h2:mem:testdb
-# Username: sa
-# Password: (empty)
+# Oracle Database connection
+# Configure in application.properties
+# spring.datasource.url=jdbc:oracle:thin:@localhost:1521:XE
+# spring.datasource.username=hr
+# spring.datasource.password=hr
 ```
 
 ### API Documentation

@@ -31,10 +31,10 @@ This file gives concise, actionable guidance for an AI coding agent to be immedi
 5) Important integration points & config
 - Caching: Caffeine-based caching is configured via `config/GlobalProcessors.java` and `config/QueryProperties.java`.
 - Security: optional integration via `config/SecurityConfig.java` and checks in `exception/QuerySecurityException.java`.
-- Data access: `core/execution` uses `JdbcTemplate`; SQL logging and test DBs use H2/TestContainers (see `src/main/resources` and tests).
+- Data access: `core/execution` uses `JdbcTemplate`; SQL logging and test DBs use TestContainers (see `src/main/resources` and tests).
 
 6) Tests and examples to mirror
-- Example query registration is in `example/ExampleQueryConfig.java` and `example/QueryInitializer.java` — use these as a template for adding new queries or beans.
+- Example query registration is in `example/OracleHRQueryConfig.java` — use this as a template for adding new queries or beans with @PostConstruct registration.
 - Tests live under `src/test/java/...` (integration tests: `QueryExecutorIntegrationTest.java`, controller tests: `rest/QueryControllerTest.java`, builder unit tests: `builder/QueryDefinitionBuilderTest.java`).
 
 7) Common pitfalls to avoid
@@ -43,7 +43,7 @@ This file gives concise, actionable guidance for an AI coding agent to be immedi
 - Builders validate at `build()`; failing fast is expected — fix data model or builder inputs rather than swallowing exceptions.
 
 8) How to register new queries
-- Create immutable definition using `QueryDefinitionBuilder` (example in `example/QueryInitializer.java`).
+- Create immutable definition using `QueryDefinitionBuilder` (example in `example/OracleHRQueryConfig.java`).
 - Register the resulting `QueryDefinition` as a Spring bean or add it to `QueryRegistry` during application start.
 - Add unit + integration tests that exercise SQL placeholders and processors.
 
