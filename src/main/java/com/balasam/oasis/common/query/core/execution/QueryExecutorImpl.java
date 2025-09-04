@@ -1,19 +1,23 @@
 package com.balasam.oasis.common.query.core.execution;
 
-import com.balasam.oasis.common.query.core.definition.QueryDefinition;
-import com.balasam.oasis.common.query.core.result.QueryResult;
-import com.balasam.oasis.common.query.core.result.Row;
-import com.balasam.oasis.common.query.exception.QueryExecutionException;
-import com.balasam.oasis.common.query.exception.QueryNotFoundException;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import com.balasam.oasis.common.query.core.definition.QueryDefinition;
+import com.balasam.oasis.common.query.core.result.QueryResult;
+import com.balasam.oasis.common.query.core.result.Row;
+import com.balasam.oasis.common.query.exception.QueryExecutionException;
+import com.balasam.oasis.common.query.exception.QueryNotFoundException;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Default implementation of QueryExecutor using JdbcTemplate
@@ -39,6 +43,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     /**
      * Register a query definition
      */
+    @Override
     public void registerQuery(QueryDefinition definition) {
         queryRegistry.put(definition.getName(), definition);
         log.info("Registered query: {}", definition.getName());
@@ -49,6 +54,11 @@ public class QueryExecutorImpl implements QueryExecutor {
      */
     public void registerQueries(Collection<QueryDefinition> definitions) {
         definitions.forEach(this::registerQuery);
+    }
+    
+    @Override
+    public QueryDefinition getQueryDefinition(String queryName) {
+        return queryRegistry.get(queryName);
     }
     
     @Override
@@ -182,21 +192,8 @@ public class QueryExecutorImpl implements QueryExecutor {
     private List<Row> runRowProcessors(QueryContext context, List<Row> rows) {
         QueryDefinition definition = context.getDefinition();
         
-        // Process virtual attributes first
-        var virtualAttrs = definition.getAttributes().values().stream()
-            .filter(attr -> attr.isVirtual() && attr.hasProcessor())
-            .toList();
-        
-        // Apply virtual attribute processors
-        if (!virtualAttrs.isEmpty()) {
-            for (Row row : rows) {
-                for (var attr : virtualAttrs) {
-                    // Processor handles virtual attribute calculation with full context
-                    Object value = attr.getProcessor().process(null, row, context);
-                    row.setVirtual(attr.getName(), value);
-                }
-            }
-        }
+        // Note: Transient attributes are now handled by DynamicRowMapper
+        // This method focuses on running custom row processors
         
         // Then run row processors if any
         if (!definition.hasRowProcessors()) {

@@ -1,10 +1,15 @@
 package com.balasam.oasis.common.query.rest;
 
+import com.balasam.oasis.common.query.core.definition.AttributeDef;
 import com.balasam.oasis.common.query.core.definition.FilterOp;
+import com.balasam.oasis.common.query.core.definition.ParamDef;
+import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 import com.balasam.oasis.common.query.core.definition.SortDir;
 import com.balasam.oasis.common.query.core.execution.QueryContext;
+import com.balasam.oasis.common.query.util.TypeConverter;
 import org.springframework.util.MultiValueMap;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,7 +19,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Parses HTTP request parameters into query execution parameters
+ * Parses HTTP request parameters into query execution parameters.
+ * Handles parameter parsing, filter extraction, and sort specification.
+ *
+ * @author Query Registration System
+ * @since 1.0
  */
 public class QueryRequestParser {
     
@@ -24,6 +33,10 @@ public class QueryRequestParser {
     private static final Pattern SORT_PATTERN = Pattern.compile("^([^.]+)\\.(asc|desc)$");
     
     public QueryRequest parse(MultiValueMap<String, String> allParams, int start, int end, String metadataLevel) {
+        return parse(allParams, start, end, metadataLevel, null);
+    }
+    
+    public QueryRequest parse(MultiValueMap<String, String> allParams, int start, int end, String metadataLevel, QueryDefinition queryDefinition) {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();
         List<QueryContext.SortSpec> sorts = new ArrayList<>();
@@ -48,7 +61,25 @@ public class QueryRequestParser {
             Matcher paramMatcher = PARAM_PATTERN.matcher(key);
             if (paramMatcher.matches()) {
                 String paramName = paramMatcher.group(1);
-                params.put(paramName, parseValue(value));
+                // Skip empty string parameters to let defaults apply
+                if (value != null && !value.trim().isEmpty()) {
+                    Class<?> paramType = getParamType(queryDefinition, paramName);
+                    
+                    // Handle List parameters for IN clause criteria
+                    if (paramType != null && List.class.isAssignableFrom(paramType)) {
+                        // Parse comma-separated values into a list
+                        if (value.contains(",")) {
+                            List<String> valueList = Arrays.stream(value.split(","))
+                                .map(String::trim)
+                                .collect(Collectors.toList());
+                            params.put(paramName, valueList);
+                        } else {
+                            params.put(paramName, Collections.singletonList(value.trim()));
+                        }
+                    } else {
+                        params.put(paramName, parseValue(value, paramType));
+                    }
+                }
                 continue;
             }
             
@@ -56,7 +87,8 @@ public class QueryRequestParser {
             Matcher keyMatcher = KEY_PATTERN.matcher(key);
             if (keyMatcher.matches()) {
                 String keyParamName = keyMatcher.group(1);
-                params.put(keyParamName, parseValue(value));
+                Class<?> paramType = getParamType(queryDefinition, keyParamName);
+                params.put(keyParamName, parseValue(value, paramType));
                 continue;
             }
             
@@ -77,10 +109,12 @@ public class QueryRequestParser {
                     Object filterValue2 = null;
                     
                     if (allParams.containsKey(valueKey)) {
-                        filterValue = parseValue(allParams.getFirst(valueKey));
+                        Class<?> attrType = getAttributeType(queryDefinition, attribute);
+                        filterValue = parseValue(allParams.getFirst(valueKey), attrType);
                     }
                     if (allParams.containsKey(valueKey2)) {
-                        filterValue2 = parseValue(allParams.getFirst(valueKey2));
+                        Class<?> attrType = getAttributeType(queryDefinition, attribute);
+                        filterValue2 = parseValue(allParams.getFirst(valueKey2), attrType);
                     }
                     
                     filters.put(attribute, QueryContext.Filter.builder()
@@ -93,18 +127,50 @@ public class QueryRequestParser {
                     // This might be an operator shortcut like filter.name.gte
                     try {
                         FilterOp op = FilterOp.fromUrlShortcut(opPart);
-                        filters.put(attribute, QueryContext.Filter.builder()
-                            .attribute(attribute)
-                            .operator(op)
-                            .value(parseValue(value))
-                            .build());
+                        Class<?> attrType = getAttributeType(queryDefinition, attribute);
+                        
+                        // Special handling for IN and NOT_IN operators - always use values list
+                        if (op == FilterOp.IN || op == FilterOp.NOT_IN) {
+                            List<Object> valuesList;
+                            if (value.contains(",")) {
+                                // Multiple values: split by comma
+                                valuesList = Arrays.stream(value.split(","))
+                                    .map(String::trim)
+                                    .map(v -> parseValue(v, attrType))
+                                    .collect(Collectors.toList());
+                            } else {
+                                // Single value: wrap in a list
+                                valuesList = Collections.singletonList(parseValue(value, attrType));
+                            }
+                            
+                            filters.put(attribute, QueryContext.Filter.builder()
+                                .attribute(attribute)
+                                .operator(op)
+                                .values(valuesList)
+                                .build());
+                        } else {
+                            // Check if we already have a filter for this attribute (for range queries)
+                            if (filters.containsKey(attribute)) {
+                                // Log warning - multiple filters on same attribute, last one wins
+                                // TODO: In future, could combine into compound filter
+                                System.err.println("Warning: Multiple filters on attribute '" + attribute + 
+                                    "'. Only the last one will be applied.");
+                            }
+                            filters.put(attribute, QueryContext.Filter.builder()
+                                .attribute(attribute)
+                                .operator(op)
+                                .value(parseValue(value, attrType))
+                                .build());
+                        }
                     } catch (IllegalArgumentException e) {
                         // Not a valid operator, treat as simple filter
-                        parseSimpleFilter(attribute, value, filters);
+                        Class<?> attrType = getAttributeType(queryDefinition, attribute);
+                        parseSimpleFilter(attribute, value, filters, attrType);
                     }
                 } else {
                     // Simple filter: filter.attribute=value
-                    parseSimpleFilter(attribute, value, filters);
+                    Class<?> attrType = getAttributeType(queryDefinition, attribute);
+                    parseSimpleFilter(attribute, value, filters, attrType);
                 }
                 continue;
             }
@@ -126,24 +192,36 @@ public class QueryRequestParser {
     }
     
     private void parseSimpleFilter(String attribute, String value, Map<String, QueryContext.Filter> filters) {
+        parseSimpleFilter(attribute, value, filters, null);
+    }
+    
+    private void parseSimpleFilter(String attribute, String value, Map<String, QueryContext.Filter> filters, Class<?> targetType) {
+        // Skip empty filter values
+        if (value == null || value.trim().isEmpty()) {
+            return;
+        }
+        
         // Check for comma-separated values (IN operator)
         if (value.contains(",")) {
             List<Object> values = Arrays.stream(value.split(","))
                 .map(String::trim)
-                .map(this::parseValue)
+                .filter(v -> !v.isEmpty()) // Skip empty values in list
+                .map(v -> parseValue(v, targetType))
                 .collect(Collectors.toList());
             
-            filters.put(attribute, QueryContext.Filter.builder()
-                .attribute(attribute)
-                .operator(FilterOp.IN)
-                .values(values)
-                .build());
+            if (!values.isEmpty()) {
+                filters.put(attribute, QueryContext.Filter.builder()
+                    .attribute(attribute)
+                    .operator(FilterOp.IN)
+                    .values(values)
+                    .build());
+            }
         } else {
             // Simple equals filter
             filters.put(attribute, QueryContext.Filter.builder()
                 .attribute(attribute)
                 .operator(FilterOp.EQUALS)
-                .value(parseValue(value))
+                .value(parseValue(value, targetType))
                 .build());
         }
     }
@@ -174,9 +252,40 @@ public class QueryRequestParser {
         }
     }
     
+    /**
+     * Get the type of a parameter from the query definition
+     */
+    private Class<?> getParamType(QueryDefinition queryDefinition, String paramName) {
+        if (queryDefinition == null) {
+            return null;
+        }
+        ParamDef<?> paramDef = queryDefinition.getParam(paramName);
+        return paramDef != null ? paramDef.getType() : null;
+    }
+    
+    /**
+     * Get the type of an attribute from the query definition
+     */
+    private Class<?> getAttributeType(QueryDefinition queryDefinition, String attributeName) {
+        if (queryDefinition == null) {
+            return null;
+        }
+        AttributeDef<?> attributeDef = queryDefinition.getAttribute(attributeName);
+        return attributeDef != null ? attributeDef.getType() : null;
+    }
+    
     private Object parseValue(String value) {
+        return parseValue(value, null);
+    }
+    
+    private Object parseValue(String value, Class<?> targetType) {
         if (value == null || value.isEmpty()) {
             return null;
+        }
+        
+        // If we have a target type, try to convert to it directly
+        if (targetType != null) {
+            return convertToType(value, targetType);
         }
         
         // Try to parse as boolean
@@ -215,5 +324,21 @@ public class QueryRequestParser {
         
         // Return as string
         return value;
+    }
+    
+    /**
+     * Convert a string value to the specified target type.
+     * Delegates to the centralized TypeConverter utility.
+     *
+     * @param value The string value to convert
+     * @param targetType The target type class
+     * @return The converted value
+     */
+    private Object convertToType(String value, Class<?> targetType) {
+        if (targetType == null || value == null) {
+            return value;
+        }
+        
+        return TypeConverter.convertString(value, targetType);
     }
 }

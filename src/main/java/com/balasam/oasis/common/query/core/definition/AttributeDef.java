@@ -3,33 +3,64 @@ package com.balasam.oasis.common.query.core.definition;
 import java.util.function.Function;
 
 import com.balasam.oasis.common.query.processor.AttributeFormatter;
-import com.balasam.oasis.common.query.processor.AttributeProcessor;
+import com.balasam.oasis.common.query.processor.Calculator;
 import com.google.common.base.Preconditions;
 
 import lombok.Value;
 
 /**
- * Immutable attribute definition for query fields with strong typing Uses
- * staged builder pattern to enforce type specification at compile time
+ * Immutable attribute definition for both regular and transient attributes.
+ * Uses staged builder pattern to enforce type specification at compile time.
+ * 
+ * <p>Attributes represent fields in the query result and can be:</p>
+ * <ul>
+ *   <li><b>Regular attributes</b>: Mapped from database columns via aliasName</li>
+ *   <li><b>Transient attributes</b>: Calculated dynamically using calculator function</li>
+ * </ul>
+ *
+ * <p>Example usage:</p>
+ * <pre>
+ * // Regular attribute from database
+ * AttributeDef&lt;String&gt; name = AttributeDef.&lt;String&gt;builder()
+ *     .name("userName")
+ *     .type(String.class)
+ *     .aliasName("full_name")
+ *     .filterable(true)
+ *     .sortable(true)
+ *     .build();
+ *
+ * // Transient calculated attribute
+ * AttributeDef&lt;BigDecimal&gt; totalValue = AttributeDef.&lt;BigDecimal&gt;builder()
+ *     .name("totalValue")
+ *     .type(BigDecimal.class)
+ *     .transient_(true)
+ *     .calculator((row, context) -> calculateTotal(row))
+ *     .build();
+ * </pre>
  *
  * @param <T> the type of the attribute value
+ * @author Query Registration System
+ * @since 1.0
  */
 @Value
 public class AttributeDef<T> {
 
     String name; // Frontend/API name
     Class<T> type; // Java type for automatic conversion
-    String aliasName; // Database column name
+    String aliasName; // Database column name (null for transient attributes)
     boolean filterable;
     boolean sortable;
-    boolean virtual; // Not from database
     boolean primaryKey;
+    boolean transient_; // True for calculated/transient attributes
 
-    // Single processor handles: conversion, formatting, masking, calculation
-    AttributeProcessor<T> processor;
-
-    // Formatter for string representation
+    // For regular attributes: formats the value to string
     AttributeFormatter<T> formatter;
+    
+    // For transient attributes: calculates the value from row data
+    Calculator<T> calculator;
+    
+    // For transient attributes: which regular attribute to use for sorting
+    String sortProperty;
 
     // Security rule determines if user can see this attribute
     Function<Object, Boolean> securityRule;
@@ -43,10 +74,11 @@ public class AttributeDef<T> {
         this.type = builder.type;
         this.filterable = builder.filterable;
         this.sortable = builder.sortable;
-        this.virtual = builder.virtual;
         this.primaryKey = builder.primaryKey;
-        this.processor = builder.processor;
+        this.transient_ = builder.transient_;
         this.formatter = builder.formatter;
+        this.calculator = builder.calculator;
+        this.sortProperty = builder.sortProperty;
         this.securityRule = builder.securityRule;
         this.description = builder.description;
     }
@@ -63,12 +95,20 @@ public class AttributeDef<T> {
         return securityRule != null;
     }
 
-    public boolean hasProcessor() {
-        return processor != null;
-    }
-
     public boolean hasFormatter() {
         return formatter != null;
+    }
+    
+    public boolean hasCalculator() {
+        return calculator != null;
+    }
+    
+    public boolean isTransient() {
+        return transient_;
+    }
+    
+    public boolean hasSortProperty() {
+        return sortProperty != null && !sortProperty.trim().isEmpty();
     }
 
 
@@ -110,10 +150,11 @@ public class AttributeDef<T> {
         private String aliasName;
         private boolean filterable = false;
         private boolean sortable = false;
-        private boolean virtual = false;
         private boolean primaryKey = false;
-        private AttributeProcessor<T> processor;
+        private boolean transient_ = false;
         private AttributeFormatter<T> formatter;
+        private Calculator<T> calculator;
+        private String sortProperty;
         private Function<Object, Boolean> securityRule;
         private String description;
 
@@ -139,28 +180,8 @@ public class AttributeDef<T> {
             return this;
         }
 
-        public BuilderStage<T> virtual(boolean virtual) {
-            this.virtual = virtual;
-            if (virtual) {
-                this.aliasName = null; // Virtual attributes don't have DB columns
-                this.sortable = false; // Can't sort virtual attributes at DB level
-            }
-            return this;
-        }
-
         public BuilderStage<T> primaryKey(boolean primaryKey) {
             this.primaryKey = primaryKey;
-            return this;
-        }
-
-        public BuilderStage<T> processor(AttributeProcessor<T> processor) {
-            this.processor = processor;
-            return this;
-        }
-
-        // Convenience method for simple processing
-        public BuilderStage<T> processor(Function<T, Object> func) {
-            this.processor = AttributeProcessor.simple(func);
             return this;
         }
 
@@ -168,10 +189,30 @@ public class AttributeDef<T> {
             this.formatter = formatter;
             return this;
         }
-
-        // Convenience method for simple formatting
-        public BuilderStage<T> formatter(Function<T, String> func) {
-            this.formatter = func::apply;
+        
+        // Mark as transient and provide calculator
+        public BuilderStage<T> transient_(boolean transient_) {
+            this.transient_ = transient_;
+            if (transient_) {
+                this.aliasName = null; // Transient attributes don't have DB columns
+                this.sortable = false; // Cannot sort at DB level
+                this.filterable = false; // Cannot filter at DB level
+            }
+            return this;
+        }
+        
+        // Set calculator for transient attributes (renamed from calculator)
+        public BuilderStage<T> calculated(Calculator<T> calculator) {
+            this.calculator = calculator;
+            this.transient_ = true; // Automatically mark as transient
+            this.aliasName = null;
+            // Don't automatically disable sortable/filterable - will validate later
+            return this;
+        }
+        
+        // Specify which regular attribute to use for sorting this transient attribute
+        public BuilderStage<T> sortProperty(String attributeName) {
+            this.sortProperty = attributeName;
             return this;
         }
 
@@ -194,14 +235,38 @@ public class AttributeDef<T> {
         }
 
         private void validate() {
-            if (virtual && aliasName != null) {
-                aliasName = null; // Ensure virtual attributes have no DB column
-            }
-            if (virtual && sortable) {
-                sortable = false; // Virtual attributes can't be sorted at DB level
-            }
-            if (primaryKey && virtual) {
-                throw new IllegalStateException("Virtual attributes cannot be primary keys");
+            if (transient_) {
+                // Transient attributes must have a calculator
+                if (calculator == null) {
+                    throw new IllegalStateException("Transient attribute '" + name + "' must have a calculator");
+                }
+                // Transient attributes should not have DB column
+                aliasName = null;
+                // Transient attributes cannot be primary keys
+                if (primaryKey) {
+                    throw new IllegalStateException("Transient attributes cannot be primary keys");
+                }
+                // Transient attributes can only be sortable if they have a sortProperty
+                if (sortable && (sortProperty == null || sortProperty.trim().isEmpty())) {
+                    throw new IllegalStateException("Transient attribute '" + name + "' can only be sortable if it has a sortProperty");
+                }
+                // Transient attributes cannot be directly filterable (filtering happens at DB level)
+                if (filterable) {
+                    throw new IllegalStateException("Transient attribute '" + name + "' cannot be filterable (filtering happens at DB level, before calculation)");
+                }
+            } else {
+                // Regular attributes: ensure aliasName is set (defaults to name if not specified)
+                if (aliasName == null || aliasName.trim().isEmpty()) {
+                    aliasName = name;
+                }
+                // Regular attributes should not have calculator
+                if (calculator != null) {
+                    throw new IllegalStateException("Regular attribute '" + name + "' should not have a calculator. Use calculated() for transient attributes.");
+                }
+                // Regular attributes should not have sortProperty (they sort by themselves)
+                if (sortProperty != null && !sortProperty.trim().isEmpty()) {
+                    throw new IllegalStateException("Regular attribute '" + name + "' should not have a sortProperty. This is only for transient attributes.");
+                }
             }
         }
     }

@@ -22,7 +22,10 @@ import com.balasam.oasis.common.query.core.definition.AttributeDef;
 import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 import com.balasam.oasis.common.query.core.result.Row;
 import com.balasam.oasis.common.query.core.result.RowImpl;
-import com.balasam.oasis.common.query.processor.AttributeProcessor;
+import com.balasam.oasis.common.query.processor.AttributeFormatter;
+import com.balasam.oasis.common.query.processor.Calculator;
+import com.balasam.oasis.common.query.util.TypeConverter;
+import com.balasam.oasis.common.query.exception.QueryExecutionException;
 
 /**
  * Dynamic row mapper that maps ResultSet to Row based on QueryDefinition
@@ -51,13 +54,13 @@ public class DynamicRowMapper {
             }
         }
 
-        // First pass: Map non-virtual attributes
+        // First pass: Map regular (non-transient) attributes from database
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
-
-            // Skip virtual attributes (they're calculated later)
-            if (attr.isVirtual()) {
+            
+            // Skip transient attributes (they're calculated later)
+            if (attr.isTransient()) {
                 continue;
             }
 
@@ -98,32 +101,68 @@ public class DynamicRowMapper {
         // Create Row instance
         Row row = new RowImpl(rowData, rawData, context);
 
-        // Second pass: Apply processors to non-virtual attributes (now that we have the
-        // Row)
+        // Second pass: Apply formatters to regular attributes
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
-
-            // Skip virtual attributes
-            if (attr.isVirtual()) {
+            
+            // Skip transient attributes
+            if (attr.isTransient()) {
                 continue;
             }
 
-            // Apply processor with full context (value, row, context)
-            if (attr.hasProcessor()) {
+            // Apply formatter if present (converts to String)
+            if (attr.hasFormatter()) {
                 try {
                     Object currentValue = row.get(attrName);
-                    AttributeProcessor<Object> processor = (AttributeProcessor<Object>) attr.getProcessor();
-                    Object processedValue = processor.process(currentValue, row, context);
-                    row.set(attrName, processedValue);
+                    if (currentValue != null) {
+                        AttributeFormatter formatter = attr.getFormatter();
+                        String formattedValue = formatter.format(currentValue);
+                        row.set(attrName, formattedValue);
+                    }
                 } catch (Exception e) {
-                    log.warn("Failed to process value for attribute {}: {}", attrName, e.getMessage());
+                    log.warn("Failed to format value for attribute {}: {}", attrName, e.getMessage());
                 }
             }
         }
 
-        // Calculate calculated fields (non-virtual) - now handled by processor
-        // Virtual fields are calculated separately by VirtualAttributeProcessor
+        // Third pass: Calculate transient attributes
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            AttributeDef<?> attr = entry.getValue();
+            
+            // Only process transient attributes
+            if (!attr.isTransient()) {
+                continue;
+            }
+
+            // Check security for transient attributes
+            if (attr.isSecured() && context.getSecurityContext() != null) {
+                Boolean allowed = attr.getSecurityRule().apply(context.getSecurityContext());
+                if (!Boolean.TRUE.equals(allowed)) {
+                    row.set(attrName, null);
+                    continue;
+                }
+            }
+
+            // Calculate the transient value
+            if (attr.hasCalculator()) {
+                try {
+                    Calculator calculator = attr.getCalculator();
+                    Object calculatedValue = calculator.calculate(row, context);
+                    
+                    // Ensure type safety
+                    if (calculatedValue != null && attr.getType() != null) {
+                        calculatedValue = convertToType(calculatedValue, attr.getType());
+                    }
+                    
+                    row.set(attrName, calculatedValue);
+                } catch (Exception e) {
+                    log.warn("Failed to calculate transient attribute {}: {}", attrName, e.getMessage());
+                    row.set(attrName, null);
+                }
+            }
+        }
         return row;
     }
 
@@ -192,104 +231,22 @@ public class DynamicRowMapper {
         }
     }
 
+    /**
+     * Converts a value to the specified target type.
+     * Delegates to the centralized TypeConverter utility.
+     *
+     * @param value The value to convert
+     * @param targetType The target type class
+     * @return The converted value or original value if conversion fails
+     */
     private Object convertToType(Object value, Class<?> targetType) {
-        if (value == null) {
-            return null;
-        }
-
-        // If already the correct type
-        if (targetType.isAssignableFrom(value.getClass())) {
-            return value;
-        }
-
         try {
-            // String conversions
-            if (targetType == String.class) {
-                return value.toString();
-            }
-
-            // Numeric conversions
-            if (targetType == Integer.class || targetType == int.class) {
-                if (value instanceof Number numberValue) {
-                    return numberValue.intValue();
-                }
-                return Integer.valueOf(value.toString());
-            }
-
-            if (targetType == Long.class || targetType == long.class) {
-                if (value instanceof Number number) {
-                    return number.longValue();
-                }
-                return Long.valueOf(value.toString());
-            }
-
-            if (targetType == Double.class || targetType == double.class) {
-                if (value instanceof Number number) {
-                    return number.doubleValue();
-                }
-                return Double.valueOf(value.toString());
-            }
-
-            if (targetType == Float.class || targetType == float.class) {
-                if (value instanceof Number number) {
-                    return number.floatValue();
-                }
-                return Float.valueOf(value.toString());
-            }
-
-            if (targetType == BigDecimal.class) {
-                if (value instanceof BigDecimal) {
-                    return value;
-                }
-                if (value instanceof Number) {
-                    return new BigDecimal(value.toString());
-                }
-                return new BigDecimal(value.toString());
-            }
-
-            // Boolean conversion
-            if (targetType == Boolean.class || targetType == boolean.class) {
-                if (value instanceof Boolean) {
-                    return value;
-                }
-                if (value instanceof Number number) {
-                    return number.intValue() != 0;
-                }
-                String str = value.toString().toLowerCase();
-                return "true".equals(str) || "1".equals(str) || "yes".equals(str) || "y".equals(str);
-            }
-
-            // Date/Time conversions
-            if (targetType == LocalDate.class) {
-                if (value instanceof LocalDate) {
-                    return value;
-                }
-                if (value instanceof Date date) {
-                    return date.toLocalDate();
-                }
-                if (value instanceof LocalDateTime localDateTime) {
-                    return localDateTime.toLocalDate();
-                }
-            }
-
-            if (targetType == LocalDateTime.class) {
-                if (value instanceof LocalDateTime) {
-                    return value;
-                }
-                if (value instanceof Timestamp timestamp) {
-                    return timestamp.toLocalDateTime();
-                }
-            }
-
-        } catch (NumberFormatException e) {
-            log.warn("Failed to convert value {} to type {}: {}",
-                    value, targetType.getSimpleName(), e.getMessage());
+            return TypeConverter.convert(value, targetType);
         } catch (Exception e) {
             log.warn("Failed to convert value {} to type {}: {}",
                     value, targetType.getSimpleName(), e.getMessage());
+            // Return original value if conversion fails
+            return value;
         }
-
-        // Return original value if conversion fails
-        return value;
     }
 }

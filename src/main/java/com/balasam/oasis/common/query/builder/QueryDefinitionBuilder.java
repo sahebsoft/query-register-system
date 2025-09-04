@@ -16,6 +16,8 @@ import com.balasam.oasis.common.query.core.definition.ValidationRule;
 import com.balasam.oasis.common.query.processor.PostProcessor;
 import com.balasam.oasis.common.query.processor.PreProcessor;
 import com.balasam.oasis.common.query.processor.RowProcessor;
+import com.balasam.oasis.common.query.validation.BindParameterValidator;
+import com.balasam.oasis.common.query.validation.QueryDefinitionValidator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,6 +81,15 @@ public class QueryDefinitionBuilder {
      */
     public QueryDefinitionBuilder attribute(AttributeDef<?> attribute) {
         Preconditions.checkNotNull(attribute, "Attribute cannot be null");
+        
+        // Check for duplicate attribute during building
+        if (this.attributes.containsKey(attribute.getName())) {
+            throw new IllegalStateException(String.format(
+                "Duplicate attribute definition: Attribute '%s' is already defined in this query",
+                attribute.getName()
+            ));
+        }
+        
         this.attributes.put(attribute.getName(), attribute);
         return this;
     }
@@ -88,6 +99,15 @@ public class QueryDefinitionBuilder {
      */
     public QueryDefinitionBuilder param(ParamDef<?> param) {
         Preconditions.checkNotNull(param, "Parameter cannot be null");
+        
+        // Check for duplicate parameter during building
+        if (this.params.containsKey(param.getName())) {
+            throw new IllegalStateException(String.format(
+                "Duplicate parameter definition: Parameter '%s' is already defined in this query",
+                param.getName()
+            ));
+        }
+        
         this.params.put(param.getName(), param);
         return this;
     }
@@ -97,6 +117,15 @@ public class QueryDefinitionBuilder {
      */
     public QueryDefinitionBuilder criteria(CriteriaDef criteria) {
         Preconditions.checkNotNull(criteria, "Criteria cannot be null");
+        
+        // Check for duplicate criteria during building
+        if (this.criteria.containsKey(criteria.getName())) {
+            throw new IllegalStateException(String.format(
+                "Duplicate criteria definition: Criteria '%s' is already defined in this query",
+                criteria.getName()
+            ));
+        }
+        
         this.criteria.put(criteria.getName(), criteria);
         if (criteria.isFindByKey()) {
             this.findByKeyCriteriaName = criteria.getName();
@@ -218,7 +247,7 @@ public class QueryDefinitionBuilder {
                     .build();
         }
 
-        return QueryDefinition.builder()
+        QueryDefinition queryDef = QueryDefinition.builder()
                 .name(name)
                 .sql(sql)
                 .description(description)
@@ -238,6 +267,16 @@ public class QueryDefinitionBuilder {
                 .queryTimeout(queryTimeout)
                 .findByKeyCriteriaName(findByKeyCriteriaName)
                 .build();
+        
+        // Comprehensive validation:
+        // 1. Validates no duplicate definitions within the query (attributes, params, criteria)
+        // 2. Validates all bind parameters in SQL and criteria are defined
+        // 3. Registers the query globally and checks for duplicate query names
+        // This will throw IllegalStateException if any validation fails,
+        // preventing the application from starting
+        QueryDefinitionValidator.validateAndRegister(queryDef);
+        
+        return queryDef;
     }
 
     private void validate() {
@@ -259,13 +298,13 @@ public class QueryDefinitionBuilder {
         boolean hasPrimaryKey = attributes.values().stream()
                 .anyMatch(AttributeDef::isPrimaryKey);
 
-        // Validate virtual attributes have dependencies
+        // Validate transient attributes have calculators
         attributes.values().stream()
-                .filter(AttributeDef::isVirtual)
+                .filter(AttributeDef::isTransient)
                 .forEach(attr -> {
-                    if (!attr.hasProcessor()) {
+                    if (!attr.hasCalculator()) {
                         throw new IllegalArgumentException(
-                                "Virtual attribute must have a processor: " + attr.getName());
+                                "Transient attribute must have a calculator: " + attr.getName());
                     }
                 });
     }

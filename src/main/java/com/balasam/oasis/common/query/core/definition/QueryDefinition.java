@@ -11,7 +11,29 @@ import lombok.Builder;
 import lombok.Value;
 
 /**
- * Immutable query definition containing all metadata and configuration
+ * Immutable query definition containing all metadata and configuration.
+ * This is the central configuration object that defines a query's structure,
+ * including its SQL, attributes, parameters, criteria, and processing pipeline.
+ * 
+ * <p>Attributes can be either regular (from database) or transient (calculated).
+ * The definition is immutable after construction for thread-safety.</p>
+ *
+ * <p>Example usage:</p>
+ * <pre>
+ * QueryDefinition query = QueryDefinition.builder()
+ *     .name("userQuery")
+ *     .sql("SELECT * FROM users WHERE 1=1 --filters --orderBy")
+ *     .attribute("id", AttributeDef.builder()...)
+ *     .param("minSalary", ParamDef.builder()...)
+ *     .criteria("statusFilter", CriteriaDef.builder()...)
+ *     .build();
+ * </pre>
+ *
+ * @author Query Registration System
+ * @since 1.0
+ * @see AttributeDef
+ * @see ParamDef
+ * @see CriteriaDef
  */
 @Value
 @Builder(toBuilder = true)

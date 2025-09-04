@@ -18,8 +18,12 @@ import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 import com.balasam.oasis.common.query.exception.QueryExecutionException;
 
 /**
- * Builds dynamic SQL from query definition and context
- * Supports multiple database dialects including Oracle 11g and 12c
+ * Builds dynamic SQL from query definition and context.
+ * Supports multiple database dialects including Oracle 11g and 12c.
+ * Implements caching for filter and order clauses to improve performance.
+ *
+ * @author Query Registration System
+ * @since 1.0
  */
 public class SqlBuilder {
     
@@ -27,6 +31,11 @@ public class SqlBuilder {
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("--(\\w+)");
     
     private final String databaseDialect;
+    
+    // Cache for filter and order clauses per query execution
+    private String cachedFilterClause;
+    private String cachedOrderClause;
+    private QueryContext cachedContext;
     
     public SqlBuilder(String dialect) {
         this.databaseDialect = dialect != null ? dialect : "ORACLE_11G";
@@ -175,45 +184,55 @@ public class SqlBuilder {
         boolean hasSorting = context.hasSorts() && !context.getSorts().isEmpty();
         boolean hasPagination = context.hasPagination() && context.getDefinition().isPaginationEnabled();
         
-        if (!hasFilters && !hasSorting && !hasPagination) {
+        // Check if query is complex (has JOINs) - if yes, always wrap when filtering/sorting
+        boolean isComplexQuery = sql.toUpperCase().contains(" JOIN ");
+        
+        // If complex query with filters or sorting, we MUST wrap to avoid ambiguous columns
+        boolean needsWrapper = (isComplexQuery && (hasFilters || hasSorting)) || hasPagination;
+        
+        if (!needsWrapper && !hasFilters && !hasSorting && !hasPagination) {
             return sql;
         }
         
         // For Oracle 11g with pagination, we need to use ROWNUM approach
-        if ("ORACLE_11G".equals(databaseDialect) && hasPagination) {
+        if ("ORACLE_11G".equals(databaseDialect) && (hasPagination || needsWrapper)) {
             return buildOracle11gQuery(sql, context, params, hasFilters, hasSorting);
         }
         
-        // For other databases, use CTE or standard approach
-        StringBuilder wrappedSql = new StringBuilder();
-        wrappedSql.append("WITH base_query AS (\n");
-        wrappedSql.append(sql);
-        wrappedSql.append("\n)\n");
-        wrappedSql.append("SELECT * FROM base_query");
-        
-        // Add filters
-        if (hasFilters) {
-            String filterClause = buildFilterClause(context, params);
-            if (!filterClause.isEmpty()) {
-                wrappedSql.append("\nWHERE ").append(filterClause);
+        // For complex queries or when we have filters/sorting/pagination, wrap with CTE
+        if (isComplexQuery || hasFilters || hasSorting || hasPagination) {
+            StringBuilder wrappedSql = new StringBuilder();
+            wrappedSql.append("WITH base_query AS (\n");
+            wrappedSql.append(sql);
+            wrappedSql.append("\n)\n");
+            wrappedSql.append("SELECT * FROM base_query");
+            
+            // Add filters
+            if (hasFilters) {
+                String filterClause = buildFilterClause(context, params);
+                if (!filterClause.isEmpty()) {
+                    wrappedSql.append("\nWHERE ").append(filterClause);
+                }
             }
-        }
-        
-        // Add sorting
-        if (hasSorting) {
-            String orderByClause = buildOrderByClause(context);
-            if (!orderByClause.isEmpty()) {
-                wrappedSql.append("\n").append(orderByClause);
+            
+            // Add sorting
+            if (hasSorting) {
+                String orderByClause = buildOrderByClause(context);
+                if (!orderByClause.isEmpty()) {
+                    wrappedSql.append("\n").append(orderByClause);
+                }
             }
+            
+            // Add pagination
+            if (hasPagination) {
+                String paginationClause = buildPaginationClause(context.getPagination(), params);
+                wrappedSql.append("\n").append(paginationClause);
+            }
+            
+            return wrappedSql.toString();
         }
         
-        // Add pagination
-        if (hasPagination) {
-            String paginationClause = buildPaginationClause(context.getPagination(), params);
-            wrappedSql.append("\n").append(paginationClause);
-        }
-        
-        return wrappedSql.toString();
+        return sql;
     }
     
     /**
@@ -228,6 +247,9 @@ public class SqlBuilder {
                                       boolean hasFilters, boolean hasSorting) {
         StringBuilder oracle11gSql = new StringBuilder();
         
+        // Check if query is complex (has JOINs)
+        boolean isComplexQuery = sql.toUpperCase().contains(" JOIN ");
+        
         // Determine pagination parameters
         int offset = 0;
         int limit = Integer.MAX_VALUE;
@@ -241,7 +263,79 @@ public class SqlBuilder {
             needsPagination = true;
         }
         
-        if (needsPagination) {
+        // For complex queries with filters/sorting, we need to wrap even without pagination
+        if (isComplexQuery && (hasFilters || hasSorting)) {
+            if (needsPagination) {
+                int endRow = offset + limit;
+                
+                // Three-level wrapper for pagination with complex queries
+                // Outer query - filters by rnum > offset
+                oracle11gSql.append("SELECT * FROM (\n");
+                
+                // Middle query - adds ROWNUM as rnum and limits to endRow
+                oracle11gSql.append("  SELECT filtered_query.*, ROWNUM rnum FROM (\n");
+                
+                // First wrap the complex query to avoid ambiguous columns
+                oracle11gSql.append("    SELECT * FROM (\n");
+                oracle11gSql.append("      ").append(sql.replace("\n", "\n      "));
+                oracle11gSql.append("\n    ) base_query");
+                
+                // Add filters on the wrapped query
+                if (hasFilters) {
+                    String filterClause = buildFilterClause(context, params);
+                    if (!filterClause.isEmpty()) {
+                        oracle11gSql.append("\n    WHERE ").append(filterClause);
+                    }
+                }
+                
+                // Add sorting on the wrapped query
+                if (hasSorting) {
+                    String orderByClause = buildOrderByClause(context);
+                    if (!orderByClause.isEmpty()) {
+                        oracle11gSql.append("\n    ").append(orderByClause);
+                    }
+                }
+                
+                // Close filtered_query
+                oracle11gSql.append("\n  ) filtered_query\n");
+                
+                // Add ROWNUM <= endRow condition in middle query
+                oracle11gSql.append("  WHERE ROWNUM <= :endRow\n");
+                params.put("endRow", endRow);
+                
+                // Close middle query
+                oracle11gSql.append(")\n");
+                
+                // Add outer WHERE for start row (offset)
+                if (offset > 0) {
+                    oracle11gSql.append("WHERE rnum > :startRow");
+                    params.put("startRow", offset);
+                }
+            } else {
+                // Complex query with filters/sorting but no pagination
+                // Wrap the query to avoid ambiguous columns
+                oracle11gSql.append("SELECT * FROM (\n");
+                oracle11gSql.append("  ").append(sql.replace("\n", "\n  "));
+                oracle11gSql.append("\n) base_query");
+                
+                // Add filters
+                if (hasFilters) {
+                    String filterClause = buildFilterClause(context, params);
+                    if (!filterClause.isEmpty()) {
+                        oracle11gSql.append("\nWHERE ").append(filterClause);
+                    }
+                }
+                
+                // Add sorting
+                if (hasSorting) {
+                    String orderByClause = buildOrderByClause(context);
+                    if (!orderByClause.isEmpty()) {
+                        oracle11gSql.append("\n").append(orderByClause);
+                    }
+                }
+            }
+        } else if (needsPagination) {
+            // Simple query with pagination (no JOINs)
             int endRow = offset + limit;
             
             // Outer query - filters by rnum > offset
@@ -291,7 +385,7 @@ public class SqlBuilder {
                 params.put("startRow", offset);
             }
         } else {
-            // No pagination needed, just wrap with filters and sorting
+            // Simple query without pagination, just apply filters and sorting directly
             oracle11gSql.append(sql);
             
             // Add filters if present
@@ -318,7 +412,20 @@ public class SqlBuilder {
         return oracle11gSql.toString();
     }
     
+    /**
+     * Builds filter clause from query context.
+     * Caches the result for repeated calls within the same query execution.
+     *
+     * @param context The query context containing filters
+     * @param params The parameter map to populate
+     * @return The filter clause SQL string
+     */
     private String buildFilterClause(QueryContext context, Map<String, Object> params) {
+        // Check if we can use cached filter clause
+        if (cachedContext == context && cachedFilterClause != null) {
+            return cachedFilterClause;
+        }
+        
         StringBuilder filterSql = new StringBuilder();
         int filterIndex = 0;
         
@@ -337,7 +444,11 @@ public class SqlBuilder {
             }
         }
         
-        return filterSql.toString();
+        // Cache the result
+        cachedContext = context;
+        cachedFilterClause = filterSql.toString();
+        
+        return cachedFilterClause;
     }
     
     private String buildFilterCondition(QueryContext.Filter filter, AttributeDef<?> attr, 

@@ -11,7 +11,39 @@ import com.balasam.oasis.common.query.exception.QueryValidationException;
 import java.util.*;
 
 /**
- * Fluent builder for query execution
+ * Fluent builder for configuring and executing queries.
+ * Provides a chainable API for setting parameters, filters, sorts, and pagination.
+ *
+ * <p>This class implements the builder pattern to construct query executions
+ * with various configuration options. All methods return the QueryExecution
+ * instance for method chaining.</p>
+ *
+ * <p>Features:</p>
+ * <ul>
+ *   <li>Parameter binding with type conversion and validation</li>
+ *   <li>Dynamic filtering with multiple operators</li>
+ *   <li>Sorting by multiple attributes</li>
+ *   <li>Pagination with start/end or page/size</li>
+ *   <li>Conditional filtering</li>
+ * </ul>
+ *
+ * <p>Example usage:</p>
+ * <pre>
+ * QueryResult result = queryExecution
+ *     .withParam("minSalary", 50000)
+ *     .withFilter("department", FilterOp.IN, Arrays.asList("IT", "HR"))
+ *     .filterIf(includeInactive, "status", FilterOp.EQUALS, "INACTIVE")
+ *     .withSort("salary", SortDir.DESC)
+ *     .withPagination(0, 100)
+ *     .validate()
+ *     .execute();
+ * </pre>
+ *
+ * @author Query Registration System
+ * @since 1.0
+ * @see QueryExecutor
+ * @see QueryContext
+ * @see QueryResult
  */
 public class QueryExecution {
 
@@ -88,11 +120,33 @@ public class QueryExecution {
 
     // Pagination
     public QueryExecution withPagination(int start, int end) {
+        // Validate pagination values
+        if (start < 0) {
+            start = 0; // Treat negative start as 0
+        }
+        if (end < start) {
+            end = start; // Ensure end is not before start
+        }
+        int pageSize = end - start;
+        if (pageSize > 1000) {
+            // Limit page size to prevent excessive data retrieval
+            end = start + 1000;
+        }
         context.setPagination(QueryContext.Pagination.fromStartEnd(start, end));
         return this;
     }
 
     public QueryExecution withOffsetLimit(int offset, int limit) {
+        // Validate offset and limit
+        if (offset < 0) {
+            offset = 0;
+        }
+        if (limit <= 0) {
+            limit = 50; // Default page size
+        }
+        if (limit > 1000) {
+            limit = 1000; // Max page size
+        }
         context.setPagination(QueryContext.Pagination.fromOffsetLimit(offset, limit));
         return this;
     }
@@ -119,14 +173,16 @@ public class QueryExecution {
     public QueryExecution validate() {
         List<String> violations = new ArrayList<>();
 
-        // Validate required parameters
+        // Apply default values and validate required parameters
         definition.getParams().forEach((name, paramDef) -> {
+            // Apply default value if parameter is not provided and has a default
+            if (!context.hasParam(name) && paramDef.hasDefaultValue()) {
+                context.addParam(name, paramDef.getDefaultValue());
+            }
+            
+            // Check required parameters
             if (paramDef.isRequired() && !context.hasParam(name)) {
-                if (paramDef.hasDefaultValue()) {
-                    context.addParam(name, paramDef.getDefaultValue());
-                } else {
-                    violations.add("Required parameter missing: " + name);
-                }
+                violations.add("Required parameter missing: " + name);
             }
 
             // Process and validate parameter values

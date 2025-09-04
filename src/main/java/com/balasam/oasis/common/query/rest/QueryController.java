@@ -1,5 +1,6 @@
 package com.balasam.oasis.common.query.rest;
 
+import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -25,7 +26,35 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
- * REST controller for query execution
+ * REST controller for query execution via HTTP endpoints.
+ * Provides GET and POST endpoints for executing registered queries
+ * with support for parameters, filters, sorting, and pagination.
+ *
+ * <p>The controller handles:</p>
+ * <ul>
+ *   <li>Query parameter parsing from HTTP requests</li>
+ *   <li>Query execution through the QueryExecutor</li>
+ *   <li>Response formatting with optional metadata</li>
+ *   <li>Error handling and validation</li>
+ * </ul>
+ *
+ * <p>GET endpoint format:</p>
+ * <pre>
+ * GET /api/query/{queryName}?
+ *     param.minSalary=50000&
+ *     filter.department.in=IT,HR&
+ *     filter.status=ACTIVE&
+ *     sort=salary.desc,name.asc&
+ *     _start=0&_end=100&
+ *     _meta=full
+ * </pre>
+ *
+ * <p>POST endpoint accepts JSON body with query configuration.</p>
+ *
+ * @author Query Registration System
+ * @since 1.0
+ * @see QueryRequestParser
+ * @see QueryResponseBuilder
  */
 @RestController
 @RequestMapping("/api/query")
@@ -62,8 +91,11 @@ public class QueryController {
         log.info("Executing query: {} with params: {}", queryName, allParams);
 
         try {
-            // Parse request parameters
-            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta);
+            // Get the query definition for type-aware parsing
+            QueryDefinition queryDefinition = queryExecutor.getQueryDefinition(queryName);
+            
+            // Parse request parameters with type information
+            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
             // Check if this is a findByKey query (has key.* parameters)
             boolean hasKeyParams = allParams.keySet().stream()

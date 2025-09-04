@@ -112,7 +112,7 @@ public class MetadataBuilder {
                     .type(attr.getType() != null ? attr.getType().getSimpleName() : "Object")
                     .filterable(attr.isFilterable())
                     .sortable(attr.isSortable())
-                    .virtual(attr.isVirtual())
+                    .virtual(attr.isTransient())
                     .restricted(restricted)
                     .restrictionReason(restrictionReason)
                     .currentFilter(filterMetadata)
