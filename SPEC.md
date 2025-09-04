@@ -433,8 +433,7 @@ GET /api/query/{queryName}?
                 "sql": "AND u.department_id IN (SELECT id FROM departments WHERE manager_id = :currentUserId)",
                 "params": {
                     "currentUserId": 456
-                },
-                "appliedReason": "USER_ROLE_MANAGER"
+                }
             }
         ],
         "appliedFilters": {

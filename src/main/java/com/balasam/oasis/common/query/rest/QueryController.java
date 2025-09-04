@@ -41,7 +41,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * <p>GET endpoint format:</p>
  * <pre>
  * GET /api/query/{queryName}?
- *     param.minSalary=50000&
+ *     minSalary=50000&
  *     filter.department.in=IT,HR&
  *     filter.status=ACTIVE&
  *     sort=salary.desc,name.asc&
@@ -97,9 +97,9 @@ public class QueryController {
             // Parse request parameters with type information
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
-            // Check if this is a findByKey query (has key.* parameters)
-            boolean hasKeyParams = allParams.keySet().stream()
-                    .anyMatch(key -> key.startsWith("key."));
+            // Check if this is a findByKey query (determined by query definition)
+            // For now, we'll treat all queries as list queries unless specified otherwise
+            boolean hasKeyParams = false;
 
             if (hasKeyParams) {
                 // Execute as single object query

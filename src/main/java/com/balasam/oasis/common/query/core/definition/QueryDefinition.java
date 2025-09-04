@@ -4,11 +4,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.balasam.oasis.common.query.core.execution.MetadataCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Immutable query definition containing all metadata and configuration.
@@ -35,7 +37,7 @@ import lombok.Value;
  * @see ParamDef
  * @see CriteriaDef
  */
-@Value
+@Getter
 @Builder(toBuilder = true)
 public class QueryDefinition {
     String name;
@@ -83,6 +85,19 @@ public class QueryDefinition {
     Integer queryTimeout;  // in seconds
     
     String findByKeyCriteriaName;  // Name of the criteria used for findByKey
+    
+    /**
+     * Cached metadata for optimized row mapping.
+     * This is mutable and set after the definition is built.
+     */
+    @Setter
+    transient MetadataCache metadataCache;
+    
+    /**
+     * Flag to enable/disable metadata caching for this query
+     */
+    @Builder.Default
+    boolean metadataCacheEnabled = true;
     
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
@@ -134,5 +149,13 @@ public class QueryDefinition {
     
     public CriteriaDef getFindByKeyCriteria() {
         return findByKeyCriteriaName != null ? criteria.get(findByKeyCriteriaName) : null;
+    }
+    
+    public boolean hasMetadataCache() {
+        return metadataCache != null && metadataCache.isInitialized();
+    }
+    
+    public boolean shouldUseMetadataCache() {
+        return metadataCacheEnabled && hasMetadataCache();
     }
 }

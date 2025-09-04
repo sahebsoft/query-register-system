@@ -34,7 +34,7 @@ mvnw jacoco:report
 
 ### Running the Application
 ```bash
-# Run with Maven
+# Run with Maven , always use 8080 , kill process if exists
 mvnw spring-boot:run
 
 # Run with specific profile
@@ -252,3 +252,4 @@ GET /api/query/{queryName}?
 4. **Caching**: Implement Caffeine cache provider with configurable TTL
 5. **Security**: Add SecurityContext and field-level security
 6. **Validation**: Enhance multi-level validation (parameter, filter, execution)
+- please stop running with differtn ports kill all and use 8080

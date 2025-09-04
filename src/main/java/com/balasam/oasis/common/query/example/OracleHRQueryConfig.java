@@ -1,14 +1,8 @@
 package com.balasam.oasis.common.query.example;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.OptionalDouble;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +13,6 @@ import com.balasam.oasis.common.query.core.definition.CriteriaDef;
 import com.balasam.oasis.common.query.core.definition.ParamDef;
 import com.balasam.oasis.common.query.core.definition.QueryDefinition;
 import com.balasam.oasis.common.query.core.execution.QueryExecutor;
-import com.balasam.oasis.common.query.processor.PostProcessor;
 
 import jakarta.annotation.PostConstruct;
 
@@ -38,6 +31,21 @@ public class OracleHRQueryConfig {
                 // Register all queries defined in this configuration
                 queryExecutor.registerQuery(employeesQuery());
                 queryExecutor.registerQuery(departmentStatsQuery());
+
+                queryExecutor.registerQuery(QueryDefinitionBuilder.builder("testUnion").sql(
+                                """
+                                                select employee_id,email
+                                                from employees
+                                                where department_id <> 100 and job_id = :jobId
+                                                union
+                                                select employee_id
+                                                from employees
+                                                where department_id <> 110
+                                                                                """)
+                                .attribute(AttributeDef.name("empId").type(Integer.class).aliasName("employee_id")
+                                                .build())
+                                .param(ParamDef.param("jobId").type(String.class).defaultValue("ZZ").build())
+                                .build());
         }
 
         private QueryDefinition employeesQuery() {
@@ -203,7 +211,7 @@ public class OracleHRQueryConfig {
                                                 .type(Integer.class)
                                                 .description("Filter by department ID")
                                                 .build())
-                                
+
                                 // Parameters for IN clause criteria
                                 .param(ParamDef.param("departmentIds")
                                                 .type(List.class)
@@ -216,10 +224,6 @@ public class OracleHRQueryConfig {
                                 .param(ParamDef.param("jobIds")
                                                 .type(List.class)
                                                 .description("List of job IDs for IN clause")
-                                                .build())
-                                .param(ParamDef.param("statuses")
-                                                .type(List.class)
-                                                .description("List of status values for IN clause")
                                                 .build())
                                 .param(ParamDef.param("minSalary")
                                                 .type(BigDecimal.class)
@@ -259,7 +263,7 @@ public class OracleHRQueryConfig {
                                                 .sql("AND e.hire_date > :hiredAfter")
                                                 .condition(ctx -> ctx.hasParam("hiredAfter"))
                                                 .build())
-                                
+
                                 // IN clause criteria examples
                                 .criteria(CriteriaDef.criteria()
                                                 .name("departmentIdsFilter")
@@ -279,13 +283,9 @@ public class OracleHRQueryConfig {
                                                 .condition(ctx -> ctx.hasParam("jobIds"))
                                                 .description("Filter by multiple job IDs")
                                                 .build())
-                                .criteria(CriteriaDef.criteria()
-                                                .name("statusFilter")
-                                                .sql("AND e.status IN (:statuses)")
-                                                .condition(ctx -> ctx.hasParam("statuses"))
-                                                .description("Filter by multiple status values")
-                                                .build())
-                                
+                                // .postProcessor((queryResult, ctx) -> {
+                                // return queryResult;
+                                // })
                                 // Configuration
                                 .defaultPageSize(20)
                                 .maxPageSize(100)

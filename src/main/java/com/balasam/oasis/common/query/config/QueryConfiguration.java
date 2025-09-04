@@ -26,8 +26,17 @@ public class QueryConfiguration {
     }
     
     @Bean
-    public QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder) {
-        return new QueryExecutorImpl(jdbcTemplate, sqlBuilder);
+    public QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder, QueryProperties properties) {
+        QueryExecutorImpl executor = new QueryExecutorImpl(jdbcTemplate, sqlBuilder);
+        
+        // Configure metadata caching
+        if (properties.getMetadata() != null && properties.getMetadata().getCache() != null) {
+            QueryProperties.MetadataProperties.CacheProperties cacheProps = properties.getMetadata().getCache();
+            executor.setPrewarmMetadataOnStartup(cacheProps.isPrewarm());
+            executor.setUseOptimizedMapper(cacheProps.isUseOptimizedMapper());
+        }
+        
+        return executor;
     }
     
     @Bean

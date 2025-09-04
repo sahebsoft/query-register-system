@@ -1,6 +1,5 @@
 package com.balasam.oasis.common.query.core.execution;
 
-import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -10,8 +9,6 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +22,6 @@ import com.balasam.oasis.common.query.core.result.RowImpl;
 import com.balasam.oasis.common.query.processor.AttributeFormatter;
 import com.balasam.oasis.common.query.processor.Calculator;
 import com.balasam.oasis.common.query.util.TypeConverter;
-import com.balasam.oasis.common.query.exception.QueryExecutionException;
 
 /**
  * Dynamic row mapper that maps ResultSet to Row based on QueryDefinition
@@ -58,7 +54,7 @@ public class DynamicRowMapper {
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
-            
+
             // Skip transient attributes (they're calculated later)
             if (attr.isTransient()) {
                 continue;
@@ -105,7 +101,7 @@ public class DynamicRowMapper {
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
-            
+
             // Skip transient attributes
             if (attr.isTransient()) {
                 continue;
@@ -130,7 +126,7 @@ public class DynamicRowMapper {
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
-            
+
             // Only process transient attributes
             if (!attr.isTransient()) {
                 continue;
@@ -150,12 +146,12 @@ public class DynamicRowMapper {
                 try {
                     Calculator calculator = attr.getCalculator();
                     Object calculatedValue = calculator.calculate(row, context);
-                    
+
                     // Ensure type safety
                     if (calculatedValue != null && attr.getType() != null) {
                         calculatedValue = convertToType(calculatedValue, attr.getType());
                     }
-                    
+
                     row.set(attrName, calculatedValue);
                 } catch (Exception e) {
                     log.warn("Failed to calculate transient attribute {}: {}", attrName, e.getMessage());
@@ -235,7 +231,7 @@ public class DynamicRowMapper {
      * Converts a value to the specified target type.
      * Delegates to the centralized TypeConverter utility.
      *
-     * @param value The value to convert
+     * @param value      The value to convert
      * @param targetType The target type class
      * @return The converted value or original value if conversion fails
      */

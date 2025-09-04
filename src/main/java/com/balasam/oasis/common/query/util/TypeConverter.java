@@ -1,7 +1,5 @@
 package com.balasam.oasis.common.query.util;
 
-import com.balasam.oasis.common.query.exception.QueryValidationException;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.balasam.oasis.common.query.exception.QueryValidationException;
+
 /**
  * Utility class for type conversions in the Query Registration System.
  * Provides centralized type conversion logic with consistent error handling.
@@ -19,12 +19,12 @@ import java.util.function.Function;
  * @since 1.0
  */
 public final class TypeConverter {
-    
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    
+
     private static final Map<Class<?>, Function<String, ?>> CONVERTERS = new HashMap<>();
-    
+
     static {
         CONVERTERS.put(String.class, s -> s);
         CONVERTERS.put(Integer.class, TypeConverter::toInteger);
@@ -41,17 +41,17 @@ public final class TypeConverter {
         CONVERTERS.put(LocalDate.class, TypeConverter::toLocalDate);
         CONVERTERS.put(LocalDateTime.class, TypeConverter::toLocalDateTime);
     }
-    
+
     private TypeConverter() {
         // Utility class, prevent instantiation
     }
-    
+
     /**
      * Converts a value to the specified target type.
      *
-     * @param value The value to convert
+     * @param value      The value to convert
      * @param targetType The target type class
-     * @param <T> The target type
+     * @param <T>        The target type
      * @return The converted value
      * @throws QueryValidationException if conversion fails
      */
@@ -60,59 +60,67 @@ public final class TypeConverter {
         if (value == null) {
             return null;
         }
-        
+
         if (targetType.isInstance(value)) {
             return targetType.cast(value);
         }
-        
+
         // Handle String to type conversions
-        if (value instanceof String) {
-            String strValue = (String) value;
-            
+        if (value instanceof String strValue) {
+
             // Skip empty strings for non-String types
             if (strValue.isEmpty() && !targetType.equals(String.class)) {
                 return null;
             }
-            
+
             Function<String, ?> converter = CONVERTERS.get(targetType);
             if (converter != null) {
                 return (T) converter.apply(strValue);
             }
         }
-        
+
         // Handle numeric conversions
         if (Number.class.isAssignableFrom(targetType) && value instanceof Number) {
             return convertNumber((Number) value, targetType);
         }
-        
+
         // Handle java.sql.Date to LocalDate
         if (targetType.equals(LocalDate.class) && value instanceof java.sql.Date) {
             return targetType.cast(((java.sql.Date) value).toLocalDate());
         }
-        
+
+        // Handle LocalDateTime to LocalDate
+        if (targetType.equals(LocalDate.class) && value instanceof LocalDateTime) {
+            return targetType.cast(((LocalDateTime) value).toLocalDate());
+        }
+
         // Handle java.sql.Timestamp to LocalDateTime
         if (targetType.equals(LocalDateTime.class) && value instanceof java.sql.Timestamp) {
             return targetType.cast(((java.sql.Timestamp) value).toLocalDateTime());
         }
-        
+
+        // Handle LocalDate to LocalDateTime
+        if (targetType.equals(LocalDateTime.class) && value instanceof LocalDate) {
+            return targetType.cast(((LocalDate) value).atStartOfDay());
+        }
+
         // Default to toString conversion for String target
         if (targetType.equals(String.class)) {
             return targetType.cast(value.toString());
         }
-        
+
         throw new QueryValidationException(
-            String.format("Cannot convert value of type %s to %s", 
-                value.getClass().getSimpleName(), 
-                targetType.getSimpleName())
-        );
+                String.format("Cannot convert value of type %s to %s",
+                        value.getClass().getSimpleName(),
+                        targetType.getSimpleName()));
     }
-    
+
     /**
      * Converts a string value to the specified target type.
      *
-     * @param value The string value to convert
+     * @param value      The string value to convert
      * @param targetType The target type class
-     * @param <T> The target type
+     * @param <T>        The target type
      * @return The converted value
      * @throws QueryValidationException if conversion fails
      */
@@ -121,62 +129,57 @@ public final class TypeConverter {
         if (value == null) {
             return null;
         }
-        
+
         // Skip empty strings for non-String types
         if (value.isEmpty() && !targetType.equals(String.class)) {
             return null;
         }
-        
+
         Function<String, ?> converter = CONVERTERS.get(targetType);
         if (converter != null) {
             return (T) converter.apply(value);
         }
-        
+
         throw new QueryValidationException(
-            String.format("No converter available for type: %s", targetType.getSimpleName())
-        );
+                String.format("No converter available for type: %s", targetType.getSimpleName()));
     }
-    
+
     private static Integer toInteger(String value) {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
             throw new QueryValidationException(
-                String.format("Invalid Integer value '%s': %s", value, e.getMessage())
-            );
+                    String.format("Invalid Integer value '%s': %s", value, e.getMessage()));
         }
     }
-    
+
     private static Long toLong(String value) {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {
             throw new QueryValidationException(
-                String.format("Invalid Long value '%s': %s", value, e.getMessage())
-            );
+                    String.format("Invalid Long value '%s': %s", value, e.getMessage()));
         }
     }
-    
+
     private static Double toDouble(String value) {
         try {
             return Double.parseDouble(value);
         } catch (NumberFormatException e) {
             throw new QueryValidationException(
-                String.format("Invalid Double value '%s': %s", value, e.getMessage())
-            );
+                    String.format("Invalid Double value '%s': %s", value, e.getMessage()));
         }
     }
-    
+
     private static Float toFloat(String value) {
         try {
             return Float.parseFloat(value);
         } catch (NumberFormatException e) {
             throw new QueryValidationException(
-                String.format("Invalid Float value '%s': %s", value, e.getMessage())
-            );
+                    String.format("Invalid Float value '%s': %s", value, e.getMessage()));
         }
     }
-    
+
     private static Boolean toBoolean(String value) {
         if ("true".equalsIgnoreCase(value) || "1".equals(value)) {
             return Boolean.TRUE;
@@ -184,40 +187,38 @@ public final class TypeConverter {
             return Boolean.FALSE;
         }
         throw new QueryValidationException(
-            String.format("Invalid Boolean value '%s'. Expected: true, false, 1, or 0", value)
-        );
+                String.format("Invalid Boolean value '%s'. Expected: true, false, 1, or 0", value));
     }
-    
+
     private static BigDecimal toBigDecimal(String value) {
         try {
             return new BigDecimal(value);
         } catch (NumberFormatException e) {
             throw new QueryValidationException(
-                String.format("Invalid BigDecimal value '%s': %s", value, e.getMessage())
-            );
+                    String.format("Invalid BigDecimal value '%s': %s", value, e.getMessage()));
         }
     }
-    
+
     private static LocalDate toLocalDate(String value) {
         try {
             return LocalDate.parse(value, DATE_FORMATTER);
         } catch (DateTimeParseException e) {
             throw new QueryValidationException(
-                String.format("Cannot convert '%s' to LocalDate: Invalid date format. Expected: YYYY-MM-DD", value)
-            );
+                    String.format("Cannot convert '%s' to LocalDate: Invalid date format. Expected: YYYY-MM-DD",
+                            value));
         }
     }
-    
+
     private static LocalDateTime toLocalDateTime(String value) {
         try {
             return LocalDateTime.parse(value, DATETIME_FORMATTER);
         } catch (DateTimeParseException e) {
             throw new QueryValidationException(
-                String.format("Cannot convert '%s' to LocalDateTime: Invalid datetime format. Expected: ISO format", value)
-            );
+                    String.format("Cannot convert '%s' to LocalDateTime: Invalid datetime format. Expected: ISO format",
+                            value));
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     private static <T> T convertNumber(Number number, Class<T> targetType) {
         if (targetType.equals(Integer.class) || targetType.equals(int.class)) {
@@ -231,9 +232,8 @@ public final class TypeConverter {
         } else if (targetType.equals(BigDecimal.class)) {
             return (T) new BigDecimal(number.toString());
         }
-        
+
         throw new QueryValidationException(
-            String.format("Cannot convert Number to %s", targetType.getSimpleName())
-        );
+                String.format("Cannot convert Number to %s", targetType.getSimpleName()));
     }
 }

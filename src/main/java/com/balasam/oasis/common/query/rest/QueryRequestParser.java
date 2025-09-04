@@ -27,8 +27,6 @@ import java.util.stream.Collectors;
  */
 public class QueryRequestParser {
     
-    private static final Pattern PARAM_PATTERN = Pattern.compile("^param\\.(.+)$");
-    private static final Pattern KEY_PATTERN = Pattern.compile("^key\\.(.+)$");
     private static final Pattern FILTER_PATTERN = Pattern.compile("^filter\\.(.+?)(?:\\.(\\w+))?$");
     private static final Pattern SORT_PATTERN = Pattern.compile("^([^.]+)\\.(asc|desc)$");
     
@@ -54,41 +52,6 @@ public class QueryRequestParser {
             
             // Skip pagination and format parameters
             if (key.startsWith("_")) {
-                continue;
-            }
-            
-            // Check for parameter pattern: param.name
-            Matcher paramMatcher = PARAM_PATTERN.matcher(key);
-            if (paramMatcher.matches()) {
-                String paramName = paramMatcher.group(1);
-                // Skip empty string parameters to let defaults apply
-                if (value != null && !value.trim().isEmpty()) {
-                    Class<?> paramType = getParamType(queryDefinition, paramName);
-                    
-                    // Handle List parameters for IN clause criteria
-                    if (paramType != null && List.class.isAssignableFrom(paramType)) {
-                        // Parse comma-separated values into a list
-                        if (value.contains(",")) {
-                            List<String> valueList = Arrays.stream(value.split(","))
-                                .map(String::trim)
-                                .collect(Collectors.toList());
-                            params.put(paramName, valueList);
-                        } else {
-                            params.put(paramName, Collections.singletonList(value.trim()));
-                        }
-                    } else {
-                        params.put(paramName, parseValue(value, paramType));
-                    }
-                }
-                continue;
-            }
-            
-            // Check for key pattern: key.name (for findByKey queries)
-            Matcher keyMatcher = KEY_PATTERN.matcher(key);
-            if (keyMatcher.matches()) {
-                String keyParamName = keyMatcher.group(1);
-                Class<?> paramType = getParamType(queryDefinition, keyParamName);
-                params.put(keyParamName, parseValue(value, paramType));
                 continue;
             }
             
@@ -178,6 +141,33 @@ public class QueryRequestParser {
             // Check for sort pattern
             if (key.equals("sort")) {
                 parseSortParameter(value, sorts);
+                continue;
+            }
+            
+            // All other parameters are treated as query parameters
+            // Only accept parameters that are defined in the QueryDefinition
+            // Skip empty string parameters to let defaults apply
+            if (value != null && !value.trim().isEmpty()) {
+                Class<?> paramType = getParamType(queryDefinition, key);
+                
+                // Only process if the parameter is defined in the query
+                if (paramType != null) {
+                    // Handle List parameters for IN clause criteria
+                    if (List.class.isAssignableFrom(paramType)) {
+                        // Parse comma-separated values into a list
+                        if (value.contains(",")) {
+                            List<String> valueList = Arrays.stream(value.split(","))
+                                .map(String::trim)
+                                .collect(Collectors.toList());
+                            params.put(key, valueList);
+                        } else {
+                            params.put(key, Collections.singletonList(value.trim()));
+                        }
+                    } else {
+                        params.put(key, parseValue(value, paramType));
+                    }
+                }
+                // If paramType is null, the parameter is not defined in the query - ignore it
             }
         }
         
