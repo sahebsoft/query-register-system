@@ -1,0 +1,226 @@
+package com.balsam.oasis.common.query.core.execution;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.balsam.oasis.common.query.core.definition.FilterOp;
+import com.balsam.oasis.common.query.core.definition.QueryDefinition;
+import com.balsam.oasis.common.query.core.definition.SortDir;
+
+import lombok.Builder;
+import lombok.Data;
+
+/**
+ * Mutable context for query execution containing all runtime parameters
+ */
+@Data
+@Builder
+public class QueryContext {
+
+    private QueryDefinition definition;
+
+    @Builder.Default
+    private Map<String, Object> params = new HashMap<>();
+
+    @Builder.Default
+    private Map<String, Filter> filters = new LinkedHashMap<>();
+
+    @Builder.Default
+    private List<SortSpec> sorts = new ArrayList<>();
+
+    private Pagination pagination;
+
+    private Object securityContext;
+
+    @Builder.Default
+    private Map<String, Object> attributes = new HashMap<>();
+
+    @Builder.Default
+    private List<AppliedCriteria> appliedCriteria = new ArrayList<>();
+
+    @Builder.Default
+    private Map<String, Object> metadata = new HashMap<>();
+
+    private Long startTime;
+    private Long endTime;
+
+    @Builder.Default
+    private boolean includeMetadata = true;
+
+    @Builder.Default
+    private boolean auditEnabled = true;
+
+    @Builder.Default
+    private boolean cacheEnabled = true;
+
+    private String cacheKey;
+
+    private Integer totalCount;
+
+    @Data
+    @Builder
+    public static class Filter {
+        private String attribute;
+        private FilterOp operator;
+        private Object value;
+        private Object value2; // For BETWEEN
+        private List<Object> values; // For IN
+
+        public boolean requiresTwoValues() {
+            return operator == FilterOp.BETWEEN;
+        }
+
+        public boolean hasMultipleValues() {
+            return operator == FilterOp.IN || operator == FilterOp.NOT_IN;
+        }
+    }
+
+    @Data
+    @Builder
+    public static class SortSpec {
+        private String attribute;
+        private SortDir direction;
+    }
+
+    @Data
+    @Builder
+    public static class Pagination {
+        private int start;
+        private int end;
+        private Integer limit;
+        private Integer offset;
+        private int total;
+        private boolean hasNext;
+        private boolean hasPrevious;
+
+        public int getPageSize() {
+            if (limit != null) {
+                return limit;
+            }
+            return end - start;
+        }
+
+        public static Pagination fromStartEnd(int start, int end) {
+            return Pagination.builder()
+                    .start(start)
+                    .end(end)
+                    .build();
+        }
+
+        public static Pagination fromOffsetLimit(int offset, int limit) {
+            return Pagination.builder()
+                    .offset(offset)
+                    .limit(limit)
+                    .start(offset)
+                    .end(offset + limit)
+                    .build();
+        }
+    }
+
+    @Data
+    @Builder
+    public static class AppliedCriteria {
+        private String name;
+        private String sql;
+        private Map<String, Object> params;
+        private boolean securityRelated;
+    }
+
+    // Helper methods
+    public void addParam(String name, Object value) {
+        params.put(name, value);
+    }
+
+    public void addFilter(String attribute, FilterOp operator, Object value) {
+        filters.put(attribute, Filter.builder()
+                .attribute(attribute)
+                .operator(operator)
+                .value(value)
+                .build());
+    }
+
+    public void addFilter(String attribute, FilterOp operator, Object value1, Object value2) {
+        filters.put(attribute, Filter.builder()
+                .attribute(attribute)
+                .operator(operator)
+                .value(value1)
+                .value2(value2)
+                .build());
+    }
+
+    public void addFilter(String attribute, FilterOp operator, List<Object> values) {
+        filters.put(attribute, Filter.builder()
+                .attribute(attribute)
+                .operator(operator)
+                .values(values)
+                .build());
+    }
+
+    public void addSort(String attribute, SortDir direction) {
+        sorts.add(SortSpec.builder()
+                .attribute(attribute)
+                .direction(direction)
+                .build());
+    }
+
+    public void recordAppliedCriteria(String name, String sql) {
+        appliedCriteria.add(AppliedCriteria.builder()
+                .name(name)
+                .sql(sql)
+                .build());
+    }
+
+    public Object getParam(String name) {
+        return params.get(name);
+    }
+
+    public <T> T getParam(String name, Class<T> type) {
+        Object value = params.get(name);
+        if (value == null) {
+            return null;
+        }
+        return type.cast(value);
+    }
+
+    public Object getAttribute(String name) {
+        return attributes.get(name);
+    }
+
+    public void setAttribute(String name, Object value) {
+        attributes.put(name, value);
+    }
+
+    public boolean hasParam(String name) {
+        return params.containsKey(name);
+    }
+
+    public boolean hasFilter(String attribute) {
+        return filters.containsKey(attribute);
+    }
+
+    public boolean hasPagination() {
+        return pagination != null;
+    }
+
+    public boolean hasSorts() {
+        return sorts != null && !sorts.isEmpty();
+    }
+
+    public void startExecution() {
+        this.startTime = System.currentTimeMillis();
+    }
+
+    public void endExecution() {
+        this.endTime = System.currentTimeMillis();
+    }
+
+    public long getExecutionTime() {
+        if (startTime != null && endTime != null) {
+            return endTime - startTime;
+        }
+        return 0;
+    }
+}

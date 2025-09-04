@@ -31,7 +31,7 @@ echo "Uncommenting the invalid query bean..."
 
 # Enable the invalid query
 sed -i 's|// @Bean  // UNCOMMENT TO TEST - Will fail with: undefined bind parameters|@Bean  // TEST ENABLED|' \
-    src/main/java/com/balasam/oasis/common/query/example/InvalidQueryExample.java
+    src/main/java/com/balsam/oasis/common/query/example/InvalidQueryExample.java
 
 echo "Attempting to start application with invalid query..."
 ./mvnw spring-boot:run 2>&1 | tee /tmp/startup-fail.log | head -100 &
@@ -51,14 +51,14 @@ fi
 
 # Revert the change
 sed -i 's|@Bean  // TEST ENABLED|// @Bean  // UNCOMMENT TO TEST - Will fail with: undefined bind parameters|' \
-    src/main/java/com/balasam/oasis/common/query/example/InvalidQueryExample.java
+    src/main/java/com/balsam/oasis/common/query/example/InvalidQueryExample.java
 
 echo -e "\n${YELLOW}Test 3: Enable duplicate query name${NC}"
 echo "Enabling duplicate query name test..."
 
 # Enable the duplicate query test
 sed -i 's|// @Bean  // UNCOMMENT TO TEST - Will fail with: Duplicate query definition|@Bean  // TEST ENABLED|' \
-    src/main/java/com/balasam/oasis/common/query/example/InvalidQueryExample.java
+    src/main/java/com/balsam/oasis/common/query/example/InvalidQueryExample.java
 
 echo "Attempting to start application with duplicate query..."
 ./mvnw spring-boot:run 2>&1 | tee /tmp/startup-fail2.log | head -100 &
@@ -78,7 +78,7 @@ fi
 
 # Revert the change
 sed -i 's|@Bean  // TEST ENABLED|// @Bean  // UNCOMMENT TO TEST - Will fail with: Duplicate query definition|' \
-    src/main/java/com/balasam/oasis/common/query/example/InvalidQueryExample.java
+    src/main/java/com/balsam/oasis/common/query/example/InvalidQueryExample.java
 
 echo -e "\n=========================================="
 echo -e "${GREEN}Validation Test Summary${NC}"

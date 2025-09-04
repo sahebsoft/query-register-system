@@ -9,7 +9,7 @@
 		<version>3.5.5</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.balasam.oasis.common</groupId>
+	<groupId>com.balsam.oasis.common</groupId>
 	<artifactId>query</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>query</name>

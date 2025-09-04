@@ -386,18 +386,13 @@ GET /api/query/{queryName}?
             "name": {
                 "type": "String",
                 "filterable": true,
-                "sortable": true,
-                "currentFilter": {
-                    "operator": "LIKE",
-                    "value": "John%"
-                }
+                "sortable": true
             },
             "lifetimeValue": {
                 "type": "Currency",
                 "filterable": true,
                 "sortable": true,
-                "virtual": true,
-                "currentSort": "DESC"
+                "virtual": true
             },
             "email": {
                 "type": "String",

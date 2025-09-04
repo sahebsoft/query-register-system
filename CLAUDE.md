@@ -186,7 +186,7 @@ WHERE active = true
 
 #### Current Structure
 ```
-src/main/java/com/balasam/oasis/common/query/
+src/main/java/com/balsam/oasis/common/query/
 ├── core/
 │   ├── definition/        # Immutable definitions (AttributeDef<T>, ParamDef<T>, etc.)
 │   ├── execution/         # Execution engine (QueryExecutor, SqlBuilder, DynamicRowMapper)
@@ -202,7 +202,7 @@ src/main/java/com/balasam/oasis/common/query/
 
 #### Planned Structure (Future)
 ```
-src/main/java/com/balasam/oasis/common/query/
+src/main/java/com/balsam/oasis/common/query/
 ├── core/                 # Core domain (as is)
 ├── builder/              # Expanded with AttributeBuilder, ParamBuilder, CriteriaBuilder
 ├── processor/            # Processing interfaces (as is)
