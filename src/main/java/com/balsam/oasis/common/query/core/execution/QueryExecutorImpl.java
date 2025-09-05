@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +16,7 @@ import com.balsam.oasis.common.query.core.result.QueryResult;
 import com.balsam.oasis.common.query.core.result.Row;
 import com.balsam.oasis.common.query.exception.QueryExecutionException;
 import com.balsam.oasis.common.query.exception.QueryNotFoundException;
+import com.balsam.oasis.common.query.registry.QueryRegistry;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -28,7 +28,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
-    private final Map<String, QueryDefinition> queryRegistry;
+    private final QueryRegistry queryRegistry;
     private final SqlBuilder sqlBuilder;
     private final DynamicRowMapper rowMapper;
     private final OptimizedRowMapper optimizedRowMapper;
@@ -36,35 +36,14 @@ public class QueryExecutorImpl implements QueryExecutor {
     private boolean prewarmMetadataOnStartup = false;
     private boolean useOptimizedMapper = true;
 
-    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder) {
+    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-        this.queryRegistry = new ConcurrentHashMap<>();
+        this.queryRegistry = queryRegistry;
         this.sqlBuilder = sqlBuilder;
         this.rowMapper = new DynamicRowMapper();
         this.optimizedRowMapper = new OptimizedRowMapper();
         this.metadataCacheBuilder = new MetadataCacheBuilder(jdbcTemplate, sqlBuilder);
-    }
-
-    /**
-     * Register a query definition
-     */
-    @Override
-    public void registerQuery(QueryDefinition definition) {
-        queryRegistry.put(definition.getName(), definition);
-        log.info("Registered query: {}", definition.getName());
-    }
-
-    /**
-     * Register multiple query definitions
-     */
-    public void registerQueries(Collection<QueryDefinition> definitions) {
-        definitions.forEach(this::registerQuery);
-    }
-
-    @Override
-    public QueryDefinition getQueryDefinition(String queryName) {
-        return queryRegistry.get(queryName);
     }
 
     @Override
@@ -219,8 +198,9 @@ public class QueryExecutorImpl implements QueryExecutor {
      * Pre-warm metadata caches for all registered queries
      */
     public void prewarmAllCaches() {
-        log.info("Pre-warming metadata caches for {} queries", queryRegistry.size());
-        Map<String, MetadataCache> caches = metadataCacheBuilder.prewarmCaches(queryRegistry.values());
+        Collection<QueryDefinition> queries = queryRegistry.getAllQueries();
+        log.info("Pre-warming metadata caches for {} queries", queries.size());
+        Map<String, MetadataCache> caches = metadataCacheBuilder.prewarmCaches(queries);
 
         // Set caches on definitions
         for (Map.Entry<String, MetadataCache> entry : caches.entrySet()) {

@@ -183,9 +183,15 @@ public class QueryExecution {
 
         // Apply default values and validate required parameters
         definition.getParams().forEach((name, paramDef) -> {
-            // Apply default value if parameter is not provided and has a default
-            if (!context.hasParam(name) && paramDef.hasDefaultValue()) {
-                context.addParam(name, paramDef.getDefaultValue());
+            // If parameter is not provided
+            if (!context.hasParam(name)) {
+                if (paramDef.hasDefaultValue()) {
+                    // Apply default value if it has one
+                    context.addParam(name, paramDef.getDefaultValue());
+                } else if (!paramDef.isRequired()) {
+                    // Initialize non-required params with null if no default value
+                    context.addParam(name, null);
+                }
             }
 
             // Check required parameters
@@ -266,11 +272,27 @@ public class QueryExecution {
 
     // Execution
     public QueryResult execute() {
+        // Initialize non-required params with null if not provided
+        initializeNonRequiredParams();
+        
         // Auto-validate before execution
         validate();
 
         // Execute the query
         return executor.doExecute(context);
+    }
+    
+    private void initializeNonRequiredParams() {
+        definition.getParams().forEach((name, paramDef) -> {
+            // If parameter is not provided and not required
+            if (!context.hasParam(name) && !paramDef.isRequired()) {
+                if (paramDef.hasDefaultValue()) {
+                    context.addParam(name, paramDef.getDefaultValue());
+                } else {
+                    context.addParam(name, null);
+                }
+            }
+        });
     }
 
     // Execute for single object (findByKey)
@@ -281,6 +303,9 @@ public class QueryExecution {
                     "Query does not support single object retrieval. Use execute() for list results.");
         }
 
+        // Initialize non-required params with null if not provided
+        initializeNonRequiredParams();
+        
         // Auto-validate before execution
         validate();
 

@@ -1,6 +1,7 @@
 package com.balsam.oasis.common.query.rest;
 
 import com.balsam.oasis.common.query.core.definition.QueryDefinition;
+import com.balsam.oasis.common.query.registry.QueryRegistrar;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -71,13 +72,16 @@ public class QueryController {
     private static final Logger log = LoggerFactory.getLogger(QueryController.class);
 
     private final QueryExecutor queryExecutor;
+    private final QueryRegistrar queryRegistrar;
     private final QueryRequestParser requestParser;
     private final QueryResponseBuilder responseBuilder;
 
     public QueryController(QueryExecutor queryExecutor,
+            QueryRegistrar queryRegistrar,
             QueryRequestParser requestParser,
             QueryResponseBuilder responseBuilder) {
         this.queryExecutor = queryExecutor;
+        this.queryRegistrar = queryRegistrar;
         this.requestParser = requestParser;
         this.responseBuilder = responseBuilder;
     }
@@ -99,7 +103,14 @@ public class QueryController {
 
         try {
             // Get the query definition for type-aware parsing
-            QueryDefinition queryDefinition = queryExecutor.getQueryDefinition(queryName);
+            QueryDefinition queryDefinition = queryRegistrar.get(queryName);
+            
+            if (queryDefinition == null) {
+                log.error("Query not found: {}", queryName);
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(buildErrorResponse(new QueryException("Query not found: " + queryName, "NOT_FOUND", queryName)));
+            }
 
             // Parse request parameters with type information
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);

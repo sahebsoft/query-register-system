@@ -12,7 +12,7 @@ import com.balsam.oasis.common.query.core.definition.AttributeDef;
 import com.balsam.oasis.common.query.core.definition.CriteriaDef;
 import com.balsam.oasis.common.query.core.definition.ParamDef;
 import com.balsam.oasis.common.query.core.definition.QueryDefinition;
-import com.balsam.oasis.common.query.core.execution.QueryExecutor;
+import com.balsam.oasis.common.query.registry.QueryRegistrar;
 
 import jakarta.annotation.PostConstruct;
 
@@ -24,15 +24,15 @@ import jakarta.annotation.PostConstruct;
 public class OracleHRQueryConfig {
 
         @Autowired
-        private QueryExecutor queryExecutor;
+        private QueryRegistrar queryRegistrar;
 
         @PostConstruct
         public void registerQueries() {
                 // Register all queries defined in this configuration
-                queryExecutor.registerQuery(employeesQuery());
-                queryExecutor.registerQuery(departmentStatsQuery());
+                queryRegistrar.register(employeesQuery());
+                queryRegistrar.register(departmentStatsQuery());
 
-                queryExecutor.registerQuery(QueryDefinitionBuilder.builder("testUnion").sql(
+                queryRegistrar.register(QueryDefinitionBuilder.builder("testUnion").sql(
                                 """
                                                 select employee_id,email
                                                 from employees
@@ -44,7 +44,7 @@ public class OracleHRQueryConfig {
                                                                                 """)
                                 .attribute(AttributeDef.name("EMPLOYEE_ID").type(Integer.class)
                                                 .build())
-                                .param(ParamDef.param("jobId").type(String.class).defaultValue("ZZ").build())
+                                .param(ParamDef.param("jobId").type(String.class).required(true).build())
                                 .build());
         }
 
@@ -241,7 +241,10 @@ public class OracleHRQueryConfig {
                                                 .type(Long.class)
                                                 .processor((value, ctx) -> {
                                                         System.out.println("proccess days " + value);
-                                                        ctx.addParam("hiredAfter", LocalDate.now().minusDays(value));
+                                                        if (value != null) {
+                                                                ctx.addParam("hiredAfter",
+                                                                                LocalDate.now().minusDays(value));
+                                                        }
                                                         return value;
                                                 })
                                                 .description("Filter employees hired after this date")

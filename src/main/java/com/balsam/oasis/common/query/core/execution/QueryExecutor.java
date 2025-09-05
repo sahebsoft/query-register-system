@@ -57,19 +57,4 @@ public interface QueryExecutor {
      * @return a QueryExecution builder for configuring and executing the query
      */
     QueryExecution prepare(QueryDefinition definition);
-
-    /**
-     * Register a query definition
-     * 
-     * @param definition the query definition to register
-     */
-    void registerQuery(QueryDefinition definition);
-
-    /**
-     * Get a registered query definition by name
-     * 
-     * @param queryName the name of the query
-     * @return the query definition, or null if not found
-     */
-    QueryDefinition getQueryDefinition(String queryName);
 }
