@@ -175,12 +175,4 @@ public class ParamDef<T> {
             }
         }
     }
-
-    /**
-     * Create a non-generic ParamDef for backward compatibility This is used
-     * when type information is not needed at compile time
-     */
-    public ParamDef<?> toNonGeneric() {
-        return (ParamDef<?>) this;
-    }
 }

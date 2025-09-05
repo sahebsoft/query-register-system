@@ -33,7 +33,6 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final DynamicRowMapper rowMapper;
     private final OptimizedRowMapper optimizedRowMapper;
     private final MetadataCacheBuilder metadataCacheBuilder;
-    private boolean prewarmMetadataOnStartup = false;
     private boolean useOptimizedMapper = true;
 
     public QueryExecutorImpl(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
@@ -178,13 +177,6 @@ public class QueryExecutorImpl implements QueryExecutor {
                     context.getDefinition().getName(),
                     "Failed to execute query: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Enable or disable metadata cache pre-warming on startup
-     */
-    public void setPrewarmMetadataOnStartup(boolean prewarm) {
-        this.prewarmMetadataOnStartup = prewarm;
     }
 
     /**

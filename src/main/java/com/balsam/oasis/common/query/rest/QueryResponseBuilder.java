@@ -1,10 +1,15 @@
 package com.balsam.oasis.common.query.rest;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import com.balsam.oasis.common.query.core.definition.MetadataContext;
+import com.balsam.oasis.common.query.core.definition.QueryDefinition;
 import com.balsam.oasis.common.query.core.result.QueryResult;
 import com.balsam.oasis.common.query.core.result.Row;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,5 +59,36 @@ public class QueryResponseBuilder {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(data);
     }
+    
+    /**
+     * Build JSON response for single result with metadata
+     */
+    public ResponseEntity<?> buildSingleWithMetadata(Object singleResult, String queryName, MetadataContext context) {
+        if (singleResult == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Convert Row to Map if needed
+        Map<?, ?> data;
+        switch (singleResult) {
+            case Row row -> data = row.toMap();
+            case Map<?, ?> mapResult -> data = mapResult;
+            default -> data = ImmutableMap.of("result", singleResult);
+        }
+        
+        // TODO: Build context-aware metadata
+        Map<String, Object> response = ImmutableMap.of(
+                "data", data,
+                "metadata", ImmutableMap.of(
+                        "context", context.name(),
+                        "queryName", queryName
+                )
+        );
+        
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
+    }
+    
 
 }

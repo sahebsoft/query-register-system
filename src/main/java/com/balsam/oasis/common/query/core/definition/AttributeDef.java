@@ -74,6 +74,32 @@ public class AttributeDef<T> {
 
     String description;
 
+    // UI metadata fields for frontend display
+    String label;      // Display label for the attribute
+    String labelKey;   // i18n key for the label
+    String width;      // Display width (e.g., "100px", "20%")
+    String flex;       // Flex value for flexible layouts (e.g., "1", "2")
+    
+    // Table/Grid context metadata
+    String headerText;     // Column header for tables (alternative to label)
+    String alignment;      // Column alignment: left, center, right
+    Integer displayOrder;  // Display order priority
+    boolean visible;       // Default visibility in table
+    
+    // Form context metadata
+    String placeholder;    // Input placeholder text
+    String helpText;      // Help text for form fields
+    String inputType;     // Input type: text, number, date, select, etc.
+    boolean required;     // Required in forms
+    Integer maxLength;    // Maximum input length
+    Integer minLength;    // Minimum input length  
+    String pattern;       // Validation regex pattern
+    String validationMsg; // Validation error message
+    
+    // LOV context metadata
+    boolean lovValue;     // Is this the value field for LOV?
+    boolean lovLabel;     // Is this the label field for LOV?
+
     // Private constructor - only accessible through builder
     private AttributeDef(BuilderStage<T> builder) {
         this.name = builder.name;
@@ -88,6 +114,27 @@ public class AttributeDef<T> {
         this.sortProperty = builder.sortProperty;
         this.securityRule = builder.securityRule;
         this.description = builder.description;
+        this.label = builder.label;
+        this.labelKey = builder.labelKey;
+        this.width = builder.width;
+        this.flex = builder.flex;
+        // Table context
+        this.headerText = builder.headerText;
+        this.alignment = builder.alignment;
+        this.displayOrder = builder.displayOrder;
+        this.visible = builder.visible;
+        // Form context
+        this.placeholder = builder.placeholder;
+        this.helpText = builder.helpText;
+        this.inputType = builder.inputType;
+        this.required = builder.required;
+        this.maxLength = builder.maxLength;
+        this.minLength = builder.minLength;
+        this.pattern = builder.pattern;
+        this.validationMsg = builder.validationMsg;
+        // LOV context
+        this.lovValue = builder.lovValue;
+        this.lovLabel = builder.lovLabel;
     }
 
     /**
@@ -163,6 +210,32 @@ public class AttributeDef<T> {
         private String sortProperty;
         private Function<Object, Boolean> securityRule;
         private String description;
+        
+        // UI metadata fields
+        private String label;
+        private String labelKey;
+        private String width;
+        private String flex;
+        
+        // Table context fields
+        private String headerText;
+        private String alignment = "left";
+        private Integer displayOrder;
+        private boolean visible = true;
+        
+        // Form context fields
+        private String placeholder;
+        private String helpText;
+        private String inputType = "text";
+        private boolean required = false;
+        private Integer maxLength;
+        private Integer minLength;
+        private String pattern;
+        private String validationMsg;
+        
+        // LOV context fields
+        private boolean lovValue = false;
+        private boolean lovLabel = false;
 
         private BuilderStage(String name, Class<T> type) {
             this.name = name;
@@ -232,6 +305,100 @@ public class AttributeDef<T> {
             return this;
         }
 
+        // UI metadata builder methods
+        public BuilderStage<T> label(String label) {
+            this.label = label;
+            return this;
+        }
+
+        public BuilderStage<T> labelKey(String labelKey) {
+            this.labelKey = labelKey;
+            return this;
+        }
+
+        public BuilderStage<T> width(String width) {
+            this.width = width;
+            return this;
+        }
+
+        public BuilderStage<T> flex(String flex) {
+            this.flex = flex;
+            return this;
+        }
+        
+        // Table context builder methods
+        public BuilderStage<T> headerText(String headerText) {
+            this.headerText = headerText;
+            return this;
+        }
+        
+        public BuilderStage<T> alignment(String alignment) {
+            this.alignment = alignment;
+            return this;
+        }
+        
+        public BuilderStage<T> displayOrder(Integer displayOrder) {
+            this.displayOrder = displayOrder;
+            return this;
+        }
+        
+        public BuilderStage<T> visible(boolean visible) {
+            this.visible = visible;
+            return this;
+        }
+        
+        // Form context builder methods
+        public BuilderStage<T> placeholder(String placeholder) {
+            this.placeholder = placeholder;
+            return this;
+        }
+        
+        public BuilderStage<T> helpText(String helpText) {
+            this.helpText = helpText;
+            return this;
+        }
+        
+        public BuilderStage<T> inputType(String inputType) {
+            this.inputType = inputType;
+            return this;
+        }
+        
+        public BuilderStage<T> required(boolean required) {
+            this.required = required;
+            return this;
+        }
+        
+        public BuilderStage<T> maxLength(Integer maxLength) {
+            this.maxLength = maxLength;
+            return this;
+        }
+        
+        public BuilderStage<T> minLength(Integer minLength) {
+            this.minLength = minLength;
+            return this;
+        }
+        
+        public BuilderStage<T> pattern(String pattern) {
+            this.pattern = pattern;
+            return this;
+        }
+        
+        public BuilderStage<T> validationMsg(String validationMsg) {
+            this.validationMsg = validationMsg;
+            return this;
+        }
+        
+        // LOV context builder methods
+        public BuilderStage<T> lovValue(boolean lovValue) {
+            this.lovValue = lovValue;
+            return this;
+        }
+        
+        public BuilderStage<T> lovLabel(boolean lovLabel) {
+            this.lovLabel = lovLabel;
+            return this;
+        }
+
         /**
          * Build the immutable AttributeDef instance
          */
@@ -283,11 +450,4 @@ public class AttributeDef<T> {
         }
     }
 
-    /**
-     * Create a non-generic AttributeDef for backward compatibility This is used
-     * when type information is not needed at compile time
-     */
-    public AttributeDef<?> toNonGeneric() {
-        return (AttributeDef<?>) this;
-    }
 }

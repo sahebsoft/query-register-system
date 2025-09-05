@@ -3,7 +3,6 @@ package com.balsam.oasis.common.query.validation;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.balsam.oasis.common.query.core.definition.AttributeDef;
 import com.balsam.oasis.common.query.core.definition.CriteriaDef;
@@ -12,43 +11,16 @@ import com.balsam.oasis.common.query.core.definition.QueryDefinition;
 
 /**
  * Validates query definitions for duplicates and other issues.
- * Ensures no duplicate queries, attributes, parameters, or criteria within a
- * query.
- * Also tracks globally registered queries to prevent duplicate query names
- * across the application.
+ * Ensures no duplicate attributes, parameters, or criteria within a query.
+ * This is a stateless utility class for validation only.
  */
 public class QueryDefinitionValidator {
 
-    // Global registry to track all query names in the application
-    private static final Map<String, QueryDefinition> GLOBAL_QUERY_REGISTRY = new ConcurrentHashMap<>();
-
     /**
-     * Validates a query definition for duplicates and registers it globally.
-     * This method should be called during query bean creation.
-     * 
-     * @param queryDef the query definition to validate
-     * @throws IllegalStateException if duplicates are found or query name already
-     *                               exists
+     * Private constructor to prevent instantiation
      */
-    public static void validateAndRegister(QueryDefinition queryDef) {
-        String queryName = queryDef.getName();
-
-        // Check for duplicate query name globally
-        if (GLOBAL_QUERY_REGISTRY.containsKey(queryName)) {
-            throw new IllegalStateException(String.format(
-                    "Duplicate query definition: Query with name '%s' is already registered. " +
-                            "Each query must have a unique name across the application.",
-                    queryName));
-        }
-
-        // Validate internal duplicates
-        validateNoDuplicates(queryDef);
-
-        // Validate bind parameters
-        BindParameterValidator.validate(queryDef);
-
-        // Register the query globally
-        GLOBAL_QUERY_REGISTRY.put(queryName, queryDef);
+    private QueryDefinitionValidator() {
+        // Utility class
     }
 
     /**
@@ -163,73 +135,43 @@ public class QueryDefinitionValidator {
     /**
      * Validates that there are no naming conflicts between attributes, parameters,
      * and criteria.
-     * While technically allowed, having the same name can cause confusion.
      */
     private static void validateCrossDefinitionNaming(QueryDefinition queryDef) {
         Set<String> allNames = new HashSet<>();
-        StringBuilder conflicts = new StringBuilder();
 
-        // Add attribute names
+        // Add all attribute names
         if (queryDef.getAttributes() != null) {
             for (String attrName : queryDef.getAttributes().keySet()) {
                 if (!allNames.add(attrName)) {
-                    conflicts.append(
-                            String.format("- '%s' is used as both attribute and parameter/criteria\n", attrName));
+                    throw new IllegalStateException(String.format(
+                            "Query '%s' has naming conflict: '%s' is used in multiple definitions.",
+                            queryDef.getName(), attrName));
                 }
             }
         }
 
-        // Add parameter names
+        // Check against parameter names
         if (queryDef.getParams() != null) {
             for (String paramName : queryDef.getParams().keySet()) {
                 if (!allNames.add(paramName)) {
-                    conflicts.append(
-                            String.format("- '%s' is used as both parameter and attribute/criteria\n", paramName));
+                    throw new IllegalStateException(String.format(
+                            "Query '%s' has naming conflict: " +
+                                    "parameter '%s' has the same name as an attribute.",
+                            queryDef.getName(), paramName));
                 }
             }
         }
 
-        // Add criteria names
+        // Check against criteria names
         if (queryDef.getCriteria() != null) {
             for (String criteriaName : queryDef.getCriteria().keySet()) {
                 if (!allNames.add(criteriaName)) {
-                    conflicts.append(
-                            String.format("- '%s' is used as both criteria and attribute/parameter\n", criteriaName));
+                    throw new IllegalStateException(String.format(
+                            "Query '%s' has naming conflict: " +
+                                    "criteria '%s' has the same name as an attribute or parameter.",
+                            queryDef.getName(), criteriaName));
                 }
             }
         }
-
-        // Report conflicts as warnings (not errors, since this might be intentional in
-        // some cases)
-        if (conflicts.length() > 0) {
-            System.out.println("WARNING: Query '" + queryDef.getName() + "' has naming conflicts:\n" + conflicts);
-        }
-    }
-
-    /**
-     * Gets the global query registry for inspection.
-     * 
-     * @return unmodifiable view of registered queries
-     */
-    public static Map<String, QueryDefinition> getRegisteredQueries() {
-        return new ConcurrentHashMap<>(GLOBAL_QUERY_REGISTRY);
-    }
-
-    /**
-     * Clears the global query registry.
-     * Should only be used in tests or when reloading the application context.
-     */
-    public static void clearRegistry() {
-        GLOBAL_QUERY_REGISTRY.clear();
-    }
-
-    /**
-     * Checks if a query name is already registered.
-     * 
-     * @param queryName the name to check
-     * @return true if the name is already registered
-     */
-    public static boolean isQueryNameRegistered(String queryName) {
-        return GLOBAL_QUERY_REGISTRY.containsKey(queryName);
     }
 }

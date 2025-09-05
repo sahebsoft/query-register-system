@@ -1,8 +1,12 @@
 package com.balsam.oasis.common.query.rest;
 
 import com.balsam.oasis.common.query.core.definition.QueryDefinition;
+import com.balsam.oasis.common.query.core.definition.MetadataContext;
+import com.balsam.oasis.common.query.core.definition.ParamDef;
 import com.balsam.oasis.common.query.registry.QueryRegistrar;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,6 +194,68 @@ public class QueryController {
         }
     }
 
+    @GetMapping("/{queryName}/find-by-key")
+    @Operation(summary = "Find by key", description = "Find a single record using key criteria")
+    public ResponseEntity<?> findByKey(
+            @PathVariable @Parameter(description = "Name of the registered query") String queryName,
+            @RequestParam(defaultValue = "false") @Parameter(description = "Include metadata") boolean _meta,
+            @RequestParam MultiValueMap<String, String> keyParams) {
+        
+        log.info("Finding by key for query: {} with params: {}", queryName, keyParams);
+        
+        try {
+            // Get the query definition
+            QueryDefinition queryDefinition = queryRegistrar.get(queryName);
+            
+            if (queryDefinition == null) {
+                log.error("Query not found: {}", queryName);
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(buildErrorResponse(new QueryException("Query not found: " + queryName, "NOT_FOUND", queryName)));
+            }
+            
+            // Check if findByKey is supported
+            if (!queryDefinition.hasFindByKey()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(buildErrorResponse(new QueryException(
+                                "Query does not support find-by-key: " + queryName, "FIND_BY_KEY_NOT_SUPPORTED", queryName)));
+            }
+            
+            // Extract key parameters
+            Map<String, Object> params = new HashMap<>();
+            for (Map.Entry<String, List<String>> entry : keyParams.entrySet()) {
+                if (!entry.getKey().startsWith("_")) { // Skip meta parameters
+                    params.put(entry.getKey(), entry.getValue().get(0));
+                }
+            }
+            
+            // Execute as single object query with FORM context
+            Object singleResult = queryExecutor.execute(queryName)
+                    .withParams(params)
+                    .includeMetadata(_meta)
+                    .executeSingle();
+            
+            // Build single object response with form metadata if requested
+            if (_meta) {
+                return responseBuilder.buildSingleWithMetadata(singleResult, queryName, MetadataContext.FORM);
+            } else {
+                return responseBuilder.buildSingle(singleResult, queryName);
+            }
+            
+        } catch (QueryException e) {
+            log.error("Find-by-key execution failed: {}", e.getMessage());
+            return ResponseEntity
+                    .status(determineHttpStatus(e))
+                    .body(buildErrorResponse(e));
+        } catch (Exception e) {
+            log.error("Unexpected error in find-by-key: {}", e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(buildErrorResponse(e));
+        }
+    }
+    
     @GetMapping("/{queryName}/metadata")
     @Operation(summary = "Get query metadata", description = "Get metadata for a registered query without executing it")
     public ResponseEntity<?> getQueryMetadata(@PathVariable String queryName) {

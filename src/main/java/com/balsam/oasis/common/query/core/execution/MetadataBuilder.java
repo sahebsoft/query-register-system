@@ -1,5 +1,6 @@
 package com.balsam.oasis.common.query.core.execution;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +65,8 @@ public class MetadataBuilder {
                 .build();
     }
 
-    private Map<String, QueryResult.QueryMetadata.AttributeMetadata> buildAttributesMetadata() {
-        Map<String, QueryResult.QueryMetadata.AttributeMetadata> metadata = new HashMap<>();
+    private List<QueryResult.QueryMetadata.AttributeMetadata> buildAttributesMetadata() {
+        List<QueryResult.QueryMetadata.AttributeMetadata> metadata = new ArrayList<>();
         QueryDefinition definition = context.getDefinition();
 
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
@@ -92,9 +93,28 @@ public class MetadataBuilder {
                     .virtual(attr.isTransient())
                     .restricted(restricted)
                     .restrictionReason(restrictionReason)
+                    // Include UI metadata fields
+                    .label(attr.getLabel())
+                    .labelKey(attr.getLabelKey())
+                    .width(attr.getWidth())
+                    .flex(attr.getFlex())
+                    // Table context metadata
+                    .headerText(attr.getHeaderText())
+                    .alignment(attr.getAlignment())
+                    .displayOrder(attr.getDisplayOrder())
+                    .visible(attr.isVisible())
+                    // Form context metadata
+                    .placeholder(attr.getPlaceholder())
+                    .helpText(attr.getHelpText())
+                    .inputType(attr.getInputType())
+                    .required(attr.isRequired())
+                    .maxLength(attr.getMaxLength())
+                    .minLength(attr.getMinLength())
+                    .pattern(attr.getPattern())
+                    .validationMsg(attr.getValidationMsg())
                     .build();
 
-            metadata.put(attrName, attrMetadata);
+            metadata.add(attrMetadata);
         }
 
         return metadata;

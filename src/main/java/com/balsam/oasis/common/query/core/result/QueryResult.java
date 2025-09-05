@@ -41,7 +41,7 @@ public class QueryResult {
     @Builder
     public static class QueryMetadata {
         PaginationMetadata pagination;
-        Map<String, AttributeMetadata> attributes;
+        List<AttributeMetadata> attributes;
         List<QueryContext.AppliedCriteria> appliedCriteria;
         Map<String, FilterMetadata> appliedFilters;
         List<SortMetadata> appliedSort;
@@ -71,6 +71,28 @@ public class QueryResult {
             boolean virtual;
             boolean restricted;
             String restrictionReason;
+            
+            // UI metadata fields for frontend display
+            String label;      // Display label for the attribute
+            String labelKey;   // i18n key for the label
+            String width;      // Display width (e.g., "100px", "20%")
+            String flex;       // Flex value for flexible layouts (e.g., "1", "2")
+            
+            // Table context metadata
+            String headerText;
+            String alignment;
+            Integer displayOrder;
+            Boolean visible;
+            
+            // Form context metadata
+            String placeholder;
+            String helpText;
+            String inputType;
+            Boolean required;
+            Integer maxLength;
+            Integer minLength;
+            String pattern;
+            String validationMsg;
         }
 
         @Value

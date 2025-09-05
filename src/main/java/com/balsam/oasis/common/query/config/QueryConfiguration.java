@@ -40,7 +40,6 @@ public class QueryConfiguration {
         // Configure metadata caching
         if (properties.getMetadata() != null && properties.getMetadata().getCache() != null) {
             QueryProperties.MetadataProperties.CacheProperties cacheProps = properties.getMetadata().getCache();
-            executor.setPrewarmMetadataOnStartup(cacheProps.isPrewarm());
             executor.setUseOptimizedMapper(cacheProps.isUseOptimizedMapper());
         }
 

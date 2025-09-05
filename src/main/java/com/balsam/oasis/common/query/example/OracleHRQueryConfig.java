@@ -31,6 +31,7 @@ public class OracleHRQueryConfig {
                 // Register all queries defined in this configuration
                 queryRegistrar.register(employeesQuery());
                 queryRegistrar.register(departmentStatsQuery());
+                queryRegistrar.register(employeeLovQuery());
 
                 queryRegistrar.register(QueryDefinitionBuilder.builder("testUnion").sql(
                                 """
@@ -91,18 +92,29 @@ public class OracleHRQueryConfig {
                                                 .primaryKey(true)
                                                 .sortable(true)
                                                 .filterable(true)
+                                                .label("Employee ID")
+                                                .labelKey("employee.id.label")
+                                                .width("100px")
                                                 .build())
                                 .attribute(AttributeDef.name("firstName")
                                                 .type(String.class)
                                                 .aliasName("first_name")
                                                 .filterable(true)
                                                 .sortable(true)
+                                                .label("First Name")
+                                                .labelKey("employee.firstName.label")
+                                                .width("150px")
+                                                .flex("1")
                                                 .build())
                                 .attribute(AttributeDef.name("lastName")
                                                 .type(String.class)
                                                 .aliasName("last_name")
                                                 .filterable(true)
                                                 .sortable(true)
+                                                .label("Last Name")
+                                                .labelKey("employee.lastName.label")
+                                                .width("150px")
+                                                .flex("1")
                                                 .build())
                                 .attribute(AttributeDef.name("email")
                                                 .type(String.class)
@@ -402,6 +414,149 @@ public class OracleHRQueryConfig {
 
                                 .defaultPageSize(25)
                                 .maxPageSize(100)
+                                .build();
+        }
+        
+        /**
+         * Employee LOV query for dropdown/select components
+         * Demonstrates LOV configuration and find-by-key criteria
+         */
+        private QueryDefinition employeeLovQuery() {
+                return QueryDefinitionBuilder.builder("employeesLov")
+                                .sql("""
+                                                SELECT 
+                                                    e.employee_id,
+                                                    e.first_name || ' ' || e.last_name as full_name,
+                                                    e.email,
+                                                    d.department_name,
+                                                    e.job_id,
+                                                    e.hire_date,
+                                                    e.salary
+                                                FROM employees e
+                                                LEFT JOIN departments d ON e.department_id = d.department_id
+                                                WHERE 1=1
+                                                --activeFilter
+                                                --departmentFilter
+                                                --employeeKeyFilter
+                                                """)
+                                .description("Employee query with find-by-key support")
+                                
+                                // Attributes with context-specific metadata
+                                .attribute(AttributeDef.name("employeeId")
+                                                .type(Integer.class)
+                                                .aliasName("employee_id")
+                                                .primaryKey(true)
+                                                // Table context
+                                                .headerText("ID")
+                                                .alignment("center")
+                                                .width("80px")
+                                                .displayOrder(1)
+                                                // Form context
+                                                .label("Employee ID")
+                                                .placeholder("Enter employee ID")
+                                                .inputType("number")
+                                                .required(true)
+                                                .build())
+                                                
+                                .attribute(AttributeDef.name("fullName")
+                                                .type(String.class)
+                                                .aliasName("full_name")
+                                                // Table context
+                                                .headerText("Employee Name")
+                                                .alignment("left")
+                                                .width("200px")
+                                                .displayOrder(2)
+                                                // Form context
+                                                .label("Full Name")
+                                                .placeholder("Employee full name")
+                                                .inputType("text")
+                                                .maxLength(100)
+                                                .build())
+                                                
+                                .attribute(AttributeDef.name("email")
+                                                .type(String.class)
+                                                .aliasName("email")
+                                                .filterable(true)
+                                                // Table context
+                                                .headerText("Email")
+                                                .alignment("left")
+                                                .width("200px")
+                                                .displayOrder(3)
+                                                // Form context
+                                                .label("Email Address")
+                                                .placeholder("user@example.com")
+                                                .inputType("email")
+                                                .pattern("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$")
+                                                .validationMsg("Please enter a valid email address")
+                                                .build())
+                                                
+                                .attribute(AttributeDef.name("departmentName")
+                                                .type(String.class)
+                                                .aliasName("department_name")
+                                                // Table context
+                                                .headerText("Department")
+                                                .alignment("left")
+                                                .width("150px")
+                                                .displayOrder(4)
+                                                // Form context
+                                                .label("Department")
+                                                .inputType("text")
+                                                .build())
+                                                
+                                .attribute(AttributeDef.name("hireDate")
+                                                .type(LocalDate.class)
+                                                .aliasName("hire_date")
+                                                // Table context
+                                                .headerText("Hire Date")
+                                                .alignment("center")
+                                                .width("120px")
+                                                .displayOrder(5)
+                                                // Form context
+                                                .label("Date Hired")
+                                                .inputType("date")
+                                                .placeholder("YYYY-MM-DD")
+                                                .build())
+                                                
+                                .attribute(AttributeDef.name("salary")
+                                                .type(BigDecimal.class)
+                                                .aliasName("salary")
+                                                // Table context
+                                                .headerText("Salary")
+                                                .alignment("right")
+                                                .width("120px")
+                                                .displayOrder(6)
+                                                // Form context
+                                                .label("Annual Salary")
+                                                .inputType("number")
+                                                .placeholder("0.00")
+                                                .minLength(0)
+                                                .build())
+                                
+                                // Criteria for find-by-key
+                                .criteria(CriteriaDef.criteria()
+                                                .name("employeeKeyFilter")
+                                                .sql("AND e.employee_id = :employeeId")
+                                                .condition(ctx -> ctx.hasParam("employeeId") && ctx.getParam("employeeId") != null)
+                                                .isFindByKey(true)
+                                                .build())
+                                                
+                                // Optional filters
+                                .criteria(CriteriaDef.criteria()
+                                                .name("departmentFilter")
+                                                .sql("AND d.department_name = :departmentName")
+                                                .condition(ctx -> ctx.hasParam("departmentName") && ctx.getParam("departmentName") != null)
+                                                .build())
+                                                
+                                // Add parameters
+                                .param(ParamDef.param("employeeId").type(Integer.class).required(false).build())
+                                .param(ParamDef.param("departmentName").type(String.class).required(false).build())
+                                                
+                                .criteria(CriteriaDef.criteria()
+                                                .name("activeFilter")
+                                                .sql("AND e.hire_date <= CURRENT_DATE")
+                                                .condition(ctx -> false) // Disabled for now to show all data
+                                                .build())
+                                
                                 .build();
         }
 }

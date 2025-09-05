@@ -16,7 +16,7 @@ import com.balsam.oasis.common.query.core.definition.ValidationRule;
 import com.balsam.oasis.common.query.processor.PostProcessor;
 import com.balsam.oasis.common.query.processor.PreProcessor;
 import com.balsam.oasis.common.query.processor.RowProcessor;
-import com.balsam.oasis.common.query.validation.QueryDefinitionValidator;
+import com.balsam.oasis.common.query.validation.BindParameterValidator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -53,6 +53,7 @@ public class QueryDefinitionBuilder {
     private boolean metricsEnabled = true;
     private Integer queryTimeout;
     private String findByKeyCriteriaName;
+    
 
     private QueryDefinitionBuilder(String name) {
         Preconditions.checkNotNull(name, "Query name cannot be null");
@@ -268,10 +269,8 @@ public class QueryDefinitionBuilder {
         // 1. Validates no duplicate definitions within the query (attributes, params,
         // criteria)
         // 2. Validates all bind parameters in SQL and criteria are defined
-        // 3. Registers the query globally and checks for duplicate query names
-        // This will throw IllegalStateException if any validation fails,
-        // preventing the application from starting
-        QueryDefinitionValidator.validateAndRegister(queryDef);
+        // 3. Validate bind parameters
+        BindParameterValidator.validate(queryDef);
 
         return queryDef;
     }

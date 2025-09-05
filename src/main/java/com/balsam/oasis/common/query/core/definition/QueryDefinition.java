@@ -90,6 +90,7 @@ public class QueryDefinition {
     Integer queryTimeout; // in seconds
 
     String findByKeyCriteriaName; // Name of the criteria used for findByKey
+    
 
     /**
      * Cached metadata for optimized row mapping.

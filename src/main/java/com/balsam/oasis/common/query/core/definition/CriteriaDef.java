@@ -1,6 +1,5 @@
 package com.balsam.oasis.common.query.core.definition;
 
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.balsam.oasis.common.query.core.execution.QueryContext;
@@ -17,7 +16,6 @@ public class CriteriaDef {
     String name;
     String sql; // SQL fragment with named parameters
     Predicate<QueryContext> condition; // When to apply this criteria
-    Function<Object, Object> processor; // Process context before applying
     String description;
     boolean isFindByKey; // Is this a findByKey criteria (returns single object)
 
@@ -26,7 +24,6 @@ public class CriteriaDef {
         this.name = builder.name;
         this.sql = builder.sql;
         this.condition = builder.condition;
-        this.processor = builder.processor;
         this.description = builder.description;
         this.isFindByKey = builder.isFindByKey;
     }
@@ -55,9 +52,6 @@ public class CriteriaDef {
         private final String name;
         private String sql;
         private Predicate<QueryContext> condition;
-        private Function<Object, Object> processor;
-        private boolean dynamic = false;
-        private Function<Object, String> generator;
         private String description;
         private boolean isFindByKey = false;
 
@@ -78,22 +72,6 @@ public class CriteriaDef {
             return this;
         }
 
-        public BuilderStage processor(Function<Object, Object> processor) {
-            this.processor = processor;
-            return this;
-        }
-
-        public BuilderStage dynamic(boolean dynamic) {
-            this.dynamic = dynamic;
-            return this;
-        }
-
-        public BuilderStage generator(Function<Object, String> generator) {
-            this.generator = generator;
-            this.dynamic = true; // Auto-set dynamic when generator is provided
-            return this;
-        }
-
         public BuilderStage description(String description) {
             this.description = description;
             return this;
@@ -105,21 +83,9 @@ public class CriteriaDef {
         }
 
         public CriteriaDef build() {
-            // Validate
-            if (!dynamic) {
-                Preconditions.checkNotNull(sql, "SQL is required for non-dynamic criteria");
-            }
-            if (dynamic && generator == null) {
-                Preconditions.checkNotNull(sql, "Either SQL or generator is required for dynamic criteria");
-            }
-
+            Preconditions.checkNotNull(sql, "SQL is required for non-dynamic criteria");
             return new CriteriaDef(this);
         }
-    }
-
-    // Helper methods
-    public boolean hasProcessor() {
-        return processor != null;
     }
 
     public boolean hasCondition() {
