@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Plan
 
-Read @PLAN.md for current dev plan, use it as check list, update it when you complete each step.
+Read @ENHANCEMENT_PLAN.md for the architectural refactoring roadmap and current priorities.
 Read @SPEC.md for detailed requirements and specifications.
 
 ## Common Development Commands
@@ -14,34 +14,36 @@ Read @SPEC.md for detailed requirements and specifications.
 ### Build and Test
 ```bash
 # Build the project
-mvnw clean compile
+./mvnw clean compile
 
 # Run all tests
-mvnw test
+./mvnw test
 
 # Run a specific test class
-mvnw test -Dtest=QueryExecutorIntegrationTest
+./mvnw test -Dtest=QueryExecutorIntegrationTest
+./mvnw test -Dtest=AttributeDefTest
 
 # Run tests with specific pattern
-mvnw test -Dtest=*ControllerTest
+./mvnw test -Dtest=*ControllerTest
 
-# Build without tests
-mvnw clean install -DskipTests
+# Build without tests (faster for development iterations)
+./mvnw clean install -DskipTests
+./mvnw package -DskipTests
 
 # Generate test coverage report
-mvnw jacoco:report
+./mvnw jacoco:report
 ```
 
 ### Running the Application
 ```bash
-# Run with Maven , always use 8080 , kill process if exists
-mvnw spring-boot:run
+# Kill existing process on port 8080 and run the application
+lsof -ti:8080 | xargs kill -9 2>/dev/null; ./mvnw spring-boot:run
 
 # Run with specific profile
-mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
-# Run with debug enabled
-mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+# Run with debug enabled (port 5005)
+./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 ```
 
 ### Database Access
@@ -61,6 +63,13 @@ mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt
 
 ## High-Level Architecture
 
+### Two Parallel Implementations
+The codebase contains two parallel query systems:
+1. **Main Query System** (`com.balsam.oasis.common.registry.*`) - The primary implementation
+2. **Select System** (`com.balsam.oasis.common.registry.select.*`) - A newer, simplified API
+
+Both systems share core components but have separate execution paths. Focus development on the main Query system unless specifically working on Select features.
+
 ### Core Architecture Pattern
 The system follows a layered architecture with clear separation of concerns:
 
@@ -77,12 +86,18 @@ The system follows a layered architecture with clear separation of concerns:
 ### Key Design Patterns
 
 - **Immutable Objects**: All definitions are immutable using @Value with Lombok (QueryDefinition, AttributeDef<T>, ParamDef<T>, CriteriaDef)
-- **Builder Pattern**: Currently using inline builders with lambda customizers. Separate fluent builders (AttributeBuilder, ParamBuilder, CriteriaBuilder) are planned
+- **Builder Pattern**: QueryDefinitionBuilder performs validation but NOT registration. Registration happens at runtime via QueryExecutor or QueryRegistrar
 - **Generic Types**: Type-safe definitions with generics (AttributeDef<T>, ParamDef<T>, processors with <T>)
 - **Functional Composition**: Processors can be composed for complex logic using functional interfaces
 - **Dynamic SQL Generation**: Comment-based placeholders (`--placeholderName`) in SQL replaced at runtime by SqlBuilder
 - **Named Parameters**: Always use `:paramName` instead of `?` for SQL injection prevention
 - **Database Dialect Support**: DatabaseDialect enum for multi-database compatibility
+
+### Critical Registration Flow
+1. **Build Phase**: QueryDefinitionBuilder.build() creates immutable QueryDefinition and calls QueryDefinitionValidator.validate()
+2. **Registration Phase**: QueryExecutor.registerQuery() or QueryRegistrar.register() adds to runtime registry
+3. **Execution Phase**: QueryExecutor looks up registered queries and executes with runtime context
+4. **IMPORTANT**: Never register queries globally during build phase - this causes side effects and test pollution
 
 ### SQL Placeholder System
 SQL queries use comment placeholders that are dynamically replaced:
@@ -127,6 +142,21 @@ WHERE active = true
 - **Mockito 5.2.0**: Mocking framework
 - **Rest Assured 5.4.0**: REST API testing
 
+## Important Implementation Details
+
+### Metadata Cache System
+- **MetadataCache**: Attached to QueryDefinition after build (mutable field)
+- **MetadataCacheBuilder**: Pre-warms cache with column metadata from database
+- **OptimizedRowMapper vs DynamicRowMapper**: Two strategies for row mapping
+  - OptimizedRowMapper: Uses cached metadata for better performance
+  - DynamicRowMapper: Falls back to ResultSetMetaData when cache unavailable
+- **Cache warming**: Happens in QueryExecutor during registration
+
+### Processor Execution Order
+1. **PreProcessors**: Run before SQL execution, can modify QueryContext
+2. **RowProcessors**: Run for each row during result mapping
+3. **PostProcessors**: Run after all rows are processed, can modify final QueryResult
+
 ## Coding Rules
 
 ### 1. Architecture Rules
@@ -134,6 +164,7 @@ WHERE active = true
 - Separate concerns: Definition, Execution, Result
 - Use sealed classes for finite sets (FilterOp, SortDir)
 - Fail fast with validation at build time using Preconditions
+- QueryDefinitionBuilder validates but does NOT register globally
 
 ### 2. SQL & Database Rules
 - Always use named parameters (`:paramName`), never positional (`?`)
@@ -197,8 +228,18 @@ src/main/java/com/balsam/oasis/common/query/
 ├── rest/                 # REST controllers and request/response handling
 ├── config/               # Auto-configuration and properties
 ├── exception/            # Custom exception hierarchy
+├── select/               # Parallel Select API implementation
 └── example/             # Example query configurations
 ```
+
+### Key Files to Understand First
+1. **QueryDefinition.java** - Core immutable query model
+2. **QueryDefinitionBuilder.java** - Fluent builder (validates but doesn't register)
+3. **QueryExecutorImpl.java** - Runtime execution engine with local registry
+4. **SqlBuilder.java** - Dynamic SQL generation with `--placeholder` handling
+5. **QueryController.java** - REST endpoint implementation
+6. **QueryRequestParser.java** - Parses filter/sort/pagination from request params
+7. **QueryDefinitionValidator.java** - Validation logic (avoid global registration)
 
 #### Planned Structure (Future)
 ```
@@ -245,11 +286,16 @@ GET /api/query/{queryName}?
 5. **Database Support**: Oracle dialects supported (11g with ROWNUM, 12c+ with FETCH/OFFSET)
 6. **REST API**: Basic QueryController with parameter/filter parsing
 
-### Planned Features
+### Backward Compatibility Concerns
+- **QueryDefinitionValidator.validateAndRegister()**: Deprecated pattern, maintain for compatibility but prefer separate validate() and register() calls
+- **AttributeDef.name()**: Static factory method exists for backward compatibility
+- **ParamDef.param()**: Static factory method exists for backward compatibility
+- **Function<Object, Object> processors**: Builder has adapter overloads for legacy untyped processors
+
+### Planned Features (See ENHANCEMENT_PLAN.md for details)
 1. **QueryRegistry**: Implement query discovery and registration
 2. **Virtual Attributes**: Complete virtual fields implementation
 3. **Metadata**: Add comprehensive metadata in REST responses
 4. **Caching**: Implement Caffeine cache provider with configurable TTL
 5. **Security**: Add SecurityContext and field-level security
 6. **Validation**: Enhance multi-level validation (parameter, filter, execution)
-- please stop running with differtn ports kill all and use 8080

@@ -1,6 +1,7 @@
 package com.balsam.oasis.common.registry.rest;
 
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -10,8 +11,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Simplified response structure for List of Values (LOV) queries.
- * Contains only the data array with no metadata or grouping.
+ * Response structure for List of Values (LOV) queries.
+ * Contains data array and optional metadata for pagination, applied criteria, etc.
  */
 @Data
 @Builder
@@ -26,11 +27,26 @@ public class SelectResponse {
     private List<SelectItem> data;
 
     /**
+     * Optional metadata including pagination, applied criteria, execution time
+     */
+    private Map<String, Object> metadata;
+
+    /**
      * Create a LOV response with the given items
      */
     public static SelectResponse of(List<SelectItem> items) {
         return SelectResponse.builder()
                 .data(items)
+                .build();
+    }
+
+    /**
+     * Create a LOV response with items and metadata
+     */
+    public static SelectResponse of(List<SelectItem> items, Map<String, Object> metadata) {
+        return SelectResponse.builder()
+                .data(items)
+                .metadata(metadata)
                 .build();
     }
 }

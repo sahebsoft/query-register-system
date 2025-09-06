@@ -5,15 +5,17 @@ import lombok.Value;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.balsam.oasis.common.registry.core.definition.AttributeDef;
+import com.balsam.oasis.common.registry.core.definition.CacheConfig;
 import com.balsam.oasis.common.registry.core.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.core.definition.ParamDef;
+import com.balsam.oasis.common.registry.core.definition.ValidationRule;
 
 /**
  * Definition for a Select query used in dropdown/select components.
- * Completely separate from QueryDefinition to ensure clean separation of
- * concerns.
+ * Now includes processing pipeline support similar to QueryDefinition.
  */
 @Value
 @Builder
@@ -69,6 +71,35 @@ public class SelectDefinition {
     CriteriaDef searchCriteria;
 
     /**
+     * Processing pipeline - pre-processors
+     */
+    @Builder.Default
+    List<Function<Object, Object>> preProcessors = List.of();
+
+    /**
+     * Processing pipeline - row processors
+     */
+    @Builder.Default
+    List<Function<Object, Object>> rowProcessors = List.of();
+
+    /**
+     * Processing pipeline - post-processors
+     */
+    @Builder.Default
+    List<Function<Object, Object>> postProcessors = List.of();
+
+    /**
+     * Validation rules for the select
+     */
+    @Builder.Default
+    List<ValidationRule> validationRules = List.of();
+
+    /**
+     * Cache configuration
+     */
+    CacheConfig cacheConfig;
+
+    /**
      * Default page size for pagination
      */
     @Builder.Default
@@ -79,6 +110,23 @@ public class SelectDefinition {
      */
     @Builder.Default
     int maxPageSize = 1000;
+
+    /**
+     * Enable/disable audit logging
+     */
+    @Builder.Default
+    boolean auditEnabled = true;
+
+    /**
+     * Enable/disable metrics collection
+     */
+    @Builder.Default
+    boolean metricsEnabled = true;
+
+    /**
+     * Query timeout in seconds
+     */
+    Integer queryTimeout;
 
     /**
      * Check if this select has parameters
@@ -120,5 +168,40 @@ public class SelectDefinition {
      */
     public CriteriaDef getCriteria(String name) {
         return criteria != null ? criteria.get(name) : null;
+    }
+
+    /**
+     * Check if this select has pre-processors
+     */
+    public boolean hasPreProcessors() {
+        return preProcessors != null && !preProcessors.isEmpty();
+    }
+
+    /**
+     * Check if this select has row processors
+     */
+    public boolean hasRowProcessors() {
+        return rowProcessors != null && !rowProcessors.isEmpty();
+    }
+
+    /**
+     * Check if this select has post-processors
+     */
+    public boolean hasPostProcessors() {
+        return postProcessors != null && !postProcessors.isEmpty();
+    }
+
+    /**
+     * Check if this select has validation rules
+     */
+    public boolean hasValidationRules() {
+        return validationRules != null && !validationRules.isEmpty();
+    }
+
+    /**
+     * Check if caching is enabled
+     */
+    public boolean isCacheEnabled() {
+        return cacheConfig != null && cacheConfig.isEnabled();
     }
 }
