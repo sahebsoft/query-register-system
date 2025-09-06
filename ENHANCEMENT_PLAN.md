@@ -24,7 +24,7 @@ This document outlines a comprehensive refactoring plan to transform the Query R
 
 **Solution**:
 ```
-com.balsam.oasis.common.query.dialect/
+com.balsam.oasis.common.registry.dialect/
 ├── DatabaseDialect.java (interface)
 ├── DialectFactory.java
 ├── impl/
@@ -51,7 +51,7 @@ com.balsam.oasis.common.query.dialect/
 
 **Solution**: Command Pattern with specialized executors
 ```
-com.balsam.oasis.common.query.execution/
+com.balsam.oasis.common.registry.execution/
 ├── QueryCommand.java (interface)
 ├── QueryCommandExecutor.java
 ├── commands/
@@ -83,7 +83,7 @@ com.balsam.oasis.common.query.execution/
 
 **Solution**: Inject validators as services
 ```
-com.balsam.oasis.common.query.validation/
+com.balsam.oasis.common.registry.validation/
 ├── QueryValidator.java (interface)
 ├── ValidationContext.java
 ├── impl/
@@ -109,7 +109,7 @@ com.balsam.oasis.common.query.validation/
 
 **Solution**: Aggregate pattern with focused domain objects
 ```
-com.balsam.oasis.common.query.domain/
+com.balsam.oasis.common.registry.domain/
 ├── query/
 │   ├── Query.java (aggregate root)
 │   ├── QueryId.java (value object)
@@ -141,7 +141,7 @@ com.balsam.oasis.common.query.domain/
 
 **Solution**: Properly typed processor interfaces
 ```
-com.balsam.oasis.common.query.processing/
+com.balsam.oasis.common.registry.processing/
 ├── ProcessorChain.java<T>
 ├── typed/
 │   ├── TypedPreProcessor.java<T>
@@ -166,7 +166,7 @@ com.balsam.oasis.common.query.processing/
 
 **New Structure**:
 ```
-com.balsam.oasis.common.query/
+com.balsam.oasis.common.registry/
 ├── api/                     # Public API interfaces
 │   ├── QueryExecutor.java
 │   ├── QueryRegistrar.java
@@ -203,7 +203,7 @@ com.balsam.oasis.common.query/
 
 **Solution**: Hexagonal architecture with ports and adapters
 ```
-com.balsam.oasis.common.query.adapter/
+com.balsam.oasis.common.registry.adapter/
 ├── inbound/
 │   ├── rest/
 │   │   ├── QueryRestController.java
@@ -232,7 +232,7 @@ com.balsam.oasis.common.query.adapter/
 
 **Solution**: Strategy pattern with registrable operations
 ```
-com.balsam.oasis.common.query.filter/
+com.balsam.oasis.common.registry.filter/
 ├── FilterOperation.java (interface)
 ├── FilterOperationRegistry.java
 ├── operations/
@@ -258,7 +258,7 @@ com.balsam.oasis.common.query.filter/
 
 **Solution**: Decorator pattern for caching
 ```
-com.balsam.oasis.common.query.cache/
+com.balsam.oasis.common.registry.cache/
 ├── QueryCache.java (interface)
 ├── CacheKey.java
 ├── CachePolicy.java
@@ -281,7 +281,7 @@ com.balsam.oasis.common.query.cache/
 
 **Solution**: Plugin architecture for extensions
 ```
-com.balsam.oasis.common.query.extension/
+com.balsam.oasis.common.registry.extension/
 ├── QueryExtension.java (interface)
 ├── ExtensionPoint.java
 ├── ExtensionRegistry.java
