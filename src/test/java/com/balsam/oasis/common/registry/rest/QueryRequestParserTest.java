@@ -115,7 +115,9 @@ public class QueryRequestParserTest {
                 MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
                 params.add("filter.name", "John");
                 params.add("filter.salary.gte", "50000");
-                params.add("filter.department.in", "IT,HR,Finance");
+                params.add("filter.department", "IT");
+                params.add("filter.department", "HR");
+                params.add("filter.department", "Finance");
 
                 // Act
                 QueryRequest request = parser.parse(params, 0, 10, "full", queryDefinition);
@@ -226,5 +228,36 @@ public class QueryRequestParserTest {
                                 .hasSize(1)
                                 .containsKey("statuses")
                                 .doesNotContainKeys("minSalary", "department");
+        }
+
+        @Test
+        void testSingleVsMultiValueFilterDetection() {
+                // Arrange
+                MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+                // Single value - should use EQUALS
+                params.add("filter.name", "John");
+                // Multiple values - should use IN
+                params.add("filter.department", "IT");
+                params.add("filter.department", "HR");
+
+                // Act
+                QueryRequest request = parser.parse(params, 0, 10, "full", queryDefinition);
+
+                // Assert
+                assertThat(request.getFilters()).hasSize(2);
+
+                // Single value filter should use EQUALS
+                QueryContext.Filter nameFilter = request.getFilters().get("name");
+                assertThat(nameFilter.getAttribute()).isEqualTo("name");
+                assertThat(nameFilter.getOperator()).isEqualTo(FilterOp.EQUALS);
+                assertThat(nameFilter.getValue()).isEqualTo("John");
+                assertThat(nameFilter.getValues()).isNull();
+
+                // Multi-value filter should use IN
+                QueryContext.Filter deptFilter = request.getFilters().get("department");
+                assertThat(deptFilter.getAttribute()).isEqualTo("department");
+                assertThat(deptFilter.getOperator()).isEqualTo(FilterOp.IN);
+                assertThat(deptFilter.getValues()).containsExactly("IT", "HR");
+                assertThat(deptFilter.getValue()).isNull();
         }
 }

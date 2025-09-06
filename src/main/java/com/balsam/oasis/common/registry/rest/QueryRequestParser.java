@@ -2,7 +2,6 @@ package com.balsam.oasis.common.registry.rest;
 
 import org.springframework.util.MultiValueMap;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -130,12 +129,12 @@ public class QueryRequestParser {
                     } catch (IllegalArgumentException e) {
                         // Not a valid operator, treat as simple filter
                         Class<?> attrType = getAttributeType(queryDefinition, attribute);
-                        parseSimpleFilter(attribute, value, filters, attrType);
+                        parseSimpleFilter(attribute, Collections.singletonList(value), filters, attrType);
                     }
                 } else {
-                    // Simple filter: filter.attribute=value
+                    // Simple filter: filter.attribute=value (potentially multiple values)
                     Class<?> attrType = getAttributeType(queryDefinition, attribute);
-                    parseSimpleFilter(attribute, value, filters, attrType);
+                    parseSimpleFilter(attribute, values, filters, attrType);
                 }
                 continue;
             }
@@ -183,38 +182,40 @@ public class QueryRequestParser {
                 .build();
     }
 
-    private void parseSimpleFilter(String attribute, String value, Map<String, QueryContext.Filter> filters) {
-        parseSimpleFilter(attribute, value, filters, null);
-    }
 
-    private void parseSimpleFilter(String attribute, String value, Map<String, QueryContext.Filter> filters,
+    private void parseSimpleFilter(String attribute, List<String> values, Map<String, QueryContext.Filter> filters,
             Class<?> targetType) {
         // Skip empty filter values
-        if (value == null || value.trim().isEmpty()) {
+        if (values == null || values.isEmpty()) {
             return;
         }
 
-        // Check for comma-separated values (IN operator)
-        if (value.contains(",")) {
-            List<Object> values = Arrays.stream(value.split(","))
-                    .map(String::trim)
-                    .filter(v -> !v.isEmpty()) // Skip empty values in list
-                    .map(v -> parseValue(v, targetType))
-                    .collect(Collectors.toList());
+        // Filter out null and empty values
+        List<String> nonEmptyValues = values.stream()
+                .filter(v -> v != null && !v.trim().isEmpty())
+                .collect(Collectors.toList());
 
-            if (!values.isEmpty()) {
-                filters.put(attribute, QueryContext.Filter.builder()
-                        .attribute(attribute)
-                        .operator(FilterOp.IN)
-                        .values(values)
-                        .build());
-            }
-        } else {
-            // Simple equals filter
+        if (nonEmptyValues.isEmpty()) {
+            return;
+        }
+
+        if (nonEmptyValues.size() == 1) {
+            // Single value: use EQUALS operator
             filters.put(attribute, QueryContext.Filter.builder()
                     .attribute(attribute)
                     .operator(FilterOp.EQUALS)
-                    .value(parseValue(value, targetType))
+                    .value(parseValue(nonEmptyValues.get(0), targetType))
+                    .build());
+        } else {
+            // Multiple values: use IN operator
+            List<Object> parsedValues = nonEmptyValues.stream()
+                    .map(v -> parseValue(v, targetType))
+                    .collect(Collectors.toList());
+
+            filters.put(attribute, QueryContext.Filter.builder()
+                    .attribute(attribute)
+                    .operator(FilterOp.IN)
+                    .values(parsedValues)
                     .build());
         }
     }
@@ -267,9 +268,6 @@ public class QueryRequestParser {
         return attributeDef != null ? attributeDef.getType() : null;
     }
 
-    private Object parseValue(String value) {
-        return parseValue(value, null);
-    }
 
     private Object parseValue(String value, Class<?> targetType) {
         if (value == null || value.isEmpty()) {

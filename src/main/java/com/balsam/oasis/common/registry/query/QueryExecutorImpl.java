@@ -11,12 +11,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.balsam.oasis.common.registry.core.execution.DynamicRowMapper;
 import com.balsam.oasis.common.registry.core.execution.MetadataBuilder;
 import com.balsam.oasis.common.registry.core.execution.MetadataCache;
 import com.balsam.oasis.common.registry.core.execution.MetadataCacheBuilder;
-import com.balsam.oasis.common.registry.core.execution.OptimizedRowMapper;
-import com.balsam.oasis.common.registry.core.execution.SqlBuilder;
+import com.balsam.oasis.common.registry.base.BaseExecutor;
 import com.balsam.oasis.common.registry.core.result.Row;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.exception.QueryNotFoundException;
@@ -32,19 +30,16 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final QueryRegistry queryRegistry;
-    private final SqlBuilder sqlBuilder;
-    private final DynamicRowMapper rowMapper;
-    private final OptimizedRowMapper optimizedRowMapper;
+    private final QuerySqlBuilder sqlBuilder;
+    private final QueryRowMapperImpl rowMapper;
     private final MetadataCacheBuilder metadataCacheBuilder;
-    private boolean useOptimizedMapper = true;
 
-    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
+    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.queryRegistry = queryRegistry;
         this.sqlBuilder = sqlBuilder;
-        this.rowMapper = new DynamicRowMapper();
-        this.optimizedRowMapper = new OptimizedRowMapper();
+        this.rowMapper = new QueryRowMapperImpl();
         this.metadataCacheBuilder = new MetadataCacheBuilder(jdbcTemplate, sqlBuilder);
     }
 
@@ -79,7 +74,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             runPreProcessors(context);
 
             // Build SQL
-            SqlBuilder.SqlResult sqlResult = sqlBuilder.build(context);
+            BaseExecutor.SqlResult sqlResult = sqlBuilder.build(context);
             String finalSql = sqlResult.getSql();
             Map<String, Object> params = sqlResult.getParams();
 
@@ -146,34 +141,21 @@ public class QueryExecutorImpl implements QueryExecutor {
                 jdbcTemplate.setQueryTimeout(context.getDefinition().getQueryTimeout());
             }
 
-            // Get metadata cache for optimized mapping
+            // Try to ensure metadata cache exists for optimal performance
             QueryDefinition definition = context.getDefinition();
-            MetadataCache cache = definition.getMetadataCache();
-
-            // If cache doesn't exist, try to build it on-the-fly
-            if (cache == null || !cache.isInitialized()) {
-                log.debug("Building metadata cache on-the-fly for query: {}", definition.getName());
+            if (definition.getMetadataCache() == null) {
                 try {
-                    cache = metadataCacheBuilder.buildCache(definition);
+                    log.debug("Building metadata cache for query: {}", definition.getName());
+                    MetadataCache cache = metadataCacheBuilder.buildCache(definition);
                     definition.setMetadataCache(cache);
                 } catch (Exception e) {
-                    log.warn("Failed to build metadata cache, falling back to DynamicRowMapper: {}", e.getMessage());
+                    log.debug("Could not build metadata cache, will use name-based access: {}", e.getMessage());
                 }
             }
 
-            // Choose appropriate row mapper based on configuration and cache availability
-            final boolean useOptimized = useOptimizedMapper && OptimizedRowMapper.canUse(cache);
-
-            if (useOptimized) {
-                log.trace("Using OptimizedRowMapper for query: {}", definition.getName());
-                final MetadataCache finalCache = cache;
-                return namedJdbcTemplate.query(sql, params,
-                        (rs, rowNum) -> optimizedRowMapper.mapRow(rs, rowNum, context, finalCache));
-            } else {
-                log.trace("Using DynamicRowMapper for query: {}", definition.getName());
-                return namedJdbcTemplate.query(sql, params,
-                        (rs, rowNum) -> rowMapper.mapRow(rs, rowNum, context));
-            }
+            // Use the unified row mapper (it will adapt based on cache availability)
+            return namedJdbcTemplate.query(sql, params,
+                    (rs, rowNum) -> rowMapper.mapRow(rs, rowNum, context));
 
         } catch (Exception e) {
             throw new QueryExecutionException(
@@ -183,10 +165,12 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     /**
-     * Enable or disable the optimized row mapper
+     * @deprecated The row mapper now automatically optimizes based on cache availability
      */
+    @Deprecated
     public void setUseOptimizedMapper(boolean useOptimized) {
-        this.useOptimizedMapper = useOptimized;
+        // No-op for backward compatibility
+        log.debug("setUseOptimizedMapper is deprecated - optimization is now automatic");
     }
 
     /**
@@ -208,13 +192,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         log.info("Pre-warmed {} metadata caches", caches.size());
     }
 
-    private int executeTotalCountQuery(QueryContext context, SqlBuilder.SqlResult sqlResult) {
+    private int executeTotalCountQuery(QueryContext context, BaseExecutor.SqlResult sqlResult) {
         try {
             // Build count query without pagination
-            String baseSql = sqlResult.getBaseSql();
-            // Oracle doesn't require the AS keyword for subquery aliases
-            String countSql = "SELECT COUNT(*) FROM (" + baseSql + ") count_query";
-            Map<String, Object> params = sqlResult.getParamsWithoutPagination();
+            // Use the original SQL without pagination for count
+            String countSql = sqlBuilder.buildCountQuery(context);
+            Map<String, Object> params = sqlResult.getParams();
 
             log.debug("Executing count query: {}", countSql);
 

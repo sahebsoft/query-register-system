@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.balsam.oasis.common.registry.base.BaseContext;
 import com.balsam.oasis.common.registry.core.definition.FilterOp;
 import com.balsam.oasis.common.registry.core.definition.ParamDef;
 import com.balsam.oasis.common.registry.core.definition.SortDir;
@@ -140,7 +141,10 @@ public class QueryExecution {
             // Limit page size to prevent excessive data retrieval
             end = start + 1000;
         }
-        context.setPagination(QueryContext.Pagination.fromStartEnd(start, end));
+        context.setPagination(BaseContext.Pagination.builder()
+            .start(start)
+            .end(end)
+            .build());
         return this;
     }
 
@@ -155,7 +159,10 @@ public class QueryExecution {
         if (limit > 1000) {
             limit = 1000; // Max page size
         }
-        context.setPagination(QueryContext.Pagination.fromOffsetLimit(offset, limit));
+        context.setPagination(BaseContext.Pagination.builder()
+            .start(offset)
+            .end(offset + limit)
+            .build());
         return this;
     }
 

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.core.result.Row;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -54,8 +55,8 @@ public class QueryResult {
             int start;
             int end;
             int total;
-            boolean hasNext;
-            boolean hasPrevious;
+            Boolean hasNext;
+            Boolean hasPrevious;
             int pageSize;
             int pageCount;
             int currentPage;
@@ -63,13 +64,13 @@ public class QueryResult {
 
         @Value
         @Builder
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public static class AttributeMetadata {
             String name;
             String type;
-            boolean filterable;
-            boolean sortable;
-            boolean virtual;
-            boolean restricted;
+            Boolean filterable;
+            Boolean sortable;
+            Boolean restricted;
             String restrictionReason;
 
             // UI metadata fields for frontend display
@@ -97,6 +98,7 @@ public class QueryResult {
 
         @Value
         @Builder
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public static class FilterMetadata {
             String attribute;
             String operator;
@@ -115,6 +117,7 @@ public class QueryResult {
 
         @Value
         @Builder
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public static class ParameterMetadata {
             String name;
             Object value;

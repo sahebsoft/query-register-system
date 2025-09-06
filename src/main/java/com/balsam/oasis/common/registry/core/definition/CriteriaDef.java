@@ -2,7 +2,7 @@ package com.balsam.oasis.common.registry.core.definition;
 
 import java.util.function.Predicate;
 
-import com.balsam.oasis.common.registry.query.QueryContext;
+import com.balsam.oasis.common.registry.base.BaseContext;
 import com.google.common.base.Preconditions;
 
 import lombok.Value;
@@ -15,7 +15,7 @@ import lombok.Value;
 public class CriteriaDef {
     String name;
     String sql; // SQL fragment with named parameters
-    Predicate<QueryContext> condition; // When to apply this criteria
+    Predicate<BaseContext<?>> condition; // When to apply this criteria
     String description;
     boolean isFindByKey; // Is this a findByKey criteria (returns single object)
 
@@ -51,7 +51,7 @@ public class CriteriaDef {
     public static class BuilderStage {
         private final String name;
         private String sql;
-        private Predicate<QueryContext> condition;
+        private Predicate<BaseContext<?>> condition;
         private String description;
         private boolean isFindByKey = false;
 
@@ -67,7 +67,7 @@ public class CriteriaDef {
             return this;
         }
 
-        public BuilderStage condition(Predicate<QueryContext> condition) {
+        public BuilderStage condition(Predicate<BaseContext<?>> condition) {
             this.condition = condition;
             return this;
         }

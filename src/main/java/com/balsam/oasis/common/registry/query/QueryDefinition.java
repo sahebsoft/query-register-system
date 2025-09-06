@@ -2,20 +2,18 @@ package com.balsam.oasis.common.registry.query;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
+import com.balsam.oasis.common.registry.base.BaseDefinition;
 import com.balsam.oasis.common.registry.core.definition.AttributeDef;
-import com.balsam.oasis.common.registry.core.definition.CacheConfig;
 import com.balsam.oasis.common.registry.core.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.core.definition.ParamDef;
-import com.balsam.oasis.common.registry.core.definition.ValidationRule;
 import com.balsam.oasis.common.registry.core.execution.MetadataCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Immutable query definition containing all metadata and configuration.
@@ -48,51 +46,14 @@ import lombok.Setter;
  * @see CriteriaDef
  */
 @Getter
-@Builder(toBuilder = true)
-public class QueryDefinition {
-    String name;
-    String sql;
-    String description;
-
+@SuperBuilder
+public class QueryDefinition extends BaseDefinition {
+    // Query-specific fields
     @Builder.Default
     Map<String, AttributeDef<?>> attributes = ImmutableMap.of();
 
     @Builder.Default
-    Map<String, ParamDef<?>> params = ImmutableMap.of();
-
-    @Builder.Default
-    Map<String, CriteriaDef> criteria = ImmutableMap.of();
-
-    @Builder.Default
-    List<Function<Object, Object>> preProcessors = ImmutableList.of();
-
-    @Builder.Default
-    List<Function<Object, Object>> rowProcessors = ImmutableList.of();
-
-    @Builder.Default
-    List<Function<Object, Object>> postProcessors = ImmutableList.of();
-
-    @Builder.Default
-    List<ValidationRule> validationRules = ImmutableList.of();
-
-    CacheConfig cacheConfig;
-
-    @Builder.Default
-    int defaultPageSize = 50;
-
-    @Builder.Default
-    int maxPageSize = 1000;
-
-    @Builder.Default
     boolean paginationEnabled = true;
-
-    @Builder.Default
-    boolean auditEnabled = true;
-
-    @Builder.Default
-    boolean metricsEnabled = true;
-
-    Integer queryTimeout; // in seconds
 
     String findByKeyCriteriaName; // Name of the criteria used for findByKey
 
@@ -111,34 +72,6 @@ public class QueryDefinition {
 
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
-    }
-
-    public boolean hasParams() {
-        return params != null && !params.isEmpty();
-    }
-
-    public boolean hasCriteria() {
-        return criteria != null && !criteria.isEmpty();
-    }
-
-    public boolean hasPreProcessors() {
-        return preProcessors != null && !preProcessors.isEmpty();
-    }
-
-    public boolean hasRowProcessors() {
-        return rowProcessors != null && !rowProcessors.isEmpty();
-    }
-
-    public boolean hasPostProcessors() {
-        return postProcessors != null && !postProcessors.isEmpty();
-    }
-
-    public boolean hasValidationRules() {
-        return validationRules != null && !validationRules.isEmpty();
-    }
-
-    public boolean isCacheEnabled() {
-        return cacheConfig != null && cacheConfig.isEnabled();
     }
 
     public AttributeDef<?> getAttribute(String name) {

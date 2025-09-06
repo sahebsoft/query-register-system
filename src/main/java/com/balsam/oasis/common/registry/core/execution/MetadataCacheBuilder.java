@@ -11,11 +11,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.balsam.oasis.common.registry.base.BaseExecutor;
 import com.balsam.oasis.common.registry.core.definition.AttributeDef;
 import com.balsam.oasis.common.registry.core.definition.ParamDef;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.query.QueryContext;
 import com.balsam.oasis.common.registry.query.QueryDefinition;
+import com.balsam.oasis.common.registry.query.QuerySqlBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +50,9 @@ public class MetadataCacheBuilder {
 
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
-    private final SqlBuilder sqlBuilder;
+    private final QuerySqlBuilder sqlBuilder;
 
-    public MetadataCacheBuilder(JdbcTemplate jdbcTemplate, SqlBuilder sqlBuilder) {
+    public MetadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.sqlBuilder = sqlBuilder;
@@ -73,7 +75,7 @@ public class MetadataCacheBuilder {
             QueryContext metadataContext = createMetadataContext(definition);
 
             // Build SQL
-            SqlBuilder.SqlResult sqlResult = sqlBuilder.build(metadataContext);
+            BaseExecutor.SqlResult sqlResult = sqlBuilder.build(metadataContext);
             String sql = sqlResult.getSql();
             Map<String, Object> params = sqlResult.getParams();
 

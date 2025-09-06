@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.processor;
 
+import com.balsam.oasis.common.registry.base.BaseContext;
 import com.balsam.oasis.common.registry.core.result.Row;
-import com.balsam.oasis.common.registry.query.QueryContext;
 
 /**
  * Calculator interface for computing transient attribute values.
@@ -14,11 +14,11 @@ import com.balsam.oasis.common.registry.query.QueryContext;
 public interface Calculator<T> {
 
     /**
-     * Calculate a value based on the current row and query context.
+     * Calculate a value based on the current row and execution context.
      * 
      * @param row     The current row containing data from the query
-     * @param context The query execution context
+     * @param context The execution context (QueryContext, SelectContext, etc.)
      * @return The calculated value of type T
      */
-    T calculate(Row row, QueryContext context);
+    T calculate(Row row, BaseContext<?> context);
 }

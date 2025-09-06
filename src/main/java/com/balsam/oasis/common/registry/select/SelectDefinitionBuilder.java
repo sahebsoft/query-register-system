@@ -1,17 +1,5 @@
 package com.balsam.oasis.common.registry.select;
 
-import com.balsam.oasis.common.registry.core.definition.AttributeDef;
-import com.balsam.oasis.common.registry.core.definition.CacheConfig;
-import com.balsam.oasis.common.registry.core.definition.CriteriaDef;
-import com.balsam.oasis.common.registry.core.definition.ParamDef;
-import com.balsam.oasis.common.registry.core.definition.ValidationRule;
-import com.balsam.oasis.common.registry.processor.PostProcessor;
-import com.balsam.oasis.common.registry.processor.PreProcessor;
-import com.balsam.oasis.common.registry.processor.RowProcessor;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -20,37 +8,53 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.balsam.oasis.common.registry.core.definition.AttributeDef;
+import com.balsam.oasis.common.registry.core.definition.CacheConfig;
+import com.balsam.oasis.common.registry.core.definition.CriteriaDef;
+import com.balsam.oasis.common.registry.core.definition.ParamDef;
+import com.balsam.oasis.common.registry.core.definition.ValidationRule;
+import com.balsam.oasis.common.registry.processor.PostProcessor;
+import com.balsam.oasis.common.registry.processor.PreProcessor;
+import com.balsam.oasis.common.registry.processor.RowProcessor;
+import com.balsam.oasis.common.registry.query.QueryDefinition;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 /**
- * Builder for creating SelectDefinition instances with fluent API.
- * Now aligned with QueryDefinitionBuilder pattern including processing pipeline support.
+ * Builder for creating select-type QueryDefinition instances with fluent API.
+ * This builder creates QueryDefinition objects that work with the Select API
+ * by ensuring the first attribute is the value field and second is the label field.
+ * Leverages the full Query infrastructure while maintaining the Select API
+ * pattern.
  */
 public class SelectDefinitionBuilder {
 
     private final String name;
     private String description;
     private String sql;
-    private AttributeDef<?> valueAttribute;
-    private AttributeDef<?> labelAttribute;
+    private ValueDef valueDef;
+    private LabelDef labelDef;
     private final List<AttributeDef<?>> additionAttributes = new ArrayList<>();
     private final Map<String, ParamDef<?>> params = new LinkedHashMap<>();
     private final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
     private CriteriaDef searchCriteria;
-    
+
     // Processing pipeline
     private final List<Function<Object, Object>> preProcessors = new ArrayList<>();
     private final List<Function<Object, Object>> rowProcessors = new ArrayList<>();
     private final List<Function<Object, Object>> postProcessors = new ArrayList<>();
     private final List<ValidationRule> validationRules = new ArrayList<>();
-    
+
     // Cache configuration
     private boolean cacheEnabled = false;
     private Duration cacheTTL;
     private Function<Object, String> cacheKeyGenerator;
-    
+
     // Pagination configuration
     private int defaultPageSize = 100;
     private int maxPageSize = 1000;
-    
+
     // Other configurations
     private boolean auditEnabled = true;
     private boolean metricsEnabled = true;
@@ -88,54 +92,44 @@ public class SelectDefinitionBuilder {
     }
 
     /**
-     * Set the value attribute
+     * Set the value definition (only requires aliasName and type)
      */
-    public SelectDefinitionBuilder value(AttributeDef<?> valueAttribute) {
-        Preconditions.checkNotNull(valueAttribute, "Value attribute cannot be null");
-        this.valueAttribute = valueAttribute;
+    public SelectDefinitionBuilder value(ValueDef valueDef) {
+        Preconditions.checkNotNull(valueDef, "Value definition cannot be null");
+        this.valueDef = valueDef;
         return this;
     }
 
     /**
-     * Create value attribute inline with lambda customizer (similar to QueryDefinitionBuilder)
+     * Create value definition with database column name and Java type
      */
-    public <T> SelectDefinitionBuilder value(String name, Class<T> type,
-                                             Function<AttributeDef.BuilderStage<T>, AttributeDef.BuilderStage<T>> customizer) {
-        AttributeDef.BuilderStage<T> builder = AttributeDef.name(name)
-                .type(type)
-                .aliasName(name);
-        
-        if (customizer != null) {
-            builder = customizer.apply(builder);
-        }
-        
-        this.valueAttribute = builder.build();
+    public SelectDefinitionBuilder value(String aliasName, Class<?> type) {
+        this.valueDef = ValueDef.of(aliasName, type);
         return this;
     }
 
     /**
-     * Set the label attribute
+     * Set the label definition (only requires aliasName and type)
      */
-    public SelectDefinitionBuilder label(AttributeDef<?> labelAttribute) {
-        Preconditions.checkNotNull(labelAttribute, "Label attribute cannot be null");
-        this.labelAttribute = labelAttribute;
+    public SelectDefinitionBuilder label(LabelDef labelDef) {
+        Preconditions.checkNotNull(labelDef, "Label definition cannot be null");
+        this.labelDef = labelDef;
         return this;
     }
 
     /**
-     * Create label attribute inline with lambda customizer
+     * Create label definition with database column name and Java type
      */
-    public <T> SelectDefinitionBuilder label(String name, Class<T> type,
-                                             Function<AttributeDef.BuilderStage<T>, AttributeDef.BuilderStage<T>> customizer) {
-        AttributeDef.BuilderStage<T> builder = AttributeDef.name(name)
-                .type(type)
-                .aliasName(name);
-        
-        if (customizer != null) {
-            builder = customizer.apply(builder);
-        }
-        
-        this.labelAttribute = builder.build();
+    public SelectDefinitionBuilder label(String aliasName, Class<?> type) {
+        this.labelDef = LabelDef.of(aliasName, type);
+        return this;
+    }
+
+    /**
+     * Create label definition with database column name (defaults to String type)
+     */
+    public SelectDefinitionBuilder label(String aliasName) {
+        this.labelDef = LabelDef.of(aliasName);
         return this;
     }
 
@@ -152,15 +146,15 @@ public class SelectDefinitionBuilder {
      * Create addition attribute inline with lambda customizer
      */
     public <T> SelectDefinitionBuilder addition(String name, Class<T> type,
-                                                Function<AttributeDef.BuilderStage<T>, AttributeDef.BuilderStage<T>> customizer) {
+            Function<AttributeDef.BuilderStage<T>, AttributeDef.BuilderStage<T>> customizer) {
         AttributeDef.BuilderStage<T> builder = AttributeDef.name(name)
                 .type(type)
                 .aliasName(name);
-        
+
         if (customizer != null) {
             builder = customizer.apply(builder);
         }
-        
+
         this.additionAttributes.add(builder.build());
         return this;
     }
@@ -218,8 +212,8 @@ public class SelectDefinitionBuilder {
     /**
      * Create criteria inline with condition
      */
-    public SelectDefinitionBuilder criteria(String name, String sql, 
-                                           Predicate<Object> condition) {
+    public SelectDefinitionBuilder criteria(String name, String sql,
+            Predicate<Object> condition) {
         return criteria(CriteriaDef.criteria()
                 .name(name)
                 .sql(sql)
@@ -244,15 +238,15 @@ public class SelectDefinitionBuilder {
      * Create parameter inline with lambda customizer
      */
     public <T> SelectDefinitionBuilder param(String name, Class<T> type,
-                                             Function<ParamDef<T>, ParamDef<T>> customizer) {
+            Function<ParamDef<T>, ParamDef<T>> customizer) {
         ParamDef<T> param = ParamDef.<T>param(name)
                 .type(type)
                 .build();
-        
+
         if (customizer != null) {
             param = customizer.apply(param);
         }
-        
+
         return param(param);
     }
 
@@ -261,7 +255,8 @@ public class SelectDefinitionBuilder {
      */
     public SelectDefinitionBuilder preProcessor(PreProcessor processor) {
         Preconditions.checkNotNull(processor, "Pre-processor cannot be null");
-        // PreProcessor expects QueryContext, we can't use it directly with SelectContext
+        // PreProcessor expects QueryContext, we can't use it directly with
+        // SelectContext
         // Store as a Function<Object, Object> that will be adapted at runtime
         this.preProcessors.add(ctx -> {
             // This will be handled by the executor
@@ -288,7 +283,7 @@ public class SelectDefinitionBuilder {
     public SelectDefinitionBuilder postProcessor(PostProcessor processor) {
         Preconditions.checkNotNull(processor, "Post-processor cannot be null");
         this.postProcessors.add(result -> {
-            // Post processors don't need context conversion  
+            // Post processors don't need context conversion
             return result;
         });
         return this;
@@ -373,18 +368,18 @@ public class SelectDefinitionBuilder {
     }
 
     /**
-     * Build the SelectDefinition
+     * Build the QueryDefinition with select-type configuration
      */
-    public SelectDefinition build() {
+    public QueryDefinition build() {
         // Validation
         Preconditions.checkNotNull(sql, "SQL must be set");
-        Preconditions.checkNotNull(valueAttribute, "Value attribute must be set");
-        Preconditions.checkNotNull(labelAttribute, "Label attribute must be set");
+        Preconditions.checkNotNull(valueDef, "Value definition must be set");
+        Preconditions.checkNotNull(labelDef, "Label definition must be set");
 
         // If searchCriteria is defined, ensure we have a search parameter
         if (searchCriteria != null && !params.containsKey("search")) {
             // Auto-add search parameter
-            params.put("search", ParamDef.<String>param("search")
+            params.put("search", ParamDef.param("search")
                     .type(String.class)
                     .description("Search term")
                     .required(false)
@@ -401,16 +396,34 @@ public class SelectDefinitionBuilder {
                     .build();
         }
 
-        return SelectDefinition.builder()
+        // Build the attributes map with standardized names
+        Map<String, AttributeDef<?>> allAttributes = new LinkedHashMap<>();
+
+        // Convert ValueDef and LabelDef to AttributeDef with predefined properties
+        AttributeDef<?> valueAttribute = valueDef.toAttributeDef();
+        AttributeDef<?> labelAttribute = labelDef.toAttributeDef();
+
+        allAttributes.put("value", valueAttribute);
+        allAttributes.put("label", labelAttribute);
+
+        // Add addition attributes
+        for (AttributeDef<?> attr : additionAttributes) {
+            allAttributes.put(attr.getName(), attr);
+        }
+
+        // Add search criteria to main criteria if defined
+        Map<String, CriteriaDef> allCriteria = new LinkedHashMap<>(criteria);
+        if (searchCriteria != null) {
+            allCriteria.put(searchCriteria.getName(), searchCriteria);
+        }
+
+        return QueryDefinition.builder()
                 .name(name)
                 .description(description)
                 .sql(sql)
-                .valueAttribute(valueAttribute)
-                .labelAttribute(labelAttribute)
-                .additionAttributes(ImmutableList.copyOf(additionAttributes))
+                .attributes(ImmutableMap.copyOf(allAttributes))
                 .params(ImmutableMap.copyOf(params))
-                .criteria(ImmutableMap.copyOf(criteria))
-                .searchCriteria(searchCriteria)
+                .criteria(ImmutableMap.copyOf(allCriteria))
                 .preProcessors(ImmutableList.copyOf(preProcessors))
                 .rowProcessors(ImmutableList.copyOf(rowProcessors))
                 .postProcessors(ImmutableList.copyOf(postProcessors))

@@ -6,23 +6,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.balsam.oasis.common.registry.base.BaseContext;
 import com.balsam.oasis.common.registry.core.definition.FilterOp;
 import com.balsam.oasis.common.registry.core.definition.SortDir;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Mutable context for query execution containing all runtime parameters
  */
 @Data
-@Builder
-public class QueryContext {
+@SuperBuilder
+public class QueryContext extends BaseContext<QueryDefinition> {
 
-    private QueryDefinition definition;
-
-    @Builder.Default
-    private Map<String, Object> params = new HashMap<>();
 
     @Builder.Default
     private Map<String, Filter> filters = new LinkedHashMap<>();
@@ -30,34 +28,10 @@ public class QueryContext {
     @Builder.Default
     private List<SortSpec> sorts = new ArrayList<>();
 
-    private Pagination pagination;
-
     private Object securityContext;
 
     @Builder.Default
     private Map<String, Object> attributes = new HashMap<>();
-
-    @Builder.Default
-    private List<AppliedCriteria> appliedCriteria = new ArrayList<>();
-
-    @Builder.Default
-    private Map<String, Object> metadata = new HashMap<>();
-
-    private Long startTime;
-    private Long endTime;
-
-    @Builder.Default
-    private boolean includeMetadata = true;
-
-    @Builder.Default
-    private boolean auditEnabled = true;
-
-    @Builder.Default
-    private boolean cacheEnabled = true;
-
-    private String cacheKey;
-
-    private Integer totalCount;
 
     @Data
     @Builder
@@ -86,7 +60,7 @@ public class QueryContext {
 
     @Data
     @Builder
-    public static class Pagination {
+    public static class QueryPagination {
         private int start;
         private int end;
         private Integer limit;
@@ -102,15 +76,15 @@ public class QueryContext {
             return end - start;
         }
 
-        public static Pagination fromStartEnd(int start, int end) {
-            return Pagination.builder()
+        public static QueryPagination fromStartEnd(int start, int end) {
+            return QueryPagination.builder()
                     .start(start)
                     .end(end)
                     .build();
         }
 
-        public static Pagination fromOffsetLimit(int offset, int limit) {
-            return Pagination.builder()
+        public static QueryPagination fromOffsetLimit(int offset, int limit) {
+            return QueryPagination.builder()
                     .offset(offset)
                     .limit(limit)
                     .start(offset)
@@ -119,14 +93,6 @@ public class QueryContext {
         }
     }
 
-    @Data
-    @Builder
-    public static class AppliedCriteria {
-        private String name;
-        private String sql;
-        private Map<String, Object> params;
-        private boolean securityRelated;
-    }
 
     // Helper methods
     public void addParam(String name, Object value) {
@@ -166,18 +132,14 @@ public class QueryContext {
     }
 
     public void recordAppliedCriteria(String name, String sql) {
-        appliedCriteria.add(AppliedCriteria.builder()
+        addAppliedCriteria(BaseContext.AppliedCriteria.builder()
                 .name(name)
                 .sql(sql)
                 .build());
     }
 
-    public Object getParam(String name) {
-        return params.get(name);
-    }
-
     public <T> T getParam(String name, Class<T> type) {
-        Object value = params.get(name);
+        Object value = getParam(name);
         if (value == null) {
             return null;
         }
@@ -192,34 +154,12 @@ public class QueryContext {
         attributes.put(name, value);
     }
 
-    public boolean hasParam(String name) {
-        return params.containsKey(name);
-    }
-
     public boolean hasFilter(String attribute) {
         return filters.containsKey(attribute);
-    }
-
-    public boolean hasPagination() {
-        return pagination != null;
     }
 
     public boolean hasSorts() {
         return sorts != null && !sorts.isEmpty();
     }
 
-    public void startExecution() {
-        this.startTime = System.currentTimeMillis();
-    }
-
-    public void endExecution() {
-        this.endTime = System.currentTimeMillis();
-    }
-
-    public long getExecutionTime() {
-        if (startTime != null && endTime != null) {
-            return endTime - startTime;
-        }
-        return 0;
-    }
 }

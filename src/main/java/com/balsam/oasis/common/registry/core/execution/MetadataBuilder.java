@@ -75,7 +75,7 @@ public class MetadataBuilder {
             AttributeDef<?> attr = entry.getValue();
 
             // Check security restrictions
-            boolean restricted = false;
+            Boolean restricted = null;
             String restrictionReason = null;
             if (attr.isSecured() && context.getSecurityContext() != null) {
                 Boolean allowed = attr.getSecurityRule().apply(context.getSecurityContext());
@@ -91,7 +91,6 @@ public class MetadataBuilder {
                     .type(attr.getType() != null ? attr.getType().getSimpleName() : "Object")
                     .filterable(attr.isFilterable())
                     .sortable(attr.isSortable())
-                    .virtual(attr.isTransient())
                     .restricted(restricted)
                     .restrictionReason(restrictionReason)
                     // Include UI metadata fields

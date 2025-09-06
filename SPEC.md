@@ -398,8 +398,7 @@ GET /api/query/{queryName}?
                 "type": "String",
                 "filterable": false,
                 "sortable": false,
-                "restricted": true,
-                "restrictionReason": "INSUFFICIENT_PERMISSIONS"
+                "restricted": true
             },
             "membershipTier": {
                 "type": "String",

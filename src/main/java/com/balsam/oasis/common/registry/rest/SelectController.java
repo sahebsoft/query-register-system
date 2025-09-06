@@ -1,16 +1,20 @@
 package com.balsam.oasis.common.registry.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 
+import com.balsam.oasis.common.registry.core.definition.FilterOp;
 import com.balsam.oasis.common.registry.core.definition.ParamDef;
+import com.balsam.oasis.common.registry.core.result.Row;
 import com.balsam.oasis.common.registry.exception.QueryException;
-import com.balsam.oasis.common.registry.select.SelectDefinition;
-import com.balsam.oasis.common.registry.select.SelectExecution;
-import com.balsam.oasis.common.registry.select.SelectExecutor;
-import com.balsam.oasis.common.registry.select.SelectRegistry;
+import com.balsam.oasis.common.registry.query.QueryDefinition;
+import com.balsam.oasis.common.registry.query.QueryExecution;
+import com.balsam.oasis.common.registry.query.QueryExecutor;
+import com.balsam.oasis.common.registry.query.QueryRegistry;
+import com.balsam.oasis.common.registry.query.QueryResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +34,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 /**
  * REST controller for List of Values (LOV) / Select endpoints.
  * Provides simplified data for dropdown/select UI components.
- * Completely separate from Query API to maintain clean separation.
+ * Now consolidated to use the unified Query infrastructure.
  */
 @RestController
 @RequestMapping("/api/select")
@@ -39,13 +43,13 @@ public class SelectController {
 
     private static final Logger log = LoggerFactory.getLogger(SelectController.class);
 
-    private final SelectExecutor selectExecutor;
-    private final SelectRegistry selectRegistry;
+    private final QueryExecutor queryExecutor;
+    private final QueryRegistry queryRegistry;
 
-    public SelectController(SelectExecutor selectExecutor,
-            SelectRegistry selectRegistry) {
-        this.selectExecutor = selectExecutor;
-        this.selectRegistry = selectRegistry;
+    public SelectController(QueryExecutor queryExecutor,
+            QueryRegistry queryRegistry) {
+        this.queryExecutor = queryExecutor;
+        this.queryRegistry = queryRegistry;
     }
 
     @GetMapping("/{selectName}")
@@ -62,42 +66,55 @@ public class SelectController {
                 selectName, id, search, _start, _end);
 
         try {
-            // Get the select definition
-            SelectDefinition selectDefinition = selectRegistry.get(selectName);
+            // Get the query definition
+            QueryDefinition queryDefinition = queryRegistry.get(selectName);
 
-            if (selectDefinition == null) {
-                log.error("Select not found: {}", selectName);
+            if (queryDefinition == null) {
+                log.error("Select query not found: {}", selectName);
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(new QueryException(
-                                "Select not found: " + selectName, "NOT_FOUND", selectName)));
+                                "Select query not found: " + selectName, "NOT_FOUND", selectName)));
             }
 
-            // Create execution
-            SelectExecution execution = selectExecutor.select(selectDefinition);
+            // Create execution using QueryExecution
+            QueryExecution execution = queryExecutor.execute(queryDefinition);
 
-            // Handle ID fetching (for default values)
+            // Handle ID fetching (for default values) - convert to IN filter on value attribute
             if (id != null && !id.isEmpty()) {
                 log.debug("Fetching by IDs: {}", id);
-                execution.withIds(id);
+                execution.withFilter("value", FilterOp.IN, id);
             }
             // Handle search
             else if (search != null && !search.isEmpty()) {
                 log.debug("Searching with term: {}", search);
-                execution.withSearch(search);
+                
+                // Check if query has search parameter or search criteria
+                boolean hasSearchParam = queryDefinition.getParams().containsKey("search");
+                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") || 
+                                          queryDefinition.getCriteria().containsKey("searchFilter");
+                
+                if (hasSearchParam || hasSearchCriteria) {
+                    // Use search parameter if query supports it
+                    execution.withParam("search", search);
+                } else {
+                    // Fallback to filtering on label column with LIKE
+                    execution.withFilter("label", FilterOp.LIKE, "%" + search + "%");
+                }
             }
 
             // Parse other parameters (excluding special ones)
-            Map<String, Object> params = parseParameters(allParams, selectDefinition);
-            if (!params.isEmpty()) {
-                execution.withParams(params);
+            Map<String, Object> params = parseParameters(allParams, queryDefinition);
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                execution.withParam(entry.getKey(), entry.getValue());
             }
 
             // Apply pagination
-            execution.withPagination(_start, _end);
+            execution.withPagination(_start, _end - _start);
 
-            // Execute and return
-            SelectResponse response = execution.execute();
+            // Execute and convert to SelectResponse
+            QueryResult queryResult = execution.execute();
+            SelectResponse response = convertToSelectResponse(queryResult, queryDefinition);
             return ResponseEntity.ok(response);
 
         } catch (QueryException e) {
@@ -117,7 +134,7 @@ public class SelectController {
      * Parse parameters from request, excluding special parameters
      */
     private Map<String, Object> parseParameters(MultiValueMap<String, String> allParams,
-            SelectDefinition definition) {
+            QueryDefinition definition) {
         Map<String, Object> params = new HashMap<>();
 
         // Special parameters to exclude
@@ -131,6 +148,51 @@ public class SelectController {
         }
 
         return params;
+    }
+
+    /**
+     * Convert QueryResult to SelectResponse format
+     * Uses "value" and "label" attributes from the query definition.
+     * Additional attributes are added to the additions map.
+     */
+    private SelectResponse convertToSelectResponse(QueryResult queryResult, QueryDefinition definition) {
+        List<SelectItem> items = new ArrayList<>();
+        
+        // Validate that we have the required "value" and "label" attributes
+        if (!definition.getAttributes().containsKey("value") || 
+            !definition.getAttributes().containsKey("label")) {
+            throw new QueryException("Select query must have 'value' and 'label' attributes", 
+                                   "INVALID_SELECT_DEFINITION", definition.getName());
+        }
+        
+        for (Row row : queryResult.getRows()) {
+            String value = String.valueOf(row.get("value"));
+            String label = String.valueOf(row.get("label"));
+            
+            // Build additions from attributes other than value and label
+            Map<String, Object> additions = null;
+            List<String> additionAttrNames = definition.getAttributes().keySet().stream()
+                    .filter(name -> !"value".equals(name) && !"label".equals(name))
+                    .toList();
+            
+            if (!additionAttrNames.isEmpty()) {
+                additions = new HashMap<>();
+                for (String attrName : additionAttrNames) {
+                    additions.put(attrName, row.get(attrName));
+                }
+            }
+            
+            items.add(SelectItem.of(value, label, additions));
+        }
+        
+        // Build metadata if available
+        Map<String, Object> metadata = null;
+        if (queryResult.getMetadata() != null && queryResult.getMetadata().getPagination() != null) {
+            metadata = new HashMap<>();
+            metadata.put("pagination", queryResult.getMetadata().getPagination());
+        }
+        
+        return SelectResponse.of(items, metadata);
     }
 
     private HttpStatus determineHttpStatus(QueryException e) {
