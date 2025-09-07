@@ -36,6 +36,9 @@ public class QueryResult {
     @Builder.Default
     boolean success = true;
 
+    @Builder.Default
+    Integer count = 0;
+
     String errorMessage;
 
     @Value
@@ -144,6 +147,14 @@ public class QueryResult {
 
     public int size() {
         return rows != null ? rows.size() : 0;
+    }
+
+    public int getCount() {
+        // Use pagination metadata total if available, otherwise fall back to count or data size
+        if (metadata != null && metadata.getPagination() != null) {
+            return metadata.getPagination().getTotal();
+        }
+        return count != null ? count : size();
     }
 
     public boolean hasMetadata() {

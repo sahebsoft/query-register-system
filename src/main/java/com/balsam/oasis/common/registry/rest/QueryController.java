@@ -119,33 +119,17 @@ public class QueryController {
             // Parse request parameters with type information
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
-            // Check if this is a findByKey query (determined by query definition)
-            // For now, we'll treat all queries as list queries unless specified otherwise
-            boolean hasKeyParams = false;
+            // Execute as list query
+            QueryResult result = queryExecutor.execute(queryName)
+                    .withParams(queryRequest.getParams())
+                    .withFilters(queryRequest.getFilters())
+                    .withSort(queryRequest.getSorts())
+                    .withPagination(_start, _end)
+                    .includeMetadata(!"none".equals(_meta))
+                    .execute();
 
-            if (hasKeyParams) {
-                // Execute as single object query
-                Object singleResult = queryExecutor.execute(queryName)
-                        .withParams(queryRequest.getParams())
-                        .withFilters(queryRequest.getFilters())
-                        .includeMetadata(!"none".equals(_meta))
-                        .executeSingle();
-
-                // Build single object response
-                return responseBuilder.buildSingle(singleResult, queryName);
-            } else {
-                // Execute as list query
-                QueryResult result = queryExecutor.execute(queryName)
-                        .withParams(queryRequest.getParams())
-                        .withFilters(queryRequest.getFilters())
-                        .withSort(queryRequest.getSorts())
-                        .withPagination(_start, _end)
-                        .includeMetadata(!"none".equals(_meta))
-                        .execute();
-
-                // Build JSON response
-                return responseBuilder.build(result, queryName);
-            }
+            // Build JSON response
+            return responseBuilder.build(result, queryName);
 
         } catch (QueryException e) {
             log.error("Query execution failed: {}", e.getMessage());

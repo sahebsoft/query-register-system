@@ -89,10 +89,10 @@ public class QuerySqlBuilder extends BaseSqlBuilder<QueryDefinition, QueryContex
                 return column + " != :" + paramName;
             case LIKE:
                 params.put(paramName, filter.getValue());
-                return column + " LIKE :" + paramName;
+                return "UPPER(" + column + ") LIKE UPPER(:" + paramName + ")";
             case NOT_LIKE:
                 params.put(paramName, filter.getValue());
-                return column + " NOT LIKE :" + paramName;
+                return "UPPER(" + column + ") NOT LIKE UPPER(:" + paramName + ")";
             case IN:
                 params.put(paramName, filter.getValues() != null ? filter.getValues() : filter.getValue());
                 return column + " IN (:" + paramName + ")";

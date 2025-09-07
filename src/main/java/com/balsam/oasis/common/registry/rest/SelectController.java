@@ -1,14 +1,8 @@
 package com.balsam.oasis.common.registry.rest;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
 
 import com.balsam.oasis.common.registry.core.definition.FilterOp;
-import com.balsam.oasis.common.registry.core.definition.ParamDef;
-import com.balsam.oasis.common.registry.core.result.Row;
 import com.balsam.oasis.common.registry.exception.QueryException;
 import com.balsam.oasis.common.registry.query.QueryDefinition;
 import com.balsam.oasis.common.registry.query.QueryExecution;
@@ -45,11 +39,17 @@ public class SelectController {
 
     private final QueryExecutor queryExecutor;
     private final QueryRegistry queryRegistry;
+    private final QueryResponseBuilder responseBuilder;
+    private final QueryRequestParser requestParser;
 
     public SelectController(QueryExecutor queryExecutor,
-            QueryRegistry queryRegistry) {
+            QueryRegistry queryRegistry,
+            QueryResponseBuilder responseBuilder,
+            QueryRequestParser requestParser) {
         this.queryExecutor = queryExecutor;
         this.queryRegistry = queryRegistry;
+        this.responseBuilder = responseBuilder;
+        this.requestParser = requestParser;
     }
 
     @GetMapping("/{selectName}")
@@ -77,6 +77,9 @@ public class SelectController {
                                 "Select query not found: " + selectName, "NOT_FOUND", selectName)));
             }
 
+            // Parse request parameters with type information (including special select params)
+            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, "none", queryDefinition);
+            
             // Create execution using QueryExecution
             QueryExecution execution = queryExecutor.execute(queryDefinition);
 
@@ -88,34 +91,32 @@ public class SelectController {
             // Handle search
             else if (search != null && !search.isEmpty()) {
                 log.debug("Searching with term: {}", search);
-                
+
                 // Check if query has search parameter or search criteria
                 boolean hasSearchParam = queryDefinition.getParams().containsKey("search");
-                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") || 
-                                          queryDefinition.getCriteria().containsKey("searchFilter");
-                
+                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
+                        queryDefinition.getCriteria().containsKey("searchFilter");
+
                 if (hasSearchParam || hasSearchCriteria) {
                     // Use search parameter if query supports it
-                    execution.withParam("search", search);
+                    execution.withParam("search", "%" + search + "%");
                 } else {
-                    // Fallback to filtering on label column with LIKE
+                    // Fallback to filtering on label column with case insensitive LIKE
+                    // (case insensitivity is now handled by QuerySqlBuilder using UPPER functions)
                     execution.withFilter("label", FilterOp.LIKE, "%" + search + "%");
                 }
             }
 
-            // Parse other parameters (excluding special ones)
-            Map<String, Object> params = parseParameters(allParams, queryDefinition);
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                execution.withParam(entry.getKey(), entry.getValue());
-            }
+            // Apply parsed parameters, filters, and sorting
+            execution.withParams(queryRequest.getParams())
+                    .withFilters(queryRequest.getFilters())
+                    .withSort(queryRequest.getSorts())
+                    .withPagination(_start, _end)
+                    .includeMetadata(true);
 
-            // Apply pagination
-            execution.withPagination(_start, _end - _start);
-
-            // Execute and convert to SelectResponse
+            // Execute and build select response
             QueryResult queryResult = execution.execute();
-            SelectResponse response = convertToSelectResponse(queryResult, queryDefinition);
-            return ResponseEntity.ok(response);
+            return responseBuilder.buildSelectResponse(queryResult, queryDefinition);
 
         } catch (QueryException e) {
             log.error("Select execution failed: {}", e.getMessage());
@@ -130,70 +131,6 @@ public class SelectController {
         }
     }
 
-    /**
-     * Parse parameters from request, excluding special parameters
-     */
-    private Map<String, Object> parseParameters(MultiValueMap<String, String> allParams,
-            QueryDefinition definition) {
-        Map<String, Object> params = new HashMap<>();
-
-        // Special parameters to exclude
-        Set<String> excludedParams = Set.of("id", "search", "_start", "_end");
-
-        for (Map.Entry<String, ParamDef<?>> entry : definition.getParams().entrySet()) {
-            String paramName = entry.getKey();
-            if (!excludedParams.contains(paramName) && allParams.containsKey(paramName)) {
-                params.put(paramName, allParams.getFirst(paramName));
-            }
-        }
-
-        return params;
-    }
-
-    /**
-     * Convert QueryResult to SelectResponse format
-     * Uses "value" and "label" attributes from the query definition.
-     * Additional attributes are added to the additions map.
-     */
-    private SelectResponse convertToSelectResponse(QueryResult queryResult, QueryDefinition definition) {
-        List<SelectItem> items = new ArrayList<>();
-        
-        // Validate that we have the required "value" and "label" attributes
-        if (!definition.getAttributes().containsKey("value") || 
-            !definition.getAttributes().containsKey("label")) {
-            throw new QueryException("Select query must have 'value' and 'label' attributes", 
-                                   "INVALID_SELECT_DEFINITION", definition.getName());
-        }
-        
-        for (Row row : queryResult.getRows()) {
-            String value = String.valueOf(row.get("value"));
-            String label = String.valueOf(row.get("label"));
-            
-            // Build additions from attributes other than value and label
-            Map<String, Object> additions = null;
-            List<String> additionAttrNames = definition.getAttributes().keySet().stream()
-                    .filter(name -> !"value".equals(name) && !"label".equals(name))
-                    .toList();
-            
-            if (!additionAttrNames.isEmpty()) {
-                additions = new HashMap<>();
-                for (String attrName : additionAttrNames) {
-                    additions.put(attrName, row.get(attrName));
-                }
-            }
-            
-            items.add(SelectItem.of(value, label, additions));
-        }
-        
-        // Build metadata if available
-        Map<String, Object> metadata = null;
-        if (queryResult.getMetadata() != null && queryResult.getMetadata().getPagination() != null) {
-            metadata = new HashMap<>();
-            metadata.put("pagination", queryResult.getMetadata().getPagination());
-        }
-        
-        return SelectResponse.of(items, metadata);
-    }
 
     private HttpStatus determineHttpStatus(QueryException e) {
         String errorCode = e.getErrorCode();
