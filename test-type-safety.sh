@@ -60,11 +60,11 @@ echo "1. Testing Integer Type Conversion"
 echo "=========================================="
 
 run_test "Integer param - departmentId" \
-    "${BASE_URL}?param.departmentId=50" \
+    "${BASE_URL}?departmentId=50" \
     "\"departmentId\":50"
 
 run_test "Invalid Integer - should handle gracefully" \
-    "${BASE_URL}?param.departmentId=abc" \
+    "${BASE_URL}?departmentId=abc" \
     "error"
 
 echo -e "\n=========================================="
@@ -76,11 +76,11 @@ run_test "BigDecimal filter - minSalary" \
     "salary"
 
 run_test "BigDecimal param - minSalary" \
-    "${BASE_URL}?param.minSalary=10000.75" \
+    "${BASE_URL}?minSalary=10000.75" \
     "\"minSalary\""
 
 run_test "Invalid BigDecimal" \
-    "${BASE_URL}?param.minSalary=not-a-number" \
+    "${BASE_URL}?minSalary=not-a-number" \
     "error"
 
 echo -e "\n=========================================="
@@ -92,11 +92,11 @@ run_test "LocalDate filter - hireDate" \
     "hireDate"
 
 run_test "LocalDate param - minHireDate" \
-    "${BASE_URL}?param.minHireDate=2020-01-01" \
+    "${BASE_URL}?minHireDate=2020-01-01" \
     "\"minHireDate\""
 
 run_test "Invalid LocalDate format" \
-    "${BASE_URL}?param.minHireDate=01/01/2020" \
+    "${BASE_URL}?minHireDate=01/01/2020" \
     "error"
 
 echo -e "\n=========================================="
@@ -104,15 +104,15 @@ echo "4. Testing Boolean Type Conversion"
 echo "=========================================="
 
 run_test "Boolean param - includeInactive (true)" \
-    "${BASE_URL}?param.includeInactive=true" \
+    "${BASE_URL}?includeInactive=true" \
     "\"includeInactive\":true"
 
 run_test "Boolean param - includeInactive (false)" \
-    "${BASE_URL}?param.includeInactive=false" \
+    "${BASE_URL}?includeInactive=false" \
     "\"includeInactive\":false"
 
 run_test "Boolean with string 'yes'" \
-    "${BASE_URL}?param.includeInactive=yes" \
+    "${BASE_URL}?includeInactive=yes" \
     "\"includeInactive\":true"
 
 echo -e "\n=========================================="
@@ -120,15 +120,15 @@ echo "5. Testing List Type Conversion (IN clause)"
 echo "=========================================="
 
 run_test "List<Integer> - departmentIds" \
-    "${BASE_URL}?param.departmentIds=10,20,30" \
+    "${BASE_URL}?departmentIds=10,20,30" \
     "departmentIds"
 
 run_test "List<String> - jobIds" \
-    "${BASE_URL}?param.jobIds=IT_PROG,ST_CLERK,SA_REP" \
+    "${BASE_URL}?jobIds=IT_PROG,ST_CLERK,SA_REP" \
     "jobIds"
 
 run_test "Single value list" \
-    "${BASE_URL}?param.departmentIds=50" \
+    "${BASE_URL}?departmentIds=50" \
     "departmentIds"
 
 echo -e "\n=========================================="
@@ -148,7 +148,7 @@ echo "7. Testing Multiple Type Conversions Together"
 echo "=========================================="
 
 run_test "Mixed types in single request" \
-    "${BASE_URL}?param.departmentId=50&param.minSalary=5000.00&param.minHireDate=2020-01-01&param.includeInactive=true&param.departmentIds=10,20,30" \
+    "${BASE_URL}?departmentId=50&minSalary=5000.00&minHireDate=2020-01-01&includeInactive=true&departmentIds=10,20,30" \
     "data"
 
 echo -e "\n=========================================="
@@ -156,7 +156,7 @@ echo "8. Testing Type Mismatch Handling"
 echo "=========================================="
 
 run_test "String value for Integer param" \
-    "${BASE_URL}?param.departmentId=fifty" \
+    "${BASE_URL}?departmentId=fifty" \
     "error"
 
 run_test "Invalid date format" \
@@ -164,7 +164,7 @@ run_test "Invalid date format" \
     "error"
 
 run_test "Decimal for Integer" \
-    "${BASE_URL}?param.departmentId=50.5" \
+    "${BASE_URL}?departmentId=50.5" \
     "error"
 
 echo -e "\n=========================================="
@@ -172,11 +172,11 @@ echo "9. Testing Null and Empty Values"
 echo "=========================================="
 
 run_test "Empty param value" \
-    "${BASE_URL}?param.departmentId=" \
+    "${BASE_URL}?departmentId=" \
     "data"
 
 run_test "Empty list" \
-    "${BASE_URL}?param.departmentIds=" \
+    "${BASE_URL}?departmentIds=" \
     "data"
 
 echo -e "\n=========================================="

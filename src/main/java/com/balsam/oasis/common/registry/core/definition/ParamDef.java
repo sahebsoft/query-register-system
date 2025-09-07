@@ -140,19 +140,35 @@ public class ParamDef<T> {
             return this;
         }
 
-        // Convenience method for simple processing
-        public BuilderStage<T> processor(Function<T, T> func) {
+        // Convenience method for simple processing with flexible input type
+        public BuilderStage<T> processor(Function<Object, T> func) {
             this.processor = ParamProcessor.simple(func);
             return this;
         }
 
-        // Convenience method for validation-only processor
-        public BuilderStage<T> validator(Predicate<T> validator) {
+        // Legacy convenience method for same-type processing
+        public BuilderStage<T> sameTypeProcessor(Function<T, T> func) {
+            this.processor = ParamProcessor.sameType(func);
+            return this;
+        }
+
+        // Convenience method for validation-only processor with flexible input type
+        public BuilderStage<T> validator(Predicate<Object> validator) {
             return validator(validator, "Validation failed for parameter: " + name);
         }
 
-        public BuilderStage<T> validator(Predicate<T> validator, String errorMessage) {
+        public BuilderStage<T> validator(Predicate<Object> validator, String errorMessage) {
             this.processor = ParamProcessor.validator(validator, errorMessage);
+            return this;
+        }
+
+        // Legacy convenience method for typed validation
+        public BuilderStage<T> typedValidator(Predicate<T> validator) {
+            return typedValidator(validator, "Validation failed for parameter: " + name);
+        }
+
+        public BuilderStage<T> typedValidator(Predicate<T> validator, String errorMessage) {
+            this.processor = ParamProcessor.typedValidator(validator, errorMessage);
             return this;
         }
 

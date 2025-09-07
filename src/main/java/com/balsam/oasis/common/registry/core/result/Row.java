@@ -55,29 +55,16 @@ public interface Row {
 
     <T> T getRaw(String columnName, Class<T> type);
 
-    // Virtual fields (calculated/derived)
-    Object getVirtual(String name);
-
-    <T> T getVirtual(String name, Class<T> type);
-
-    <T> T getVirtual(String name, T defaultValue);
-
     // Setters for mutable operations
     void set(String attributeName, Object value);
 
-    void setVirtual(String name, Object value);
-
     // Metadata
     boolean hasAttribute(String attributeName);
-
-    boolean hasVirtual(String name);
 
     boolean isNull(String attributeName);
 
     // Get all data
     Map<String, Object> toMap();
-
-    Map<String, Object> getVirtualFields();
 
     // Context access
     Object getContext();

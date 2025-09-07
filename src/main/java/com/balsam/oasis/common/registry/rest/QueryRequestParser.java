@@ -14,6 +14,7 @@ import com.balsam.oasis.common.registry.core.definition.AttributeDef;
 import com.balsam.oasis.common.registry.core.definition.FilterOp;
 import com.balsam.oasis.common.registry.core.definition.ParamDef;
 import com.balsam.oasis.common.registry.core.definition.SortDir;
+import com.balsam.oasis.common.registry.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.query.QueryContext;
 import com.balsam.oasis.common.registry.query.QueryDefinition;
 import com.balsam.oasis.common.registry.util.TypeConverter;
@@ -127,9 +128,9 @@ public class QueryRequestParser {
                                     .build());
                         }
                     } catch (IllegalArgumentException e) {
-                        // Not a valid operator, treat as simple filter
-                        Class<?> attrType = getAttributeType(queryDefinition, attribute);
-                        parseSimpleFilter(attribute, Collections.singletonList(value), filters, attrType);
+                        // Invalid operator - throw validation error instead of silently converting
+                        throw new QueryValidationException("Query '" + queryDefinition.getName() + 
+                            "': Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
                     }
                 } else {
                     // Simple filter: filter.attribute=value (potentially multiple values)

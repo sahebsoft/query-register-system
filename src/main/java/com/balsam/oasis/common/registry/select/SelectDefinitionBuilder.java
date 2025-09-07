@@ -24,7 +24,8 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Builder for creating select-type QueryDefinition instances with fluent API.
  * This builder creates QueryDefinition objects that work with the Select API
- * by ensuring the first attribute is the value field and second is the label field.
+ * by ensuring the first attribute is the value field and second is the label
+ * field.
  * Leverages the full Query infrastructure while maintaining the Select API
  * pattern.
  */
@@ -41,9 +42,9 @@ public class SelectDefinitionBuilder {
     private CriteriaDef searchCriteria;
 
     // Processing pipeline
-    private final List<Function<Object, Object>> preProcessors = new ArrayList<>();
-    private final List<Function<Object, Object>> rowProcessors = new ArrayList<>();
-    private final List<Function<Object, Object>> postProcessors = new ArrayList<>();
+    private final List<PreProcessor> preProcessors = new ArrayList<>();
+    private final List<RowProcessor> rowProcessors = new ArrayList<>();
+    private final List<PostProcessor> postProcessors = new ArrayList<>();
     private final List<ValidationRule> validationRules = new ArrayList<>();
 
     // Cache configuration
@@ -258,10 +259,7 @@ public class SelectDefinitionBuilder {
         // PreProcessor expects QueryContext, we can't use it directly with
         // SelectContext
         // Store as a Function<Object, Object> that will be adapted at runtime
-        this.preProcessors.add(ctx -> {
-            // This will be handled by the executor
-            return null;
-        });
+        this.preProcessors.add(processor);
         return this;
     }
 
@@ -270,10 +268,7 @@ public class SelectDefinitionBuilder {
      */
     public SelectDefinitionBuilder rowProcessor(RowProcessor processor) {
         Preconditions.checkNotNull(processor, "Row processor cannot be null");
-        this.rowProcessors.add(row -> {
-            // Row processors don't need context conversion
-            return row;
-        });
+        this.rowProcessors.add(processor);
         return this;
     }
 
@@ -282,10 +277,7 @@ public class SelectDefinitionBuilder {
      */
     public SelectDefinitionBuilder postProcessor(PostProcessor processor) {
         Preconditions.checkNotNull(processor, "Post-processor cannot be null");
-        this.postProcessors.add(result -> {
-            // Post processors don't need context conversion
-            return result;
-        });
+        this.postProcessors.add(processor);
         return this;
     }
 

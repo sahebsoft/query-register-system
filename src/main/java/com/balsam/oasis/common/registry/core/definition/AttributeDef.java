@@ -58,7 +58,7 @@ public class AttributeDef<T> {
     boolean filterable;
     boolean sortable;
     boolean primaryKey;
-    boolean transient_; // True for calculated/transient attributes
+    boolean virtual; // True for calculated/transient attributes
 
     // For regular attributes: formats the value to string
     AttributeFormatter<T> formatter;
@@ -96,10 +96,6 @@ public class AttributeDef<T> {
     String pattern; // Validation regex pattern
     String validationMsg; // Validation error message
 
-    // LOV context metadata
-    boolean lovValue; // Is this the value field for LOV?
-    boolean lovLabel; // Is this the label field for LOV?
-
     // Private constructor - only accessible through builder
     private AttributeDef(BuilderStage<T> builder) {
         this.name = builder.name;
@@ -108,7 +104,7 @@ public class AttributeDef<T> {
         this.filterable = builder.filterable;
         this.sortable = builder.sortable;
         this.primaryKey = builder.primaryKey;
-        this.transient_ = builder.transient_;
+        this.virtual = builder.virtual;
         this.formatter = builder.formatter;
         this.calculator = builder.calculator;
         this.sortProperty = builder.sortProperty;
@@ -132,9 +128,6 @@ public class AttributeDef<T> {
         this.minLength = builder.minLength;
         this.pattern = builder.pattern;
         this.validationMsg = builder.validationMsg;
-        // LOV context
-        this.lovValue = builder.lovValue;
-        this.lovLabel = builder.lovLabel;
     }
 
     /**
@@ -157,8 +150,8 @@ public class AttributeDef<T> {
         return calculator != null;
     }
 
-    public boolean isTransient() {
-        return transient_;
+    public boolean isVirual() {
+        return virtual;
     }
 
     public boolean hasSortProperty() {
@@ -204,7 +197,7 @@ public class AttributeDef<T> {
         private boolean filterable = false;
         private boolean sortable = false;
         private boolean primaryKey = false;
-        private boolean transient_ = false;
+        private boolean virtual = false;
         private AttributeFormatter<T> formatter;
         private Calculator<T> calculator;
         private String sortProperty;
@@ -232,10 +225,6 @@ public class AttributeDef<T> {
         private Integer minLength;
         private String pattern;
         private String validationMsg;
-
-        // LOV context fields
-        private boolean lovValue = false;
-        private boolean lovLabel = false;
 
         private BuilderStage(String name, Class<T> type) {
             this.name = name;
@@ -271,7 +260,7 @@ public class AttributeDef<T> {
 
         // Mark as transient and provide calculator
         public BuilderStage<T> transient_(boolean transient_) {
-            this.transient_ = transient_;
+            this.virtual = transient_;
             if (transient_) {
                 this.aliasName = null; // Transient attributes don't have DB columns
                 this.sortable = false; // Cannot sort at DB level
@@ -283,7 +272,7 @@ public class AttributeDef<T> {
         // Set calculator for transient attributes (renamed from calculator)
         public BuilderStage<T> calculated(Calculator<T> calculator) {
             this.calculator = calculator;
-            this.transient_ = true; // Automatically mark as transient
+            this.virtual = true; // Automatically mark as transient
             this.aliasName = null;
             // Don't automatically disable sortable/filterable - will validate later
             return this;
@@ -388,17 +377,6 @@ public class AttributeDef<T> {
             return this;
         }
 
-        // LOV context builder methods
-        public BuilderStage<T> lovValue(boolean lovValue) {
-            this.lovValue = lovValue;
-            return this;
-        }
-
-        public BuilderStage<T> lovLabel(boolean lovLabel) {
-            this.lovLabel = lovLabel;
-            return this;
-        }
-
         /**
          * Build the immutable AttributeDef instance
          */
@@ -408,7 +386,7 @@ public class AttributeDef<T> {
         }
 
         private void validate() {
-            if (transient_) {
+            if (virtual) {
                 // Transient attributes must have a calculator
                 if (calculator == null) {
                     throw new IllegalStateException("Transient attribute '" + name + "' must have a calculator");

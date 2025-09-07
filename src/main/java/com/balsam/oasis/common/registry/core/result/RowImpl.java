@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Default implementation of Row interface
@@ -19,27 +18,23 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RowImpl implements Row {
 
     private final Map<String, Object> data;
-    private final Map<String, Object> virtualData;
     private final Map<String, Object> rawData;
     private final Object context;
 
     public RowImpl(Map<String, Object> data, Object context) {
         this.data = new HashMap<>(data);
-        this.virtualData = new ConcurrentHashMap<>();
         this.rawData = new HashMap<>();
         this.context = context;
     }
 
     public RowImpl(Map<String, Object> data, Map<String, Object> rawData, Object context) {
         this.data = new HashMap<>(data);
-        this.virtualData = new ConcurrentHashMap<>();
         this.rawData = new HashMap<>(rawData);
         this.context = context;
     }
 
     public RowImpl(Map<String, Object> data, ResultSet rs, Object context) throws SQLException {
         this.data = new HashMap<>(data);
-        this.virtualData = new ConcurrentHashMap<>();
         this.rawData = extractRawData(rs);
         this.context = context;
     }
@@ -171,48 +166,13 @@ public class RowImpl implements Row {
     }
 
     @Override
-    public Object getVirtual(String name) {
-        return virtualData.get(name);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T> T getVirtual(String name, Class<T> type) {
-        Object value = virtualData.get(name);
-        if (value == null) {
-            return null;
-        }
-        if (type.isAssignableFrom(value.getClass())) {
-            return (T) value;
-        }
-        return convertValue(value, type);
-    }
-
-    @Override
-    public <T> T getVirtual(String name, T defaultValue) {
-        @SuppressWarnings("unchecked")
-        T value = (T) virtualData.get(name);
-        return value != null ? value : defaultValue;
-    }
-
-    @Override
     public void set(String attributeName, Object value) {
         data.put(attributeName, value);
     }
 
     @Override
-    public void setVirtual(String name, Object value) {
-        virtualData.put(name, value);
-    }
-
-    @Override
     public boolean hasAttribute(String attributeName) {
         return data.containsKey(attributeName);
-    }
-
-    @Override
-    public boolean hasVirtual(String name) {
-        return virtualData.containsKey(name);
     }
 
     @Override
@@ -228,16 +188,7 @@ public class RowImpl implements Row {
             if (v != null)
                 result.put(k, v);
         });
-        virtualData.forEach((k, v) -> {
-            if (v != null)
-                result.put(k, v);
-        });
         return ImmutableMap.copyOf(result);
-    }
-
-    @Override
-    public Map<String, Object> getVirtualFields() {
-        return ImmutableMap.copyOf(virtualData);
     }
 
     @Override

@@ -32,9 +32,9 @@ public class QueryDefinitionBuilder {
     private final Map<String, AttributeDef<?>> attributes = new LinkedHashMap<>();
     private final Map<String, ParamDef<?>> params = new LinkedHashMap<>();
     private final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
-    private final List<Function<Object, Object>> preProcessors = new ArrayList<>();
-    private final List<Function<Object, Object>> rowProcessors = new ArrayList<>();
-    private final List<Function<Object, Object>> postProcessors = new ArrayList<>();
+    private final List<PreProcessor> preProcessors = new ArrayList<>();
+    private final List<RowProcessor> rowProcessors = new ArrayList<>();
+    private final List<PostProcessor> postProcessors = new ArrayList<>();
     private final List<ValidationRule> validationRules = new ArrayList<>();
 
     // Cache configuration
@@ -133,40 +133,17 @@ public class QueryDefinitionBuilder {
         Preconditions.checkNotNull(processor, "PreProcessor cannot be null");
         this.preProcessors.add(context -> {
             processor.process((com.balsam.oasis.common.registry.query.QueryContext) context);
-            return null;
         });
         return this;
     }
 
-    public QueryDefinitionBuilder preProcessor(Function<Object, Object> processor) {
-        Preconditions.checkNotNull(processor, "PreProcessor cannot be null");
-        this.preProcessors.add(processor);
-        return this;
-    }
-
     public QueryDefinitionBuilder rowProcessor(RowProcessor processor) {
-        Preconditions.checkNotNull(processor, "RowProcessor cannot be null");
-        this.rowProcessors.add((row) -> processor.process(
-                (com.balsam.oasis.common.registry.core.result.Row) row,
-                (com.balsam.oasis.common.registry.query.QueryContext) null));
-        return this;
-    }
-
-    public QueryDefinitionBuilder rowProcessor(Function<Object, Object> processor) {
         Preconditions.checkNotNull(processor, "RowProcessor cannot be null");
         this.rowProcessors.add(processor);
         return this;
     }
 
     public QueryDefinitionBuilder postProcessor(PostProcessor processor) {
-        Preconditions.checkNotNull(processor, "PostProcessor cannot be null");
-        this.postProcessors.add((result) -> processor.process(
-                (com.balsam.oasis.common.registry.query.QueryResult) result,
-                (com.balsam.oasis.common.registry.query.QueryContext) null));
-        return this;
-    }
-
-    public QueryDefinitionBuilder postProcessor(Function<Object, Object> processor) {
         Preconditions.checkNotNull(processor, "PostProcessor cannot be null");
         this.postProcessors.add(processor);
         return this;
@@ -294,7 +271,7 @@ public class QueryDefinitionBuilder {
 
         // Validate transient attributes have calculators
         attributes.values().stream()
-                .filter(AttributeDef::isTransient)
+                .filter(AttributeDef::isVirual)
                 .forEach(attr -> {
                     if (!attr.hasCalculator()) {
                         throw new IllegalArgumentException(

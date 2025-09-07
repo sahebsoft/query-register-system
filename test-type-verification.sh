@@ -32,31 +32,31 @@ echo -e "\n=========================================="
 echo "Test 1: Integer Parameter Type"
 echo "=========================================="
 echo "Testing: departmentId=50 (should convert string '50' to Integer 50)"
-curl -s "${BASE_URL}?param.departmentId=50&_start=0&_end=5" | jq -C '.'
+curl -s "${BASE_URL}?departmentId=50&_start=0&_end=5" | jq -C '.'
 
 echo -e "\n=========================================="
 echo "Test 2: BigDecimal Parameter Type"  
 echo "=========================================="
 echo "Testing: minSalary=5000.50 (should convert string '5000.50' to BigDecimal)"
-curl -s "${BASE_URL}?param.minSalary=5000.50&_start=0&_end=5" | jq -C '.'
+curl -s "${BASE_URL}?minSalary=5000.50&_start=0&_end=5" | jq -C '.'
 
 echo -e "\n=========================================="
 echo "Test 3: LocalDate Parameter Type"
 echo "=========================================="
 echo "Testing: minHireDate=2020-01-01 (should convert string to LocalDate)"
-curl -s "${BASE_URL}?param.minHireDate=2020-01-01&_start=0&_end=5" | jq -C '.'
+curl -s "${BASE_URL}?minHireDate=2020-01-01&_start=0&_end=5" | jq -C '.'
 
 echo -e "\n=========================================="
 echo "Test 4: Boolean Parameter Type"
 echo "=========================================="
 echo "Testing: includeInactive=true (should convert string 'true' to Boolean)"
-curl -s "${BASE_URL}?param.includeInactive=true&_start=0&_end=5" | jq -C '.'
+curl -s "${BASE_URL}?includeInactive=true&_start=0&_end=5" | jq -C '.'
 
 echo -e "\n=========================================="
 echo "Test 5: List Parameter Type (IN clause)"
 echo "=========================================="
 echo "Testing: departmentIds=10,20,30 (should convert to List for IN clause)"
-curl -s "${BASE_URL}?param.departmentIds=10,20,30&_start=0&_end=5" | jq -C '.'
+curl -s "${BASE_URL}?departmentIds=10,20,30&_start=0&_end=5" | jq -C '.'
 
 echo -e "\n=========================================="
 echo "Test 6: Filter with Type Conversion"
@@ -68,7 +68,7 @@ echo -e "\n=========================================="
 echo "Test 7: Multiple Types Together"
 echo "=========================================="
 echo "Testing: Multiple parameters with different types"
-curl -s "${BASE_URL}?param.departmentId=50&param.minSalary=5000.00&param.minHireDate=2020-01-01&param.includeInactive=false&_start=0&_end=5" | jq -C '.'
+curl -s "${BASE_URL}?departmentId=50&minSalary=5000.00&minHireDate=2020-01-01&includeInactive=false&_start=0&_end=5" | jq -C '.'
 
 echo -e "\n${YELLOW}Checking application logs for type conversion...${NC}"
 echo "Last 20 lines of application log:"

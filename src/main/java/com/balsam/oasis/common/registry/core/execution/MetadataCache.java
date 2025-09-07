@@ -96,8 +96,6 @@ public class MetadataCache {
         String typeName; // Database-specific type name
         int precision; // Column precision
         int scale; // Column scale
-        boolean nullable; // Whether column can be null
-        String className; // Java class name for column type
     }
 
     /**

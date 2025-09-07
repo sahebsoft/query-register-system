@@ -51,6 +51,10 @@ public interface AttributeFormatter<T> {
         return value -> {
             if (value == null)
                 return null;
+            if (value.isEmpty())
+                return value;
+            if (maxLength <= 0)
+                return "...";
             return value.length() > maxLength ? value.substring(0, maxLength) + "..." : value;
         };
     }

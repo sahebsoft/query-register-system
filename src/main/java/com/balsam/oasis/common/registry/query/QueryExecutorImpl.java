@@ -11,10 +11,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.balsam.oasis.common.registry.base.BaseExecutor;
 import com.balsam.oasis.common.registry.core.execution.MetadataBuilder;
 import com.balsam.oasis.common.registry.core.execution.MetadataCache;
 import com.balsam.oasis.common.registry.core.execution.MetadataCacheBuilder;
-import com.balsam.oasis.common.registry.base.BaseExecutor;
 import com.balsam.oasis.common.registry.core.result.Row;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.exception.QueryNotFoundException;
@@ -119,18 +119,22 @@ public class QueryExecutorImpl implements QueryExecutor {
             log.error("Query execution failed for '{}': {}",
                     context.getDefinition().getName(), e.getMessage(), e);
 
-            return QueryResult.builder()
-                    .success(false)
-                    .errorMessage(e.getMessage())
-                    .executionTimeMs(context.getExecutionTime())
-                    .build();
+            // Throw the exception so it can be properly handled by the REST controller
+            // This ensures proper HTTP status codes and error messages are returned
+            if (e instanceof QueryExecutionException) {
+                throw (QueryExecutionException) e;
+            } else {
+                throw new QueryExecutionException(
+                        context.getDefinition().getName(),
+                        "Query execution failed: " + e.getMessage(), e);
+            }
         }
     }
 
     private void runPreProcessors(QueryContext context) {
         QueryDefinition definition = context.getDefinition();
         if (definition.hasPreProcessors()) {
-            definition.getPreProcessors().forEach(processor -> processor.apply(context));
+            definition.getPreProcessors().forEach(processor -> processor.process(context));
         }
     }
 
@@ -162,15 +166,6 @@ public class QueryExecutorImpl implements QueryExecutor {
                     context.getDefinition().getName(),
                     "Failed to execute query: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * @deprecated The row mapper now automatically optimizes based on cache availability
-     */
-    @Deprecated
-    public void setUseOptimizedMapper(boolean useOptimized) {
-        // No-op for backward compatibility
-        log.debug("setUseOptimizedMapper is deprecated - optimization is now automatic");
     }
 
     /**
@@ -225,8 +220,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         for (Row row : rows) {
             Row processedRow = row;
             for (var processor : definition.getRowProcessors()) {
-                Object[] args = new Object[] { processedRow, context };
-                Object result = processor.apply(args);
+                Object result = processor.process(processedRow, context);
                 if (result instanceof Row) {
                     processedRow = (Row) result;
                 }
@@ -245,8 +239,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         QueryResult processedResult = result;
         for (var processor : definition.getPostProcessors()) {
-            Object[] args = new Object[] { processedResult, context };
-            Object processorResult = processor.apply(args);
+            Object processorResult = processor.process(processedResult, context);
             if (processorResult instanceof QueryResult queryResult) {
                 processedResult = queryResult;
             }

@@ -241,7 +241,7 @@ public class MetadataCacheBuilder {
             AttributeDef<?> attr = entry.getValue();
 
             // Skip transient attributes
-            if (attr.isTransient()) {
+            if (attr.isVirual()) {
                 continue;
             }
 

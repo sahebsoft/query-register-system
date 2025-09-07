@@ -1,9 +1,10 @@
 package com.balsam.oasis.common.registry.config;
 
-import lombok.Data;
+import java.time.Duration;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.time.Duration;
+import lombok.Data;
 
 /**
  * Simplified configuration properties for Query Registration System
@@ -55,7 +56,6 @@ public class QueryProperties {
         public static class CacheProperties {
             private boolean enabled = true;
             private boolean prewarm = false;
-            private boolean useOptimizedMapper = true;
             private boolean failOnError = true; // Stop application if pre-warming fails
         }
     }

@@ -3,16 +3,16 @@ package com.balsam.oasis.common.registry.query;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.base.BaseContext;
-import com.balsam.oasis.common.registry.base.UnifiedRowMapper;
+import com.balsam.oasis.common.registry.base.BaseRowMapper;
 import com.balsam.oasis.common.registry.core.definition.AttributeDef;
 import com.balsam.oasis.common.registry.core.execution.MetadataCache;
 import com.balsam.oasis.common.registry.core.result.Row;
 import com.balsam.oasis.common.registry.core.result.RowImpl;
 
 /**
- * Query-specific implementation of UnifiedRowMapper that produces Row objects.
+ * Query-specific implementation of BaseRowMapper that produces Row objects.
  */
-public class QueryRowMapperImpl extends UnifiedRowMapper<Row, QueryDefinition, QueryContext> {
+public class QueryRowMapperImpl extends BaseRowMapper<Row, QueryDefinition, QueryContext> {
     
     @Override
     protected Map<String, AttributeDef<?>> getAttributesToProcess(QueryDefinition definition) {

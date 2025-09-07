@@ -24,7 +24,7 @@ class AttributeDefTest {
         assertEquals("country_id", attr.getAliasName());
         assertTrue(attr.isFilterable());
         assertFalse(attr.isSortable());
-        assertFalse(attr.isTransient());
+        assertFalse(attr.isVirual());
         assertFalse(attr.hasSortProperty());
     }
 
@@ -40,7 +40,7 @@ class AttributeDefTest {
 
         assertEquals("countryDesc", attr.getName());
         assertNull(attr.getAliasName());
-        assertTrue(attr.isTransient());
+        assertTrue(attr.isVirual());
         assertTrue(attr.hasSortProperty());
         assertEquals("countryId", attr.getSortProperty());
         assertTrue(attr.hasCalculator());

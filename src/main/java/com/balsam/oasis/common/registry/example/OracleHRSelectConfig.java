@@ -1,6 +1,8 @@
 package com.balsam.oasis.common.registry.example;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -73,6 +75,10 @@ public class OracleHRSelectConfig {
                                                 .type(BigDecimal.class)
                                                 .aliasName("salary")
                                                 .build())
+                                .addition(AttributeDef.name("aaaa").type(Integer.class).transient_(true)
+                                                .calculated((row, context) -> {
+                                                        return 0;
+                                                }).build())
 
                                 // Custom search criteria
 
@@ -96,6 +102,22 @@ public class OracleHRSelectConfig {
                                                 .description("Minimum salary filter")
                                                 .build())
 
+                                .preProcessor((context) -> {
+                                        System.out.println("@@@@@@@@@preProcessor@@@@@@@@");
+                                        context.setParam("departmentId", 110);
+                                })
+                                .rowProcessor((row, context) -> {
+                                        System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
+                                        System.out.println(row);
+                                        row.set("aaaa", 1);
+                                        row.set("salary", BigDecimal.TEN);
+                                        return row;
+                                })
+                                .postProcessor((queryResult, context) -> {
+                                        System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
+                                        return queryResult.toBuilder().rows(List.of()).data(null)
+                                                        .summary(Map.of("TEST", "Summary")).build();
+                                })
                                 .defaultPageSize(20)
                                 .maxPageSize(500)
                                 .build();

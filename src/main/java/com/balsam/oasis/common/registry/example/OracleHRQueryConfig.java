@@ -3,6 +3,7 @@ package com.balsam.oasis.common.registry.example;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,7 @@ public class OracleHRQueryConfig {
                                                 .build())
                                 .param(ParamDef.param("jobId").type(String.class).required(true).build())
                                 .build());
+
         }
 
         private QueryDefinition employeesQuery() {
@@ -132,7 +134,6 @@ public class OracleHRQueryConfig {
                                                 .filterable(true)
                                                 .sortable(true)
                                                 .build())
-
                                 // Job information
                                 .attribute(AttributeDef.name("jobId")
                                                 .type(String.class)
@@ -146,48 +147,6 @@ public class OracleHRQueryConfig {
                                                 .filterable(true)
                                                 .sortable(true)
                                                 .build())
-
-                                // Salary information
-                                .attribute(AttributeDef.name("salary")
-                                                .type(BigDecimal.class)
-                                                .aliasName("salary")
-                                                .filterable(true)
-                                                .sortable(true)
-                                                .build())
-                                .attribute(AttributeDef.name("commissionPct")
-                                                .type(BigDecimal.class)
-                                                .aliasName("commission_pct")
-                                                .filterable(true)
-                                                .sortable(true)
-                                                .build())
-
-                                // Manager information
-                                .attribute(AttributeDef.name("managerId")
-                                                .type(Integer.class)
-                                                .aliasName("manager_id")
-                                                .filterable(true)
-                                                .build())
-                                .attribute(AttributeDef.name("managerName")
-                                                .type(String.class)
-                                                .aliasName("manager_name")
-                                                .filterable(true)
-                                                .sortable(true)
-                                                .build())
-
-                                // Department information
-                                .attribute(AttributeDef.name("departmentId")
-                                                .type(Integer.class)
-                                                .aliasName("department_id")
-                                                .filterable(true)
-                                                .sortable(true)
-                                                .build())
-                                .attribute(AttributeDef.name("departmentName")
-                                                .type(String.class)
-                                                .aliasName("department_name")
-                                                .filterable(true)
-                                                .sortable(true)
-                                                .build())
-
                                 // Location information
                                 .attribute(AttributeDef.name("city")
                                                 .type(String.class)
@@ -195,12 +154,6 @@ public class OracleHRQueryConfig {
                                                 .filterable(true)
                                                 .sortable(true)
                                                 .build())
-                                .attribute(AttributeDef.name("countryId")
-                                                .type(String.class)
-                                                .aliasName("country_id")
-                                                .filterable(true)
-                                                .build())
-
                                 // Transient attributes (calculated fields)
                                 .attribute(AttributeDef.name("totalCompensation")
                                                 .type(BigDecimal.class)
@@ -216,6 +169,10 @@ public class OracleHRQueryConfig {
                                                 .sortProperty("salary") // Sort by salary when sorting by
                                                                         // totalCompensation
                                                 .build())
+                                .attribute(AttributeDef.name("testVirtual").type(String.class)
+                                                .calculated((row, context) -> {
+                                                        return "Hello World";
+                                                }).build())
 
                                 // Parameters
                                 .param(ParamDef.param("deptId")
@@ -244,7 +201,11 @@ public class OracleHRQueryConfig {
                                 .param(ParamDef.param("hiredAfter")
                                                 .type(LocalDate.class)
                                                 .processor((value) -> {
-                                                        return value;
+                                                        // Use TypeConverter for type safety
+                                                        if (value == null)
+                                                                return null;
+                                                        return com.balsam.oasis.common.registry.util.TypeConverter
+                                                                        .convert(value, LocalDate.class);
                                                 })
                                                 .description("Filter employees hired after this date")
                                                 .build())
@@ -253,10 +214,14 @@ public class OracleHRQueryConfig {
                                                 .processor((value, ctx) -> {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
+                                                                // Convert Object to Long first
+                                                                Long days = com.balsam.oasis.common.registry.util.TypeConverter
+                                                                                .convert(value, Long.class);
                                                                 ctx.addParam("hiredAfter",
-                                                                                LocalDate.now().minusDays(value));
+                                                                                LocalDate.now().minusDays(days));
+                                                                return days;
                                                         }
-                                                        return value;
+                                                        return null;
                                                 })
                                                 .description("Filter employees hired after this date")
                                                 .build())
@@ -297,10 +262,25 @@ public class OracleHRQueryConfig {
                                                 .condition(ctx -> ctx.hasParam("jobIds"))
                                                 .description("Filter by multiple job IDs")
                                                 .build())
-                                // .postProcessor((queryResult, ctx) -> {
-                                // return queryResult;
-                                // })
-                                // Configuration
+                                .preProcessor((context) -> {
+                                        System.out.println("@@@@@@@@@preProcessor@@@@@@@@");
+                                })
+                                .rowProcessor((row, context) -> {
+                                        System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
+                                        System.out.println(row.getString("testVirtual"));
+                                        System.out.println(row.get("testVirtual", String.class));
+                                        System.out.println(row.getRaw("COUNTRY_ID", String.class));
+
+                                        row.set("aaaa", 1);
+                                        row.set("bbbb", 1);
+                                        row.set("salary", BigDecimal.TEN);
+                                        return row;
+                                })
+                                .postProcessor((queryResult, context) -> {
+                                        System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
+                                        return queryResult.toBuilder()
+                                                        .summary(Map.of("TEST", "Summary")).build();
+                                })
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
                                 .cache(true)

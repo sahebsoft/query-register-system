@@ -79,8 +79,11 @@ public final class TypeConverter {
             }
         }
 
-        // Handle numeric conversions
-        if (Number.class.isAssignableFrom(targetType) && value instanceof Number) {
+        // Handle numeric conversions (both wrapper and primitive types)
+        if ((Number.class.isAssignableFrom(targetType) || 
+             targetType == int.class || targetType == long.class || 
+             targetType == double.class || targetType == float.class) && 
+            value instanceof Number) {
             return convertNumber((Number) value, targetType);
         }
 

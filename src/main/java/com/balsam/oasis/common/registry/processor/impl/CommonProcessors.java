@@ -20,8 +20,10 @@ public class CommonProcessors {
     public static final Validator EMAIL_VALIDATOR = value -> {
         if (value == null)
             return false;
-        String email = value.toString();
-        return Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$").matcher(email).matches();
+        String email = value.toString().trim();
+        if (email.isEmpty() || email.contains(" ") || email.contains(".."))
+            return false;
+        return Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,}|[A-Za-z0-9]+)$").matcher(email).matches();
     };
 
     public static final Validator PHONE_VALIDATOR = value -> {
@@ -97,7 +99,7 @@ public class CommonProcessors {
             return null;
         String email = value;
         int atIndex = email.indexOf('@');
-        if (atIndex > 1) {
+        if (atIndex > 0) {  // Changed from > 1 to > 0
             return email.charAt(0) + "***" + email.substring(atIndex);
         }
         return "***@***";

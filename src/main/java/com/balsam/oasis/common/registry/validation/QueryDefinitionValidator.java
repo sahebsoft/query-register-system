@@ -67,7 +67,7 @@ public class QueryDefinitionValidator {
             }
 
             // Check alias name (database column) for non-transient attributes
-            if (!attr.isTransient() && attr.getAliasName() != null) {
+            if (!attr.isVirual() && attr.getAliasName() != null) {
                 String aliasName = attr.getAliasName().toUpperCase(); // Case-insensitive check
                 if (!aliasNames.add(aliasName)) {
                     throw new IllegalStateException(String.format(

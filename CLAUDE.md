@@ -198,8 +198,6 @@ WHERE active = true
 ### 7. Testing Rules
 - Test behavior, not implementation
 - Use TestContainers for database tests
-- Mock external dependencies with @MockBean
-- Test naming: shouldDoX_whenCondition
 
 ### 8. Performance Rules
 - Always use pagination (max 1000 records)
@@ -286,11 +284,6 @@ GET /api/query/{queryName}?
 5. **Database Support**: Oracle dialects supported (11g with ROWNUM, 12c+ with FETCH/OFFSET)
 6. **REST API**: Basic QueryController with parameter/filter parsing
 
-### Backward Compatibility Concerns
-- **QueryDefinitionValidator.validateAndRegister()**: Deprecated pattern, maintain for compatibility but prefer separate validate() and register() calls
-- **AttributeDef.name()**: Static factory method exists for backward compatibility
-- **ParamDef.param()**: Static factory method exists for backward compatibility
-- **Function<Object, Object> processors**: Builder has adapter overloads for legacy untyped processors
 
 ### Planned Features (See ENHANCEMENT_PLAN.md for details)
 1. **QueryRegistry**: Implement query discovery and registration
