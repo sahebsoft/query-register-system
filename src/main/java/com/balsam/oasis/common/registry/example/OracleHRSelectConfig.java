@@ -109,7 +109,6 @@ public class OracleHRSelectConfig {
                                 .rowProcessor((row, context) -> {
                                         System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
                                         System.out.println(row);
-                                        row.set("aaaa", 1);
                                         row.set("salary", BigDecimal.TEN);
                                         return row;
                                 })
