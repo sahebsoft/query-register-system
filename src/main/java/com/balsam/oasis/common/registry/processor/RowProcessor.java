@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.processor;
 
-import com.balsam.oasis.common.registry.core.result.Row;
-import com.balsam.oasis.common.registry.query.QueryContext;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
+import com.balsam.oasis.common.registry.domain.result.Row;
 
 /**
  * Processor for individual rows during query execution

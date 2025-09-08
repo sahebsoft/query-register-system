@@ -284,11 +284,3 @@ GET /api/query/{queryName}?
 5. **Database Support**: Oracle dialects supported (11g with ROWNUM, 12c+ with FETCH/OFFSET)
 6. **REST API**: Basic QueryController with parameter/filter parsing
 
-
-### Planned Features (See ENHANCEMENT_PLAN.md for details)
-1. **QueryRegistry**: Implement query discovery and registration
-2. **Virtual Attributes**: Complete virtual fields implementation
-3. **Metadata**: Add comprehensive metadata in REST responses
-4. **Caching**: Implement Caffeine cache provider with configurable TTL
-5. **Security**: Add SecurityContext and field-level security
-6. **Validation**: Enhance multi-level validation (parameter, filter, execution)

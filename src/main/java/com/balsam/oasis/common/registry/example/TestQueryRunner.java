@@ -12,11 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.balsam.oasis.common.registry.core.definition.FilterOp;
-import com.balsam.oasis.common.registry.core.definition.SortDir;
-import com.balsam.oasis.common.registry.core.result.Row;
-import com.balsam.oasis.common.registry.query.QueryExecutor;
-import com.balsam.oasis.common.registry.query.QueryResult;
+import com.balsam.oasis.common.registry.api.QueryExecutor;
+import com.balsam.oasis.common.registry.domain.definition.FilterOp;
+import com.balsam.oasis.common.registry.domain.definition.SortDir;
+import com.balsam.oasis.common.registry.domain.execution.QueryResult;
+import com.balsam.oasis.common.registry.domain.result.Row;
 
 /**
  * Test runner for metadata caching with 10 different query variants

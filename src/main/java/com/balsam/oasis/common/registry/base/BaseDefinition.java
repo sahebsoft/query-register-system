@@ -1,9 +1,9 @@
 package com.balsam.oasis.common.registry.base;
 
-import com.balsam.oasis.common.registry.core.definition.CacheConfig;
-import com.balsam.oasis.common.registry.core.definition.CriteriaDef;
-import com.balsam.oasis.common.registry.core.definition.ParamDef;
-import com.balsam.oasis.common.registry.core.definition.ValidationRule;
+import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
+import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
+import com.balsam.oasis.common.registry.domain.definition.ParamDef;
+import com.balsam.oasis.common.registry.domain.definition.ValidationRule;
 import com.balsam.oasis.common.registry.processor.PostProcessor;
 import com.balsam.oasis.common.registry.processor.PreProcessor;
 import com.balsam.oasis.common.registry.processor.RowProcessor;

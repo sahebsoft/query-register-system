@@ -3,7 +3,7 @@ package com.balsam.oasis.common.registry.processor;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.balsam.oasis.common.registry.query.QueryContext;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
 /**
  * Generic processor for parameter validation and transformation.
@@ -27,14 +27,16 @@ public interface ParamProcessor<T> {
     T process(Object value, QueryContext context);
 
     /**
-     * Convenience static method for simple value-only processing with type conversion
+     * Convenience static method for simple value-only processing with type
+     * conversion
      */
     static <T> ParamProcessor<T> simple(Function<Object, T> func) {
         return (value, context) -> func.apply(value);
     }
 
     /**
-     * Convenience static method for simple same-type processing (legacy compatibility)
+     * Convenience static method for simple same-type processing (legacy
+     * compatibility)
      */
     @SuppressWarnings("unchecked")
     static <T> ParamProcessor<T> sameType(Function<T, T> func) {
@@ -43,9 +45,10 @@ public interface ParamProcessor<T> {
                 return func.apply((T) value);
             } catch (ClassCastException e) {
                 throw new IllegalArgumentException(
-                    String.format("Expected type %s but got %s", 
-                        func.getClass().getGenericInterfaces()[0], 
-                        value != null ? value.getClass().getSimpleName() : "null"), e);
+                        String.format("Expected type %s but got %s",
+                                func.getClass().getGenericInterfaces()[0],
+                                value != null ? value.getClass().getSimpleName() : "null"),
+                        e);
             }
         };
     }
@@ -64,7 +67,8 @@ public interface ParamProcessor<T> {
     }
 
     /**
-     * Convenience static method for validation with specific type (legacy compatibility)
+     * Convenience static method for validation with specific type (legacy
+     * compatibility)
      */
     @SuppressWarnings("unchecked")
     static <T> ParamProcessor<T> typedValidator(Predicate<T> validator, String errorMessage) {
@@ -77,8 +81,9 @@ public interface ParamProcessor<T> {
                 return typedValue;
             } catch (ClassCastException e) {
                 throw new IllegalArgumentException(
-                    String.format("Type validation failed: expected specific type but got %s", 
-                        value != null ? value.getClass().getSimpleName() : "null"), e);
+                        String.format("Type validation failed: expected specific type but got %s",
+                                value != null ? value.getClass().getSimpleName() : "null"),
+                        e);
             }
         };
     }
@@ -91,7 +96,7 @@ public interface ParamProcessor<T> {
         return (value, context) -> {
             if (value == null)
                 return null;
-            
+
             Number numValue;
             if (value instanceof Number) {
                 numValue = (Number) value;
@@ -100,14 +105,14 @@ public interface ParamProcessor<T> {
                     numValue = Double.parseDouble((String) value);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException(
-                        String.format("Cannot convert '%s' to number", value), e);
+                            String.format("Cannot convert '%s' to number", value), e);
                 }
             } else {
                 throw new IllegalArgumentException(
-                    String.format("Cannot convert %s to Number", 
-                        value.getClass().getSimpleName()));
+                        String.format("Cannot convert %s to Number",
+                                value.getClass().getSimpleName()));
             }
-            
+
             double d = numValue.doubleValue();
             if (d < min || d > max) {
                 throw new IllegalArgumentException(
@@ -124,7 +129,7 @@ public interface ParamProcessor<T> {
         return (value, context) -> {
             if (value == null)
                 return null;
-            
+
             // First validate range
             Number numValue;
             if (value instanceof Number) {
@@ -134,29 +139,30 @@ public interface ParamProcessor<T> {
                     numValue = Double.parseDouble((String) value);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException(
-                        String.format("Cannot convert '%s' to number", value), e);
+                            String.format("Cannot convert '%s' to number", value), e);
                 }
             } else {
                 throw new IllegalArgumentException(
-                    String.format("Cannot convert %s to Number", 
-                        value.getClass().getSimpleName()));
+                        String.format("Cannot convert %s to Number",
+                                value.getClass().getSimpleName()));
             }
-            
+
             double d = numValue.doubleValue();
             if (d < min || d > max) {
                 throw new IllegalArgumentException(
                         String.format("Value %s is outside range [%d, %d]", numValue, min, max));
             }
-            
+
             // Then convert to target type
             try {
                 return com.balsam.oasis.common.registry.util.TypeConverter.convert(numValue, targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
-                    String.format("Failed to convert %s to %s: %s", 
-                        numValue.getClass().getSimpleName(), 
-                        targetType.getSimpleName(), 
-                        e.getMessage()), e);
+                        String.format("Failed to convert %s to %s: %s",
+                                numValue.getClass().getSimpleName(),
+                                targetType.getSimpleName(),
+                                e.getMessage()),
+                        e);
             }
         };
     }
@@ -169,7 +175,7 @@ public interface ParamProcessor<T> {
         return (value, context) -> {
             if (value == null)
                 return null;
-            
+
             String strValue = value.toString();
             int length = strValue.length();
             if (length < min || length > max) {
@@ -188,7 +194,7 @@ public interface ParamProcessor<T> {
         return (value, context) -> {
             if (value == null)
                 return null;
-            
+
             String strValue = value.toString();
             if (!strValue.matches(pattern)) {
                 throw new IllegalArgumentException(
@@ -205,15 +211,16 @@ public interface ParamProcessor<T> {
         return (value, context) -> {
             if (value == null)
                 return null;
-            
+
             try {
                 return com.balsam.oasis.common.registry.util.TypeConverter.convert(value, targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
-                    String.format("Failed to convert %s to %s: %s", 
-                        value.getClass().getSimpleName(), 
-                        targetType.getSimpleName(), 
-                        e.getMessage()), e);
+                        String.format("Failed to convert %s to %s: %s",
+                                value.getClass().getSimpleName(),
+                                targetType.getSimpleName(),
+                                e.getMessage()),
+                        e);
             }
         };
     }
@@ -225,24 +232,25 @@ public interface ParamProcessor<T> {
         return (value, context) -> {
             if (value == null)
                 return null;
-            
+
             // First convert
             T convertedValue;
             try {
                 convertedValue = com.balsam.oasis.common.registry.util.TypeConverter.convert(value, targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
-                    String.format("Failed to convert %s to %s: %s", 
-                        value.getClass().getSimpleName(), 
-                        targetType.getSimpleName(), 
-                        e.getMessage()), e);
+                        String.format("Failed to convert %s to %s: %s",
+                                value.getClass().getSimpleName(),
+                                targetType.getSimpleName(),
+                                e.getMessage()),
+                        e);
             }
-            
+
             // Then validate
             if (!validator.test(convertedValue)) {
                 throw new IllegalArgumentException(errorMessage);
             }
-            
+
             return convertedValue;
         };
     }

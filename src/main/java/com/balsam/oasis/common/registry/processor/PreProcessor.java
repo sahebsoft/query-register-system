@@ -1,6 +1,6 @@
 package com.balsam.oasis.common.registry.processor;
 
-import com.balsam.oasis.common.registry.query.QueryContext;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
 /**
  * Processor executed before query execution

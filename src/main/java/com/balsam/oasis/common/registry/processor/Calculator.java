@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.processor;
 
 import com.balsam.oasis.common.registry.base.BaseContext;
-import com.balsam.oasis.common.registry.core.result.Row;
+import com.balsam.oasis.common.registry.domain.result.Row;
 
 /**
  * Calculator interface for computing transient attribute values.

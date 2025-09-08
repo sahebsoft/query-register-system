@@ -7,8 +7,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import com.balsam.oasis.common.registry.query.QueryExecutor;
-import com.balsam.oasis.common.registry.query.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.api.QueryExecutor;
+import com.balsam.oasis.common.registry.engine.QueryExecutorImpl;
 
 /**
  * Initializes metadata caches after application startup

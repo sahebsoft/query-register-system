@@ -8,12 +8,12 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
-import com.balsam.oasis.common.registry.core.definition.AttributeDef;
-import com.balsam.oasis.common.registry.core.definition.CriteriaDef;
-import com.balsam.oasis.common.registry.core.definition.ParamDef;
-import com.balsam.oasis.common.registry.query.QueryDefinition;
-import com.balsam.oasis.common.registry.query.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.query.QueryRegistrar;
+import com.balsam.oasis.common.registry.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
+import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
+import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
+import com.balsam.oasis.common.registry.domain.definition.ParamDef;
+import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 
 import jakarta.annotation.PostConstruct;
 

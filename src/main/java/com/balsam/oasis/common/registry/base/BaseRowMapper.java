@@ -12,8 +12,8 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.balsam.oasis.common.registry.core.definition.AttributeDef;
-import com.balsam.oasis.common.registry.core.execution.MetadataCache;
+import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
+import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 import com.balsam.oasis.common.registry.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.util.TypeConverter;
 
@@ -22,13 +22,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 
 /**
- * Base row mapper that provides comprehensive attribute processing including regular
- * attributes, transient attributes, formatters, calculators, and security rules.
- * Uses cached indexes when available for performance, falls back to name-based access otherwise.
+ * Base row mapper that provides comprehensive attribute processing including
+ * regular
+ * attributes, transient attributes, formatters, calculators, and security
+ * rules.
+ * Uses cached indexes when available for performance, falls back to name-based
+ * access otherwise.
  * Works for both Query and Select modules.
  * 
  * @param <T> The output type (Row, SelectItem, etc.)
- * @param <D> The definition type (QueryDefinition, SelectDefinition) 
+ * @param <D> The definition type (QueryDefinition, SelectDefinition)
  * @param <C> The context type (QueryContext, SelectContext)
  */
 public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseContext<D>> implements RowMapper<T> {

@@ -5,15 +5,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.balsam.oasis.common.registry.query.QueryExecutor;
-import com.balsam.oasis.common.registry.query.QueryExecutorImpl;
-import com.balsam.oasis.common.registry.query.QueryRegistrar;
-import com.balsam.oasis.common.registry.query.QueryRegistrarImpl;
-import com.balsam.oasis.common.registry.query.QueryRegistry;
-import com.balsam.oasis.common.registry.query.QuerySqlBuilder;
-import com.balsam.oasis.common.registry.rest.QueryController;
-import com.balsam.oasis.common.registry.rest.QueryRequestParser;
-import com.balsam.oasis.common.registry.rest.QueryResponseBuilder;
+import com.balsam.oasis.common.registry.api.QueryExecutor;
+import com.balsam.oasis.common.registry.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.api.QueryRegistry;
+import com.balsam.oasis.common.registry.engine.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.engine.QueryRegistrarImpl;
+import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
+import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
+import com.balsam.oasis.common.registry.web.controller.QueryController;
+import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
