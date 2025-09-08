@@ -253,14 +253,8 @@ public interface Row {
     // Raw DB access
     Object getRaw(String columnName);
 
-    // Virtual fields
-    Object getVirtual(String name);
-    <T> T getVirtual(String name, Class<T> type);
-    <T> T getVirtual(String name, T defaultValue);
-
     // Setters
     void set(String attributeName, Object value);
-    void setVirtual(String name, Object value);
 
     // Context access
     QueryContext getContext();

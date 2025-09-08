@@ -283,4 +283,4 @@ GET /api/query/{queryName}?
 4. **Row Processing**: Chain processors - Pre -> Row -> Post implemented
 5. **Database Support**: Oracle dialects supported (11g with ROWNUM, 12c+ with FETCH/OFFSET)
 6. **REST API**: Basic QueryController with parameter/filter parsing
-
+- if you u break something please always check git changes and history
