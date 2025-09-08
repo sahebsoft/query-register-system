@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.base.BaseDefinition;
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 import com.google.common.collect.ImmutableMap;
 
@@ -66,6 +67,18 @@ public class QueryDefinition extends BaseDefinition {
      */
     @Builder.Default
     boolean metadataCacheEnabled = true;
+
+    /**
+     * Flag to include dynamic attributes (columns not defined in AttributeDef)
+     */
+    @Builder.Default
+    boolean includeDynamicAttributes = false;
+
+    /**
+     * Naming strategy for dynamic attributes
+     */
+    @Builder.Default
+    NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.AS_IS;
 
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();

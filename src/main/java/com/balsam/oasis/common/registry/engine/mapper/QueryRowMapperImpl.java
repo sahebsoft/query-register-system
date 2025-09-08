@@ -1,9 +1,12 @@
 package com.balsam.oasis.common.registry.engine.mapper;
 
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.balsam.oasis.common.registry.base.BaseContext;
 import com.balsam.oasis.common.registry.base.BaseRowMapper;
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
@@ -70,5 +73,54 @@ public class QueryRowMapperImpl extends BaseRowMapper<Row, QueryDefinition, Quer
             return ((QueryDefinition) context.getDefinition()).getMetadataCache();
         }
         return null;
+    }
+
+    @Override
+    protected boolean shouldIncludeDynamicAttributes(QueryDefinition definition) {
+        return definition.isIncludeDynamicAttributes();
+    }
+
+    @Override
+    protected void addDynamicAttributes(Map<String, Object> processedData,
+                                       Map<String, Object> rawData,
+                                       Map<String, AttributeDef<?>> definedAttributes,
+                                       QueryDefinition definition) {
+        if (rawData == null || rawData.isEmpty()) {
+            return;
+        }
+
+        // Get the naming strategy
+        NamingStrategy namingStrategy = definition.getDynamicAttributeNamingStrategy();
+        
+        // Create a set of defined attribute names and their aliases for quick lookup
+        Set<String> definedNames = new HashSet<>();
+        for (Map.Entry<String, AttributeDef<?>> entry : definedAttributes.entrySet()) {
+            definedNames.add(entry.getKey().toLowerCase());
+            AttributeDef<?> attr = entry.getValue();
+            if (attr.getAliasName() != null) {
+                definedNames.add(attr.getAliasName().toLowerCase());
+            }
+        }
+        
+        // Add undefined columns with naming strategy
+        for (Map.Entry<String, Object> entry : rawData.entrySet()) {
+            String columnName = entry.getKey();
+            
+            // Skip if this column is already defined
+            if (definedNames.contains(columnName.toLowerCase())) {
+                continue;
+            }
+            
+            // Apply naming strategy to get the attribute name
+            String attributeName = namingStrategy.convert(columnName);
+            
+            // Skip if the converted name conflicts with an existing attribute
+            if (processedData.containsKey(attributeName)) {
+                continue;
+            }
+            
+            // Add the dynamic attribute
+            processedData.put(attributeName, entry.getValue());
+        }
     }
 }

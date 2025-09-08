@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
@@ -53,6 +54,10 @@ public class QueryDefinitionBuilder {
     private boolean metricsEnabled = true;
     private Integer queryTimeout;
     private String findByKeyCriteriaName;
+    
+    // Dynamic attributes configuration
+    private boolean includeDynamicAttributes = false;
+    private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.AS_IS;
 
     private QueryDefinitionBuilder(String name) {
         Preconditions.checkNotNull(name, "Query name cannot be null");
@@ -208,6 +213,18 @@ public class QueryDefinitionBuilder {
         return this;
     }
 
+    // Dynamic attributes configuration
+    public QueryDefinitionBuilder includeDynamicAttributes(boolean include) {
+        this.includeDynamicAttributes = include;
+        return this;
+    }
+
+    public QueryDefinitionBuilder dynamicAttributeNamingStrategy(NamingStrategy strategy) {
+        Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
+        this.dynamicAttributeNamingStrategy = strategy;
+        return this;
+    }
+
     public QueryDefinition build() {
         validate();
 
@@ -239,6 +256,8 @@ public class QueryDefinitionBuilder {
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)
                 .findByKeyCriteriaName(findByKeyCriteriaName)
+                .includeDynamicAttributes(includeDynamicAttributes)
+                .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
                 .build();
 
         // Comprehensive validation:

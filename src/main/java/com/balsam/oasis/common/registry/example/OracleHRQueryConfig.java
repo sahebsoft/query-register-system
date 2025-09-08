@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -281,6 +282,8 @@ public class OracleHRQueryConfig {
                                         return queryResult.toBuilder()
                                                         .summary(Map.of("TEST", "Summary")).build();
                                 })
+                                .includeDynamicAttributes(true)
+                                .dynamicAttributeNamingStrategy(NamingStrategy.PASCAL)
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
                                 .cache(true)

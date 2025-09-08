@@ -183,6 +183,11 @@ public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseC
             }
         }
 
+        // Add dynamic attributes if enabled
+        if (shouldIncludeDynamicAttributes(definition)) {
+            addDynamicAttributes(processedData, rawData, attributes, definition);
+        }
+
         // Create final output
         return createFinalOutput(processedData, rawData, context);
     }
@@ -456,5 +461,27 @@ public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseC
         // Default implementation returns null
         // Subclasses should override this to provide cache if available
         return null;
+    }
+
+    /**
+     * Check if dynamic attributes should be included.
+     * Subclasses can override to provide custom logic.
+     */
+    protected boolean shouldIncludeDynamicAttributes(D definition) {
+        // Default implementation returns false
+        // Subclasses should override this based on their definition type
+        return false;
+    }
+
+    /**
+     * Add dynamic attributes (columns not defined in AttributeDef) to the processed data.
+     * These are columns returned by the SQL query but not explicitly defined.
+     */
+    protected void addDynamicAttributes(Map<String, Object> processedData, 
+                                       Map<String, Object> rawData,
+                                       Map<String, AttributeDef<?>> definedAttributes,
+                                       D definition) {
+        // Default implementation does nothing
+        // Subclasses should override this to add dynamic attributes
     }
 }
