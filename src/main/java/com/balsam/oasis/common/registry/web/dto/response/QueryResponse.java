@@ -3,7 +3,7 @@ package com.balsam.oasis.common.registry.web.dto.response;
 import java.util.List;
 import java.util.Map;
 
-import com.balsam.oasis.common.registry.domain.execution.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;

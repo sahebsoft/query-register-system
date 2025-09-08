@@ -1,8 +1,8 @@
 package com.balsam.oasis.common.registry.api;
 
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
-import com.balsam.oasis.common.registry.domain.execution.QueryResult;
 
 /**
  * Main interface for executing queries in the Query Registration System.

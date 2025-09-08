@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.base.BaseContext;
+import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
@@ -58,41 +59,6 @@ public class QueryContext extends BaseContext<QueryDefinition> {
         private SortDir direction;
     }
 
-    @Data
-    @Builder
-    public static class QueryPagination {
-        private int start;
-        private int end;
-        private Integer limit;
-        private Integer offset;
-        private int total;
-        private boolean hasNext;
-        private boolean hasPrevious;
-
-        public int getPageSize() {
-            if (limit != null) {
-                return limit;
-            }
-            return end - start;
-        }
-
-        public static QueryPagination fromStartEnd(int start, int end) {
-            return QueryPagination.builder()
-                    .start(start)
-                    .end(end)
-                    .build();
-        }
-
-        public static QueryPagination fromOffsetLimit(int offset, int limit) {
-            return QueryPagination.builder()
-                    .offset(offset)
-                    .limit(limit)
-                    .start(offset)
-                    .end(offset + limit)
-                    .build();
-        }
-    }
-
     // Helper methods
     public void addParam(String name, Object value) {
         params.put(name, value);
@@ -131,7 +97,7 @@ public class QueryContext extends BaseContext<QueryDefinition> {
     }
 
     public void recordAppliedCriteria(String name, String sql) {
-        addAppliedCriteria(BaseContext.AppliedCriteria.builder()
+        addAppliedCriteria(AppliedCriteria.builder()
                 .name(name)
                 .sql(sql)
                 .build());

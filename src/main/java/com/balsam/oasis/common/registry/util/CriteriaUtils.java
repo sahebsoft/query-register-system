@@ -1,6 +1,7 @@
 package com.balsam.oasis.common.registry.util;
 
 import com.balsam.oasis.common.registry.base.BaseContext;
+import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.engine.sql.SqlUtils;
 
@@ -31,7 +32,7 @@ public class CriteriaUtils {
 
                     if (trackApplied) {
                         context.addAppliedCriteria(
-                                BaseContext.AppliedCriteria.builder()
+                                AppliedCriteria.builder()
                                         .name(criteriaDef.getName())
                                         .sql(criteriaDef.getSql())
                                         .params(SqlUtils.extractBindParams(criteriaDef.getSql(), params))

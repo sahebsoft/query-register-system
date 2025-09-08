@@ -1,11 +1,12 @@
 package com.balsam.oasis.common.registry.base;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.engine.sql.SqlUtils;
 import com.balsam.oasis.common.registry.util.CriteriaUtils;
 import com.balsam.oasis.common.registry.util.PaginationUtils;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public abstract class BaseSqlBuilder<D extends BaseDefinition, C extends BaseContext<D>> {
 
@@ -15,7 +16,7 @@ public abstract class BaseSqlBuilder<D extends BaseDefinition, C extends BaseCon
         this.dialect = dialect != null ? dialect : PaginationUtils.ORACLE_11G;
     }
 
-    public BaseExecutor.SqlResult build(C context) {
+    public SqlResult build(C context) {
         D definition = context.getDefinition();
         String sql = definition.getSql();
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
@@ -30,7 +31,7 @@ public abstract class BaseSqlBuilder<D extends BaseDefinition, C extends BaseCon
 
         sql = SqlUtils.cleanPlaceholders(sql);
 
-        return new BaseExecutor.SqlResult(sql, bindParams);
+        return new SqlResult(sql, bindParams);
     }
 
     // Criteria and SQL utility methods are delegated to utility classes

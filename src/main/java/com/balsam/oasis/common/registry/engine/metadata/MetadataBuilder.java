@@ -6,11 +6,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.balsam.oasis.common.registry.domain.common.Pagination;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.domain.execution.QueryResult;
+import com.balsam.oasis.common.registry.domain.metadata.AttributeMetadata;
+import com.balsam.oasis.common.registry.domain.metadata.FilterMetadata;
+import com.balsam.oasis.common.registry.domain.metadata.PaginationMetadata;
+import com.balsam.oasis.common.registry.domain.metadata.ParameterMetadata;
+import com.balsam.oasis.common.registry.domain.metadata.PerformanceMetadata;
+import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
+import com.balsam.oasis.common.registry.domain.metadata.SortMetadata;
 
 /**
  * Builds metadata for query results
@@ -25,8 +33,8 @@ public class MetadataBuilder {
         this.result = result;
     }
 
-    public QueryResult.QueryMetadata build() {
-        return QueryResult.QueryMetadata.builder()
+    public QueryMetadata build() {
+        return QueryMetadata.builder()
                 .pagination(buildPaginationMetadata())
                 .attributes(buildAttributesMetadata())
                 .appliedCriteria(context.getAppliedCriteria())
@@ -37,12 +45,12 @@ public class MetadataBuilder {
                 .build();
     }
 
-    private QueryResult.QueryMetadata.PaginationMetadata buildPaginationMetadata() {
+    private PaginationMetadata buildPaginationMetadata() {
         if (!context.hasPagination()) {
             return null;
         }
 
-        QueryContext.Pagination pagination = context.getPagination();
+        Pagination pagination = context.getPagination();
         // Use the total count from context if available, otherwise use result size
         Integer totalCount = context.getTotalCount();
         int total = (totalCount != null) ? totalCount : result.getRows().size();
@@ -54,7 +62,7 @@ public class MetadataBuilder {
         boolean hasNext = pagination.getEnd() < total;
         boolean hasPrevious = pagination.getStart() > 0;
 
-        return QueryResult.QueryMetadata.PaginationMetadata.builder()
+        return PaginationMetadata.builder()
                 .start(pagination.getStart())
                 .end(pagination.getEnd())
                 .total(total)
@@ -66,8 +74,8 @@ public class MetadataBuilder {
                 .build();
     }
 
-    private List<QueryResult.QueryMetadata.AttributeMetadata> buildAttributesMetadata() {
-        List<QueryResult.QueryMetadata.AttributeMetadata> metadata = new ArrayList<>();
+    private List<AttributeMetadata> buildAttributesMetadata() {
+        List<AttributeMetadata> metadata = new ArrayList<>();
         QueryDefinition definition = context.getDefinition();
 
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
@@ -85,7 +93,7 @@ public class MetadataBuilder {
                 }
             }
 
-            QueryResult.QueryMetadata.AttributeMetadata attrMetadata = QueryResult.QueryMetadata.AttributeMetadata
+            AttributeMetadata attrMetadata = AttributeMetadata
                     .builder()
                     .name(attrName)
                     .type(attr.getType() != null ? attr.getType().getSimpleName() : "Object")
@@ -120,13 +128,13 @@ public class MetadataBuilder {
         return metadata;
     }
 
-    private Map<String, QueryResult.QueryMetadata.FilterMetadata> buildAppliedFilters() {
-        Map<String, QueryResult.QueryMetadata.FilterMetadata> filters = new HashMap<>();
+    private Map<String, FilterMetadata> buildAppliedFilters() {
+        Map<String, FilterMetadata> filters = new HashMap<>();
 
         for (Map.Entry<String, QueryContext.Filter> entry : context.getFilters().entrySet()) {
             QueryContext.Filter filter = entry.getValue();
 
-            QueryResult.QueryMetadata.FilterMetadata filterMetadata = QueryResult.QueryMetadata.FilterMetadata.builder()
+            FilterMetadata filterMetadata = FilterMetadata.builder()
                     .attribute(filter.getAttribute())
                     .operator(filter.getOperator().name())
                     .value(filter.getValue())
@@ -140,9 +148,9 @@ public class MetadataBuilder {
         return filters;
     }
 
-    private List<QueryResult.QueryMetadata.SortMetadata> buildAppliedSort() {
+    private List<SortMetadata> buildAppliedSort() {
         return context.getSorts().stream()
-                .map(sort -> QueryResult.QueryMetadata.SortMetadata.builder()
+                .map(sort -> SortMetadata.builder()
                         .field(sort.getAttribute())
                         .direction(sort.getDirection().name())
                         .priority(context.getSorts().indexOf(sort))
@@ -150,8 +158,8 @@ public class MetadataBuilder {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, QueryResult.QueryMetadata.ParameterMetadata> buildParametersMetadata() {
-        Map<String, QueryResult.QueryMetadata.ParameterMetadata> metadata = new HashMap<>();
+    private Map<String, ParameterMetadata> buildParametersMetadata() {
+        Map<String, ParameterMetadata> metadata = new HashMap<>();
         QueryDefinition definition = context.getDefinition();
 
         for (Map.Entry<String, ParamDef<?>> entry : definition.getParams().entrySet()) {
@@ -163,7 +171,7 @@ public class MetadataBuilder {
                 value = paramDef.getDefaultValue();
             }
 
-            QueryResult.QueryMetadata.ParameterMetadata paramMetadata = QueryResult.QueryMetadata.ParameterMetadata
+            ParameterMetadata paramMetadata = ParameterMetadata
                     .builder()
                     .name(paramName)
                     .value(value)
@@ -177,7 +185,7 @@ public class MetadataBuilder {
         return metadata;
     }
 
-    private QueryResult.QueryMetadata.PerformanceMetadata buildPerformanceMetadata() {
+    private PerformanceMetadata buildPerformanceMetadata() {
         Map<String, Object> additionalMetrics = new HashMap<>();
         additionalMetrics.put("queryName", context.getDefinition().getName());
 
@@ -185,7 +193,7 @@ public class MetadataBuilder {
             additionalMetrics.put("cacheKey", context.getCacheKey());
         }
 
-        return QueryResult.QueryMetadata.PerformanceMetadata.builder()
+        return PerformanceMetadata.builder()
                 .executionTimeMs(context.getExecutionTime())
                 .rowsFetched(result.size())
                 .totalRowsScanned(result.size()) // Would need actual count

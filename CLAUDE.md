@@ -4,10 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Query Registration System - Development Rules & Tech Stack
 
-## Development Plan
-
-Read @ENHANCEMENT_PLAN.md for the architectural refactoring roadmap and current priorities.
-Read @SPEC.md for detailed requirements and specifications.
 
 ## Common Development Commands
 

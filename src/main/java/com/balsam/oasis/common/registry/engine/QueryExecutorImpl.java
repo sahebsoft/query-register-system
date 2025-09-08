@@ -13,11 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.api.QueryRegistry;
-import com.balsam.oasis.common.registry.base.BaseExecutor;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
-import com.balsam.oasis.common.registry.domain.execution.QueryResult;
 import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.engine.mapper.QueryRowMapperImpl;
 import com.balsam.oasis.common.registry.engine.metadata.MetadataBuilder;
@@ -82,7 +82,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             runPreProcessors(context);
 
             // Build SQL
-            BaseExecutor.SqlResult sqlResult = sqlBuilder.build(context);
+            SqlResult sqlResult = sqlBuilder.build(context);
             String finalSql = sqlResult.getSql();
             Map<String, Object> params = sqlResult.getParams();
 
@@ -195,7 +195,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         log.info("Pre-warmed {} metadata caches", caches.size());
     }
 
-    private int executeTotalCountQuery(QueryContext context, BaseExecutor.SqlResult sqlResult) {
+    private int executeTotalCountQuery(QueryContext context, SqlResult sqlResult) {
         try {
             // Build count query without pagination
             // Use the original SQL without pagination for count

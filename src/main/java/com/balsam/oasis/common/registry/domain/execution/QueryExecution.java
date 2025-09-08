@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.base.BaseContext;
+import com.balsam.oasis.common.registry.domain.common.Pagination;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
@@ -144,7 +145,7 @@ public class QueryExecution {
             // Limit page size to prevent excessive data retrieval
             end = start + 1000;
         }
-        context.setPagination(BaseContext.Pagination.builder()
+        context.setPagination(Pagination.builder()
                 .start(start)
                 .end(end)
                 .build());
@@ -162,7 +163,7 @@ public class QueryExecution {
         if (limit > 1000) {
             limit = 1000; // Max page size
         }
-        context.setPagination(BaseContext.Pagination.builder()
+        context.setPagination(Pagination.builder()
                 .start(offset)
                 .end(offset + limit)
                 .build());

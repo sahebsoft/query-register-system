@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.MetadataContext;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
-import com.balsam.oasis.common.registry.domain.execution.QueryResult;
 import com.balsam.oasis.common.registry.exception.QueryException;
 import com.balsam.oasis.common.registry.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;

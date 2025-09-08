@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.engine.metadata;
 
-import java.sql.PreparedStatement;
 import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -11,18 +11,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.balsam.oasis.common.registry.base.BaseExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * Builds and manages metadata caches for queries. This builder is responsible
@@ -75,7 +75,7 @@ public class MetadataCacheBuilder {
             QueryContext metadataContext = createMetadataContext(definition);
 
             // Build SQL
-            BaseExecutor.SqlResult sqlResult = sqlBuilder.build(metadataContext);
+            SqlResult sqlResult = sqlBuilder.build(metadataContext);
             String sql = sqlResult.getSql();
             Map<String, Object> params = sqlResult.getParams();
 

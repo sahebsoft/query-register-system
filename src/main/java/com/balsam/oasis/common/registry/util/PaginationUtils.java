@@ -1,7 +1,8 @@
 package com.balsam.oasis.common.registry.util;
 
-import com.balsam.oasis.common.registry.base.BaseContext;
 import java.util.Map;
+
+import com.balsam.oasis.common.registry.domain.common.Pagination;
 
 /**
  * Centralized pagination utility for all SQL dialects.
@@ -25,7 +26,7 @@ public class PaginationUtils {
      * @param params     The parameter map to add pagination parameters to
      * @return The paginated SQL query
      */
-    public static String applyPagination(String sql, BaseContext.Pagination pagination,
+    public static String applyPagination(String sql, Pagination pagination,
             String dialect, Map<String, Object> params) {
         if (pagination == null) {
             return sql;
@@ -49,7 +50,7 @@ public class PaginationUtils {
     /**
      * Oracle 11g pagination using ROWNUM.
      */
-    private static String applyOracle11gPagination(String sql, BaseContext.Pagination pagination,
+    private static String applyOracle11gPagination(String sql, Pagination pagination,
             Map<String, Object> params) {
         sql = "SELECT * FROM (" +
                 "  SELECT inner_query.*, ROWNUM rnum FROM (" +
@@ -65,7 +66,7 @@ public class PaginationUtils {
     /**
      * Oracle 12c+ pagination using OFFSET/FETCH.
      */
-    private static String applyOracle12cPagination(String sql, BaseContext.Pagination pagination,
+    private static String applyOracle12cPagination(String sql, Pagination pagination,
             Map<String, Object> params) {
         sql = sql + " OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
         params.put("offset", pagination.getOffset());
@@ -76,7 +77,7 @@ public class PaginationUtils {
     /**
      * PostgreSQL pagination using LIMIT/OFFSET.
      */
-    private static String applyPostgresPagination(String sql, BaseContext.Pagination pagination,
+    private static String applyPostgresPagination(String sql, Pagination pagination,
             Map<String, Object> params) {
         sql = sql + " LIMIT :limit OFFSET :offset";
         params.put("limit", pagination.getLimit());
@@ -87,7 +88,7 @@ public class PaginationUtils {
     /**
      * MySQL pagination using LIMIT with offset.
      */
-    private static String applyMySqlPagination(String sql, BaseContext.Pagination pagination,
+    private static String applyMySqlPagination(String sql, Pagination pagination,
             Map<String, Object> params) {
         sql = sql + " LIMIT :offset, :limit";
         params.put("offset", pagination.getOffset());
@@ -98,7 +99,7 @@ public class PaginationUtils {
     /**
      * Standard SQL pagination (most databases support this).
      */
-    private static String applyStandardPagination(String sql, BaseContext.Pagination pagination,
+    private static String applyStandardPagination(String sql, Pagination pagination,
             Map<String, Object> params) {
         sql = sql + " LIMIT :limit OFFSET :offset";
         params.put("limit", pagination.getLimit());
@@ -109,7 +110,7 @@ public class PaginationUtils {
     /**
      * Update pagination metadata after query execution.
      */
-    public static void updatePaginationMetadata(BaseContext.Pagination pagination, int totalCount) {
+    public static void updatePaginationMetadata(Pagination pagination, int totalCount) {
         if (pagination != null) {
             pagination.setTotal(totalCount);
             pagination.setHasNext(pagination.getEnd() < totalCount);

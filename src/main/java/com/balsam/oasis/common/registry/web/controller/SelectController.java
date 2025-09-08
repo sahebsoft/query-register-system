@@ -2,19 +2,6 @@ package com.balsam.oasis.common.registry.web.controller;
 
 import java.util.List;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.api.QueryRegistry;
-import com.balsam.oasis.common.registry.domain.definition.FilterOp;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
-import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
-import com.balsam.oasis.common.registry.domain.execution.QueryResult;
-import com.balsam.oasis.common.registry.exception.QueryException;
-import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
-import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
-import com.balsam.oasis.common.registry.web.dto.response.ErrorResponse;
-import com.balsam.oasis.common.registry.web.dto.response.ErrorResponse.ErrorResponseBuilder;
-import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -25,6 +12,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.balsam.oasis.common.registry.api.QueryExecutor;
+import com.balsam.oasis.common.registry.api.QueryRegistry;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.definition.FilterOp;
+import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
+import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
+import com.balsam.oasis.common.registry.exception.QueryException;
+import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
+import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
+import com.balsam.oasis.common.registry.web.dto.response.ErrorResponse;
+import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
