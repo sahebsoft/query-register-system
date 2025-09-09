@@ -2,7 +2,6 @@ package com.balsam.oasis.common.registry.example;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +14,6 @@ import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
-import com.balsam.oasis.common.registry.domain.result.Row;
-import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -165,6 +162,11 @@ public class OracleHRQueryConfig {
                                                 .calculated((row, context) -> {
                                                         return "Hello World";
                                                 }).build())
+                                .attribute(AttributeDef.name("internalDebugInfo")
+                                                .type(String.class)
+                                                .selected(false) // Hidden by default unless explicitly requested
+                                                .calculated((row, context) -> "Debug: ID=" + row.get("employeeId"))
+                                                .build())
 
                                 // Parameters
                                 .parameter(ParamDef.name("deptId")
@@ -371,34 +373,21 @@ public class OracleHRQueryConfig {
                                                                 // Execute query to get all employees in this department
                                                                 // Use departmentIds parameter for IN clause instead of
                                                                 // deptId
+                                                                // Using select() to only get needed fields (performance
+                                                                // optimization)
                                                                 QueryResult result = queryExecutor.execute("employees")
                                                                                 .withParam("departmentIds",
                                                                                                 List.of(deptId))
-                                                                                .withPagination(0, 100) // Increased
-                                                                                                        // limit to get
-                                                                                                        // more
-                                                                                                        // employees
+                                                                                .select("employeeId", "firstName")
+                                                                                .withPagination(0, 100)
                                                                                 .execute();
 
                                                                 System.out.println("Found " + result.getRows().size()
-                                                                                + " employees for dept " + deptId);
+                                                                                + " employees for dept " + deptId
+                                                                                + " (using select for performance)");
 
                                                                 // Return simplified employee data
-                                                                return result.getRows().stream()
-                                                                                .map(empRow -> Map.of(
-                                                                                                "employeeId",
-                                                                                                empRow.get("employeeId"),
-                                                                                                "name",
-                                                                                                empRow.get("firstName")
-                                                                                                                + " "
-                                                                                                                + empRow.get("lastName"),
-                                                                                                "email",
-                                                                                                empRow.get("email"),
-                                                                                                "jobTitle",
-                                                                                                empRow.get("jobTitle"),
-                                                                                                "salary",
-                                                                                                empRow.get("salary")))
-                                                                                .toList();
+                                                                return result.getData();
                                                         } catch (Exception e) {
                                                                 System.err.println(
                                                                                 "Error fetching department employees: "

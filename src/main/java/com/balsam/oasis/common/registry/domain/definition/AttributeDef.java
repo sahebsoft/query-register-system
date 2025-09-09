@@ -59,6 +59,7 @@ public class AttributeDef<T> {
     boolean sortable;
     boolean primaryKey;
     boolean virtual; // True for calculated/transient attributes
+    boolean selected; // False to exclude from response/metadata unless explicitly requested
 
     // For regular attributes: formats the value to string
     AttributeFormatter<T> formatter;
@@ -105,6 +106,7 @@ public class AttributeDef<T> {
         this.sortable = builder.sortable;
         this.primaryKey = builder.primaryKey;
         this.virtual = builder.virtual;
+        this.selected = builder.selected;
         this.formatter = builder.formatter;
         this.calculator = builder.calculator;
         this.sortProperty = builder.sortProperty;
@@ -173,6 +175,7 @@ public class AttributeDef<T> {
         private boolean sortable = true; // Default true for non-virtual attributes
         private boolean primaryKey = false;
         private boolean virtual = false;
+        private boolean selected = true; // Default true - included in response/metadata
         private AttributeFormatter<T> formatter;
         private Calculator<T> calculator;
         private String sortProperty;
@@ -228,6 +231,7 @@ public class AttributeDef<T> {
             newBuilder.sortable = this.sortable;
             newBuilder.primaryKey = this.primaryKey;
             newBuilder.virtual = this.virtual;
+            newBuilder.selected = this.selected;
             newBuilder.formatter = (AttributeFormatter<U>) this.formatter;
             newBuilder.calculator = (Calculator<U>) this.calculator;
             newBuilder.sortProperty = this.sortProperty;
@@ -358,6 +362,11 @@ public class AttributeDef<T> {
 
         public BuilderStage<T> visible(boolean visible) {
             this.visible = visible;
+            return this;
+        }
+
+        public BuilderStage<T> selected(boolean selected) {
+            this.selected = selected;
             return this;
         }
 

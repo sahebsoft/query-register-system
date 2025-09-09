@@ -82,6 +82,17 @@ public class MetadataBuilder {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
 
+            // Skip if attribute not selected
+            if (!context.isFieldSelected(attrName)) {
+                continue;
+            }
+
+            // Skip attributes with selected=false unless explicitly requested
+            if (!attr.isSelected() && (context.getSelectedFields() == null || 
+                !context.getSelectedFields().contains(attrName))) {
+                continue;
+            }
+
             // Check security restrictions
             Boolean restricted = null;
             String restrictionReason = null;

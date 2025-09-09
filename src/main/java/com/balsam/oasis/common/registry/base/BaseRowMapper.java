@@ -66,6 +66,11 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
                 continue;
             }
 
+            // Skip if attribute not selected
+            if (!isAttributeIncluded(attr, attrName, context)) {
+                continue;
+            }
+
             // Check security
             if (attr.isSecured() && hasSecurityContext(context)) {
                 Object securityContext = getSecurityContext(context);
@@ -102,6 +107,11 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
                 continue;
             }
 
+            // Skip if attribute not selected
+            if (!isAttributeIncluded(attr, attrName, context)) {
+                continue;
+            }
+
             // Apply formatter if present (converts to String)
             if (attr.hasFormatter()) {
                 try {
@@ -125,6 +135,12 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
             // Only process transient attributes
             if (!attr.isVirual()) {
+                continue;
+            }
+
+            // Skip if attribute not selected
+            if (!isAttributeIncluded(attr, attrName, context)) {
+                log.debug("Skipping unselected field: {}", attrName);
                 continue;
             }
 
@@ -169,6 +185,11 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
                 continue;
             }
 
+            // Skip if attribute not selected
+            if (!isAttributeIncluded(attr, attrName, context)) {
+                continue;
+            }
+
             try {
                 Object currentValue = getValueFromOutput(intermediateResult, attrName);
                 if (currentValue != null) {
@@ -189,6 +210,22 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
         // Create final output
         return createFinalOutput(processedData, rawData, context);
+    }
+
+    /**
+     * Check if an attribute should be included in the result based on:
+     * 1. The attribute's selected field (if false, exclude unless explicitly requested)
+     * 2. The context's field selection (if specified, only include selected fields)
+     */
+    protected boolean isAttributeIncluded(AttributeDef<?> attr, String attrName, QueryContext context) {
+        // If attribute has selected=false, only include if explicitly requested
+        if (!attr.isSelected()) {
+            return context.getSelectedFields() != null && 
+                   context.getSelectedFields().contains(attrName);
+        }
+        
+        // Otherwise, include based on field selection
+        return context.isFieldSelected(attrName);
     }
 
     /**

@@ -7,11 +7,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.util.MultiValueMap;
@@ -47,6 +49,7 @@ public class QueryRequestParser {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();
         List<QueryContext.SortSpec> sorts = new ArrayList<>();
+        Set<String> selectedFields = null;
 
         // Parse each parameter
         for (Map.Entry<String, List<String>> entry : allParams.entrySet()) {
@@ -59,8 +62,21 @@ public class QueryRequestParser {
 
             String value = values.get(0); // Take first value for single-valued params
 
-            // Skip pagination and format parameters
-            if (key.startsWith("_")) {
+            // Skip pagination and format parameters (except _fields)
+            if (key.startsWith("_") && !key.equals("_fields")) {
+                continue;
+            }
+
+            // Check for fields parameter
+            if (key.equals("fields") || key.equals("_fields")) {
+                // Parse comma-separated field names
+                if (selectedFields == null) {
+                    selectedFields = new HashSet<>();
+                }
+                String fieldsValue = values.get(0);
+                if (fieldsValue != null && !fieldsValue.isEmpty()) {
+                    selectedFields.addAll(Arrays.asList(fieldsValue.split(",")));
+                }
                 continue;
             }
 
@@ -187,6 +203,7 @@ public class QueryRequestParser {
                 .start(start)
                 .end(end)
                 .metadataLevel(metadataLevel)
+                .selectedFields(selectedFields)
                 .build();
     }
 

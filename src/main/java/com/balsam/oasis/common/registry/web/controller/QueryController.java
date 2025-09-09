@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.exception.QueryException;
 import com.balsam.oasis.common.registry.exception.QueryValidationException;
@@ -124,13 +125,19 @@ public class QueryController {
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
             // Execute as list query
-            QueryResult result = queryExecutor.execute(queryName)
+            QueryExecution execution = queryExecutor.execute(queryName)
                     .withParams(queryRequest.getParams())
                     .withFilters(queryRequest.getFilters())
                     .withSort(queryRequest.getSorts())
                     .withPagination(_start, _end)
-                    .includeMetadata(!"none".equals(_meta))
-                    .execute();
+                    .includeMetadata(!"none".equals(_meta));
+            
+            // Apply field selection if specified
+            if (queryRequest.getSelectedFields() != null && !queryRequest.getSelectedFields().isEmpty()) {
+                execution.selectFields(queryRequest.getSelectedFields());
+            }
+            
+            QueryResult result = execution.execute();
 
             // Build JSON response
             return responseBuilder.build(result, queryName);

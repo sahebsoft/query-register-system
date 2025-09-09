@@ -184,10 +184,12 @@ public class RowImpl implements Row {
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = new HashMap<>();
-        // Filter out null values for ImmutableMap
+        // Filter based on field selection and null values
         data.forEach((k, v) -> {
-            if (v != null)
+            // Only include if field is selected and value is not null
+            if (v != null && (context == null || context.isFieldSelected(k))) {
                 result.put(k, v);
+            }
         });
         return ImmutableMap.copyOf(result);
     }

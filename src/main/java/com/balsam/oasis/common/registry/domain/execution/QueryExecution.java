@@ -3,6 +3,7 @@ package com.balsam.oasis.common.registry.domain.execution;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
@@ -186,6 +187,17 @@ public class QueryExecution {
     // Caching control
     public QueryExecution withCaching(boolean enabled) {
         context.setCacheEnabled(enabled);
+        return this;
+    }
+
+    // Field selection
+    public QueryExecution select(String... fields) {
+        context.selectFields(fields);
+        return this;
+    }
+
+    public QueryExecution selectFields(Set<String> fields) {
+        context.selectFields(fields);
         return this;
     }
 

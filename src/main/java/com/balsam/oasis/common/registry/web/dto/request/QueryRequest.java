@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
@@ -20,4 +21,5 @@ public class QueryRequest {
     private int start;
     private int end;
     private String metadataLevel;
+    private Set<String> selectedFields;
 }

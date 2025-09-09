@@ -1,10 +1,13 @@
 package com.balsam.oasis.common.registry.domain.execution;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
@@ -60,6 +63,8 @@ public class QueryContext {
 
     @Builder.Default
     private Map<String, Object> attributes = new HashMap<>();
+
+    private Set<String> selectedFields; // null or empty = all fields
 
     @Data
     @Builder
@@ -191,6 +196,19 @@ public class QueryContext {
         return pagination != null;
     }
 
+    public void selectFields(String... fields) {
+        this.selectedFields = new HashSet<>(Arrays.asList(fields));
+    }
+
+    public void selectFields(Set<String> fields) {
+        this.selectedFields = fields != null ? new HashSet<>(fields) : null;
+    }
+
+    public boolean isFieldSelected(String fieldName) {
+        return selectedFields == null || selectedFields.isEmpty() || 
+               selectedFields.contains(fieldName);
+    }
+
     /**
      * Returns a new context with the updated definition.
      * Used when we need to update the definition with metadata cache.
@@ -207,6 +225,7 @@ public class QueryContext {
                 .startTime(this.startTime)
                 .endTime(this.endTime)
                 .build();
+        newContext.setSelectedFields(this.selectedFields);
         return newContext;
     }
 }
