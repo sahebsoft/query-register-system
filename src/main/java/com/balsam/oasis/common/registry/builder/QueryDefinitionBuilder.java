@@ -12,7 +12,6 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.ValidationRule;
 import com.balsam.oasis.common.registry.processor.PostProcessor;
 import com.balsam.oasis.common.registry.processor.PreProcessor;
@@ -54,10 +53,10 @@ public class QueryDefinitionBuilder {
     private boolean metricsEnabled = true;
     private Integer queryTimeout;
     private String findByKeyCriteriaName;
-    
+
     // Dynamic attributes configuration
     private boolean includeDynamicAttributes = false;
-    private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.AS_IS;
+    private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
 
     private QueryDefinitionBuilder(String name) {
         Preconditions.checkNotNull(name, "Query name cannot be null");
@@ -256,6 +255,8 @@ public class QueryDefinitionBuilder {
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)
                 .findByKeyCriteriaName(findByKeyCriteriaName)
+                .metadataCache(null) // set later if needed
+                .metadataCacheEnabled(true)
                 .includeDynamicAttributes(includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
                 .build();

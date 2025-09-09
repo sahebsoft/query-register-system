@@ -8,9 +8,9 @@ import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.MetadataContext;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.domain.select.SelectItem;
 import com.balsam.oasis.common.registry.exception.QueryException;

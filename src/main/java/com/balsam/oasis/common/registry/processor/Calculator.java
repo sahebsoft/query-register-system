@@ -1,6 +1,6 @@
 package com.balsam.oasis.common.registry.processor;
 
-import com.balsam.oasis.common.registry.base.BaseContext;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.result.Row;
 
 /**
@@ -20,5 +20,5 @@ public interface Calculator<T> {
      * @param context The execution context (QueryContext, SelectContext, etc.)
      * @return The calculated value of type T
      */
-    T calculate(Row row, BaseContext<?> context);
+    T calculate(Row row, QueryContext context);
 }

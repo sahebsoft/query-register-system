@@ -8,11 +8,11 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.ValidationRule;
 import com.balsam.oasis.common.registry.domain.select.LabelDef;
 import com.balsam.oasis.common.registry.domain.select.ValueDef;
@@ -62,6 +62,10 @@ public class SelectDefinitionBuilder {
     private boolean auditEnabled = true;
     private boolean metricsEnabled = true;
     private Integer queryTimeout;
+    
+    // Dynamic attributes configuration
+    private boolean includeDynamicAttributes = false;
+    private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
 
     private SelectDefinitionBuilder(String name) {
         Preconditions.checkNotNull(name, "Select name cannot be null");
@@ -360,6 +364,23 @@ public class SelectDefinitionBuilder {
         this.queryTimeout = seconds;
         return this;
     }
+    
+    /**
+     * Enable/disable dynamic attributes (columns not defined in AttributeDef)
+     */
+    public SelectDefinitionBuilder includeDynamicAttributes(boolean include) {
+        this.includeDynamicAttributes = include;
+        return this;
+    }
+    
+    /**
+     * Set the naming strategy for dynamic attributes
+     */
+    public SelectDefinitionBuilder dynamicAttributeNamingStrategy(NamingStrategy strategy) {
+        Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
+        this.dynamicAttributeNamingStrategy = strategy;
+        return this;
+    }
 
     /**
      * Build the QueryDefinition with select-type configuration
@@ -428,6 +449,11 @@ public class SelectDefinitionBuilder {
                 .auditEnabled(auditEnabled)
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)
+                .paginationEnabled(true) // always true for select
+                .metadataCache(null) // set later if needed
+                .metadataCacheEnabled(true)
+                .includeDynamicAttributes(includeDynamicAttributes)
+                .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
                 .build();
     }
 }

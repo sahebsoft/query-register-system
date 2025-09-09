@@ -12,7 +12,9 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 import com.balsam.oasis.common.registry.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.util.TypeConverter;
@@ -28,13 +30,10 @@ import org.springframework.jdbc.core.RowMapper;
  * rules.
  * Uses cached indexes when available for performance, falls back to name-based
  * access otherwise.
- * Works for both Query and Select modules.
  * 
  * @param <T> The output type (Row, SelectItem, etc.)
- * @param <D> The definition type (QueryDefinition, SelectDefinition)
- * @param <C> The context type (QueryContext, SelectContext)
  */
-public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseContext<D>> implements RowMapper<T> {
+public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
     private static final Logger log = LoggerFactory.getLogger(BaseRowMapper.class);
 
@@ -47,15 +46,15 @@ public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseC
     /**
      * Map a ResultSet row with full context support.
      */
-    public T mapRow(ResultSet rs, int rowNum, C context) throws SQLException {
-        D definition = context.getDefinition();
-        MetadataCache cache = getCache(context);
+    public T mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
+        QueryDefinition definition = context.getDefinition();
+        MetadataCache cache = definition.getMetadataCache();
 
         Map<String, Object> processedData = new HashMap<>();
         Map<String, Object> rawData = extractRawData(rs, cache);
 
         // Get all attributes to process
-        Map<String, AttributeDef<?>> attributes = getAttributesToProcess(definition);
+        Map<String, AttributeDef<?>> attributes = definition.getAttributes();
 
         // First pass: Map regular (non-transient) attributes from database
         for (Map.Entry<String, AttributeDef<?>> entry : attributes.entrySet()) {
@@ -404,20 +403,20 @@ public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseC
      * Get all attributes to process from the definition.
      * Subclasses can override to customize which attributes are processed.
      */
-    protected abstract Map<String, AttributeDef<?>> getAttributesToProcess(D definition);
+    protected abstract Map<String, AttributeDef<?>> getAttributesToProcess(QueryDefinition definition);
 
     /**
      * Create intermediate output object for use in calculators.
      * This may be the same as the final output for some implementations.
      */
     protected abstract T createIntermediateOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, C context);
+            Map<String, Object> rawData, QueryContext context);
 
     /**
      * Create the final output object.
      */
     protected abstract T createFinalOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, C context);
+            Map<String, Object> rawData, QueryContext context);
 
     /**
      * Get a value from the output object by attribute name.
@@ -435,52 +434,46 @@ public abstract class BaseRowMapper<T, D extends BaseDefinition, C extends BaseC
      * Check if the context has security context.
      * Override in subclasses that support security.
      */
-    protected boolean hasSecurityContext(C context) {
-        return false;
+    protected boolean hasSecurityContext(QueryContext context) {
+        return context.getSecurityContext() != null;
     }
 
     /**
      * Get security context from context.
      * Override in subclasses that support security.
      */
-    protected Object getSecurityContext(C context) {
-        return null;
+    protected Object getSecurityContext(QueryContext context) {
+        return context.getSecurityContext();
     }
 
     /**
      * Calculate attribute value using the calculator.
      * Override in subclasses to handle specific calculator types.
      */
-    protected abstract Object calculateAttribute(AttributeDef<?> attr, T intermediateResult, C context);
+    protected abstract Object calculateAttribute(AttributeDef<?> attr, T intermediateResult, QueryContext context);
 
     /**
      * Get MetadataCache from context if available.
      * Subclasses can override to provide cache from different sources.
      */
-    protected MetadataCache getCache(BaseContext<?> context) {
-        // Default implementation returns null
-        // Subclasses should override this to provide cache if available
-        return null;
-    }
 
     /**
      * Check if dynamic attributes should be included.
      * Subclasses can override to provide custom logic.
      */
-    protected boolean shouldIncludeDynamicAttributes(D definition) {
-        // Default implementation returns false
-        // Subclasses should override this based on their definition type
-        return false;
+    protected boolean shouldIncludeDynamicAttributes(QueryDefinition definition) {
+        return definition.isIncludeDynamicAttributes();
     }
 
     /**
-     * Add dynamic attributes (columns not defined in AttributeDef) to the processed data.
+     * Add dynamic attributes (columns not defined in AttributeDef) to the processed
+     * data.
      * These are columns returned by the SQL query but not explicitly defined.
      */
-    protected void addDynamicAttributes(Map<String, Object> processedData, 
-                                       Map<String, Object> rawData,
-                                       Map<String, AttributeDef<?>> definedAttributes,
-                                       D definition) {
+    protected void addDynamicAttributes(Map<String, Object> processedData,
+            Map<String, Object> rawData,
+            Map<String, AttributeDef<?>> definedAttributes,
+            QueryDefinition definition) {
         // Default implementation does nothing
         // Subclasses should override this to add dynamic attributes
     }

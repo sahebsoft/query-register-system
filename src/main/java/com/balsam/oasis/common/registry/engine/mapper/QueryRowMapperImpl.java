@@ -4,11 +4,10 @@ import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.base.BaseContext;
 import com.balsam.oasis.common.registry.base.BaseRowMapper;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.domain.result.RowImpl;
@@ -17,7 +16,7 @@ import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 /**
  * Query-specific implementation of BaseRowMapper that produces Row objects.
  */
-public class QueryRowMapperImpl extends BaseRowMapper<Row, QueryDefinition, QueryContext> {
+public class QueryRowMapperImpl extends BaseRowMapper<Row> {
 
     @Override
     protected Map<String, AttributeDef<?>> getAttributesToProcess(QueryDefinition definition) {
@@ -50,48 +49,23 @@ public class QueryRowMapperImpl extends BaseRowMapper<Row, QueryDefinition, Quer
     }
 
     @Override
-    protected boolean hasSecurityContext(QueryContext context) {
-        return context.getSecurityContext() != null;
-    }
-
-    @Override
-    protected Object getSecurityContext(QueryContext context) {
-        return context.getSecurityContext();
-    }
-
-    @Override
     protected Object calculateAttribute(AttributeDef<?> attr, Row intermediateResult, QueryContext context) {
-        // Calculator now expects Row and BaseContext<?> - pass QueryContext as
-        // BaseContext
-        return attr.getCalculator().calculate(intermediateResult, (BaseContext<?>) context);
-    }
-
-    @Override
-    protected MetadataCache getCache(BaseContext<?> context) {
-        // QueryDefinition has MetadataCache
-        if (context != null && context.getDefinition() != null && context.getDefinition() instanceof QueryDefinition) {
-            return ((QueryDefinition) context.getDefinition()).getMetadataCache();
-        }
-        return null;
-    }
-
-    @Override
-    protected boolean shouldIncludeDynamicAttributes(QueryDefinition definition) {
-        return definition.isIncludeDynamicAttributes();
+        // Calculator now expects Row and QueryContext
+        return attr.getCalculator().calculate(intermediateResult, context);
     }
 
     @Override
     protected void addDynamicAttributes(Map<String, Object> processedData,
-                                       Map<String, Object> rawData,
-                                       Map<String, AttributeDef<?>> definedAttributes,
-                                       QueryDefinition definition) {
+            Map<String, Object> rawData,
+            Map<String, AttributeDef<?>> definedAttributes,
+            QueryDefinition definition) {
         if (rawData == null || rawData.isEmpty()) {
             return;
         }
 
         // Get the naming strategy
         NamingStrategy namingStrategy = definition.getDynamicAttributeNamingStrategy();
-        
+
         // Create a set of defined attribute names and their aliases for quick lookup
         Set<String> definedNames = new HashSet<>();
         for (Map.Entry<String, AttributeDef<?>> entry : definedAttributes.entrySet()) {
@@ -101,24 +75,24 @@ public class QueryRowMapperImpl extends BaseRowMapper<Row, QueryDefinition, Quer
                 definedNames.add(attr.getAliasName().toLowerCase());
             }
         }
-        
+
         // Add undefined columns with naming strategy
         for (Map.Entry<String, Object> entry : rawData.entrySet()) {
             String columnName = entry.getKey();
-            
+
             // Skip if this column is already defined
             if (definedNames.contains(columnName.toLowerCase())) {
                 continue;
             }
-            
+
             // Apply naming strategy to get the attribute name
             String attributeName = namingStrategy.convert(columnName);
-            
+
             // Skip if the converted name conflicts with an existing attribute
             if (processedData.containsKey(attributeName)) {
                 continue;
             }
-            
+
             // Add the dynamic attribute
             processedData.put(attributeName, entry.getValue());
         }

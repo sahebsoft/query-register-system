@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

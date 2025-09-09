@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.api.QueryExecutor;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.engine.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.exception.QueryValidationException;

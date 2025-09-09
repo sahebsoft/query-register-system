@@ -9,12 +9,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 
 import jakarta.annotation.PostConstruct;
 
@@ -33,7 +33,6 @@ public class OracleHRQueryConfig {
                 // Register all queries defined in this configuration
                 queryRegistrar.register(employeesQuery());
                 queryRegistrar.register(departmentStatsQuery());
-
                 queryRegistrar.register(QueryDefinitionBuilder.builder("testUnion").sql(
                                 """
                                                 select employee_id,email

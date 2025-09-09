@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 
 /**
  * Read-only view of registered queries.

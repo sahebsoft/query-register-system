@@ -4,10 +4,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 
 /**
  * Validates query definitions for duplicates and other issues.

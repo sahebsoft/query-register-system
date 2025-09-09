@@ -6,8 +6,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 
 /**
  * Validates that all bind parameters in SQL queries and criteria are defined in

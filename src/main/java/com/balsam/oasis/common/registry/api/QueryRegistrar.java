@@ -1,6 +1,6 @@
 package com.balsam.oasis.common.registry.api;
 
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 
 /**
  * Central registry for QueryDefinition instances.

@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 
 import lombok.Builder;
 import lombok.Getter;

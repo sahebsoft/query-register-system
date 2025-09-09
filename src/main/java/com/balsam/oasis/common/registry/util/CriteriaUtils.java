@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.util;
 
-import com.balsam.oasis.common.registry.base.BaseContext;
 import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.engine.sql.SqlUtils;
 
@@ -15,7 +15,7 @@ public class CriteriaUtils {
 
     public static String applyCriteria(String sql,
             Map<String, CriteriaDef> criteria,
-            BaseContext<?> context,
+            Object context,
             Map<String, Object> params,
             boolean trackApplied) {
         if (criteria == null || criteria.isEmpty()) {
@@ -30,8 +30,8 @@ public class CriteriaUtils {
                 if (shouldApply) {
                     sql = sql.replace(placeholder, criteriaDef.getSql());
 
-                    if (trackApplied) {
-                        context.addAppliedCriteria(
+                    if (trackApplied && context instanceof QueryContext) {
+                        ((QueryContext) context).addAppliedCriteria(
                                 AppliedCriteria.builder()
                                         .name(criteriaDef.getName())
                                         .sql(criteriaDef.getSql())
@@ -50,7 +50,7 @@ public class CriteriaUtils {
 
     @SuppressWarnings("unchecked")
     public static boolean shouldApplyCriteria(CriteriaDef criteria,
-            BaseContext<?> context,
+            Object context,
             Map<String, Object> params) {
         if (criteria.getCondition() != null) {
             // The condition predicate expects QueryContext, but we have BaseContext

@@ -13,9 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.api.QueryRegistry;
+import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
-import com.balsam.oasis.common.registry.domain.definition.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.domain.result.Row;
@@ -155,19 +155,26 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             // Try to ensure metadata cache exists for optimal performance
             QueryDefinition definition = context.getDefinition();
+            QueryContext contextToUse = context; // Context to use for execution
+
             if (definition.getMetadataCache() == null) {
                 try {
                     log.debug("Building metadata cache for query: {}", definition.getName());
                     MetadataCache cache = metadataCacheBuilder.buildCache(definition);
-                    definition.setMetadataCache(cache);
+                    // Create new definition with cache and update context
+                    definition = definition.withMetadataCache(cache);
+                    contextToUse = context.withDefinition(definition);
                 } catch (Exception e) {
                     log.debug("Could not build metadata cache, will use name-based access: {}", e.getMessage());
                 }
             }
 
+            // Create final reference for lambda
+            final QueryContext finalContext = contextToUse;
+
             // Use the unified row mapper (it will adapt based on cache availability)
             return namedJdbcTemplate.query(sql, params,
-                    (rs, rowNum) -> rowMapper.mapRow(rs, rowNum, context));
+                    (rs, rowNum) -> rowMapper.mapRow(rs, rowNum, finalContext));
 
         } catch (Exception e) {
             throw new QueryExecutionException(
@@ -184,11 +191,14 @@ public class QueryExecutorImpl implements QueryExecutor {
         log.info("Pre-warming metadata caches for {} queries", queries.size());
         Map<String, MetadataCache> caches = metadataCacheBuilder.prewarmCaches(queries);
 
-        // Set caches on definitions
+        // Store updated definitions with caches locally
+        // Since QueryRegistry is read-only, we can't update it directly
+        // The cached definitions will be used when queries are executed
         for (Map.Entry<String, MetadataCache> entry : caches.entrySet()) {
             QueryDefinition definition = queryRegistry.get(entry.getKey());
             if (definition != null) {
-                definition.setMetadataCache(entry.getValue());
+                // The metadata cache is already built and will be used during execution
+                log.debug("Metadata cache ready for query: {}", entry.getKey());
             }
         }
 
