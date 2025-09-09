@@ -102,8 +102,8 @@ SQL queries use comment placeholders that are dynamically replaced:
 
 Example:
 ```sql
-SELECT * FROM users 
-WHERE active = true 
+SELECT * FROM employees 
+WHERE active = 'Y' 
 --statusFilter
 --dateFilter
 --orderBy
@@ -116,97 +116,23 @@ WHERE active = true
 - **spring-boot-starter-jdbc**: Core JDBC operations
 - **spring-boot-starter-web**: REST API support
 - **spring-boot-starter-validation**: Bean validation
-- **spring-boot-starter-cache**: Caching with Caffeine
-- **spring-boot-starter-security**: Optional security integration
 
 ### Database
 - **Oracle Database**: Support for both 11g and 12c+ versions
 - **HikariCP**: Connection pooling (included with Spring Boot)
-- **P6Spy**: SQL logging in development
 
-### Utilities
-- **Lombok 1.18.30**: Reduce boilerplate
-- **Guava 32.1.3**: Immutable collections and utilities
-- **Apache Commons Lang3**: String and general utilities
-- **Vavr 0.10.4**: Functional programming support
-- **Caffeine 3.1.8**: High-performance caching
-
-### Testing
-- **spring-boot-starter-test**: Core testing support
-- **TestContainers 1.19.3**: Integration testing with real databases
-- **AssertJ 3.24.2**: Fluent assertions
-- **Mockito 5.2.0**: Mocking framework
-- **Rest Assured 5.4.0**: REST API testing
 
 ## Important Implementation Details
 
 ### Metadata Cache System
 - **MetadataCache**: Attached to QueryDefinition after build (mutable field)
 - **MetadataCacheBuilder**: Pre-warms cache with column metadata from database
-- **OptimizedRowMapper vs DynamicRowMapper**: Two strategies for row mapping
-  - OptimizedRowMapper: Uses cached metadata for better performance
-  - DynamicRowMapper: Falls back to ResultSetMetaData when cache unavailable
 - **Cache warming**: Happens in QueryExecutor during registration
 
 ### Processor Execution Order
 1. **PreProcessors**: Run before SQL execution, can modify QueryContext
 2. **RowProcessors**: Run for each row during result mapping
 3. **PostProcessors**: Run after all rows are processed, can modify final QueryResult
-
-## Coding Rules
-
-### 1. Architecture Rules
-- Use immutable objects for all definitions with @Value or records
-- Separate concerns: Definition, Execution, Result
-- Use sealed classes for finite sets (FilterOp, SortDir)
-- Fail fast with validation at build time using Preconditions
-- QueryDefinitionBuilder validates but does NOT register globally
-
-### 2. SQL & Database Rules
-- Always use named parameters (`:paramName`), never positional (`?`)
-- SQL in text blocks with proper formatting
-- Use Spring's JdbcTemplate, not raw JDBC
-- Batch operations for multiple rows
-
-### 3. Builder Pattern Rules
-- Currently using inline builders with lambda customizers for attributes and params
-- Validate at build(), not during construction  
-- Future: Implement separate fluent builders that return parent for chaining
-
-### 4. Functional Programming Rules
-- Use functional interfaces for extensibility
-- Prefer Optional over null
-- Use Stream API for transformations
-- Compose functions for complex logic
-
-### 5. Error Handling Rules
-- Custom exceptions with context (QueryException hierarchy)
-- Use @Valid and Bean Validation
-- Never catch generic Exception, be specific
-- Include query name and context in exceptions
-
-### 6. REST API Rules
-- Use proper HTTP status codes (@ResponseStatus)
-- @RequestParam for GET endpoints with MultiValueMap
-- Support filter operators via dot notation (filter.name.like)
-- Always include metadata in responses
-
-### 7. Testing Rules
-- Test behavior, not implementation
-- Use TestContainers for database tests
-
-### 8. Performance Rules
-- Always use pagination (max 1000 records)
-- Prepare statements once and cache
-- Stream large results with queryForStream
-- Configure appropriate fetch size
-
-### 9. Security Rules
-- Never concatenate SQL strings
-- Validate all inputs with Preconditions
-- Apply security at definition time
-- Use SecurityContext for role-based access
-
 
 
 ### Key Files to Understand First
@@ -238,7 +164,7 @@ src/main/java/com/balsam/oasis/common/query/
 ```
 GET /api/query/{queryName}?
     _start=0&_end=50                         # Pagination
-    param.name=value                         # Parameters
+    name=value                         # Parameters
     filter.field=value                       # Simple filter
     filter.field.op=LIKE&filter.field.value=pattern  # Complex filter
     sort=field.desc,field2.asc              # Sorting

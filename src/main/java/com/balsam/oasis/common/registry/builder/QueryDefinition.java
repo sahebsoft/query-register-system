@@ -13,12 +13,10 @@ import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 import com.balsam.oasis.common.registry.processor.PostProcessor;
 import com.balsam.oasis.common.registry.processor.PreProcessor;
 import com.balsam.oasis.common.registry.processor.RowProcessor;
-import com.google.common.collect.ImmutableMap;
 
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import lombok.Builder;
+import lombok.Value;
 
 /**
  * Immutable query definition containing all metadata and configuration.
@@ -51,7 +49,7 @@ import lombok.Builder;
  * @see CriteriaDef
  */
 @Value
-@Builder
+@Builder(access = AccessLevel.PROTECTED)
 public class QueryDefinition {
     // Base fields from BaseDefinition
     String name;
@@ -75,11 +73,12 @@ public class QueryDefinition {
     boolean paginationEnabled;
 
     String findByKeyCriteriaName; // Name of the criteria used for findByKey
-    
+
     /**
      * Fetch size for JDBC ResultSet processing.
      * Controls how many rows are fetched from database in each round trip.
-     * -1 means use system default, 0 means fetch all, positive means fetch that many rows.
+     * -1 means use system default, 0 means fetch all, positive means fetch that
+     * many rows.
      */
     Integer fetchSize;
 
@@ -164,7 +163,7 @@ public class QueryDefinition {
     public boolean hasPostProcessors() {
         return postProcessors != null && !postProcessors.isEmpty();
     }
-    
+
     /**
      * Returns a new instance with the metadata cache set.
      * Since this object is immutable, we create a new instance.

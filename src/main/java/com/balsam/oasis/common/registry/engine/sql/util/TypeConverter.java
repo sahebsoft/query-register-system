@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.util;
+package com.balsam.oasis.common.registry.engine.sql.util;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -80,10 +80,10 @@ public final class TypeConverter {
         }
 
         // Handle numeric conversions (both wrapper and primitive types)
-        if ((Number.class.isAssignableFrom(targetType) || 
-             targetType == int.class || targetType == long.class || 
-             targetType == double.class || targetType == float.class) && 
-            value instanceof Number) {
+        if ((Number.class.isAssignableFrom(targetType) ||
+                targetType == int.class || targetType == long.class ||
+                targetType == double.class || targetType == float.class) &&
+                value instanceof Number) {
             return convertNumber((Number) value, targetType);
         }
 

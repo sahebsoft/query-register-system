@@ -1,13 +1,13 @@
-package com.balsam.oasis.common.registry.util;
+package com.balsam.oasis.common.registry.engine.sql.util;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
-import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
 /**
  * Utility class for applying sorting to SQL queries.
@@ -61,7 +61,7 @@ public class SortUtils {
             log.warn("Attribute {} is not sortable or does not exist", sort.getAttribute());
             return null;
         }
-        
+
         String column = attr.getAliasName() != null ? attr.getAliasName() : attr.getName();
         return column + " " + sort.getDirection().name();
     }

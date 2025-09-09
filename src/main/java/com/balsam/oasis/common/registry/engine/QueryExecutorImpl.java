@@ -130,8 +130,8 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             // Throw the exception so it can be properly handled by the REST controller
             // This ensures proper HTTP status codes and error messages are returned
-            if (e instanceof QueryExecutionException) {
-                throw (QueryExecutionException) e;
+            if (e instanceof QueryExecutionException queryExecutionException) {
+                throw queryExecutionException;
             } else {
                 throw new QueryExecutionException(
                         context.getDefinition().getName(),
@@ -258,10 +258,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         for (Row row : rows) {
             Row processedRow = row;
             for (var processor : definition.getRowProcessors()) {
-                Object result = processor.process(processedRow, context);
-                if (result instanceof Row) {
-                    processedRow = (Row) result;
-                }
+                processedRow = processor.process(processedRow, context);
             }
             processedRows.add(processedRow);
         }

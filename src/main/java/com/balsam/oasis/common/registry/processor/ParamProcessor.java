@@ -155,7 +155,7 @@ public interface ParamProcessor<T> {
 
             // Then convert to target type
             try {
-                return com.balsam.oasis.common.registry.util.TypeConverter.convert(numValue, targetType);
+                return com.balsam.oasis.common.registry.engine.sql.util.TypeConverter.convert(numValue, targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         String.format("Failed to convert %s to %s: %s",
@@ -213,7 +213,7 @@ public interface ParamProcessor<T> {
                 return null;
 
             try {
-                return com.balsam.oasis.common.registry.util.TypeConverter.convert(value, targetType);
+                return com.balsam.oasis.common.registry.engine.sql.util.TypeConverter.convert(value, targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         String.format("Failed to convert %s to %s: %s",
@@ -236,7 +236,8 @@ public interface ParamProcessor<T> {
             // First convert
             T convertedValue;
             try {
-                convertedValue = com.balsam.oasis.common.registry.util.TypeConverter.convert(value, targetType);
+                convertedValue = com.balsam.oasis.common.registry.engine.sql.util.TypeConverter.convert(value,
+                        targetType);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         String.format("Failed to convert %s to %s: %s",

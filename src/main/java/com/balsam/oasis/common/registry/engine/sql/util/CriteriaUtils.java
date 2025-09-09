@@ -1,13 +1,12 @@
-package com.balsam.oasis.common.registry.util;
-
-import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
-import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
-import com.balsam.oasis.common.registry.engine.sql.SqlUtils;
+package com.balsam.oasis.common.registry.engine.sql.util;
 
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
+import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
 public class CriteriaUtils {
 

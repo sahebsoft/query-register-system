@@ -204,7 +204,7 @@ public class OracleHRQueryConfig {
                                                         // Use TypeConverter for type safety
                                                         if (value == null)
                                                                 return null;
-                                                        return com.balsam.oasis.common.registry.util.TypeConverter
+                                                        return com.balsam.oasis.common.registry.engine.sql.util.TypeConverter
                                                                         .convert(value, LocalDate.class);
                                                 })
                                                 .description("Filter employees hired after this date")
@@ -215,7 +215,7 @@ public class OracleHRQueryConfig {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
                                                                 // Convert Object to Long first
-                                                                Long days = com.balsam.oasis.common.registry.util.TypeConverter
+                                                                Long days = com.balsam.oasis.common.registry.engine.sql.util.TypeConverter
                                                                                 .convert(value, Long.class);
                                                                 ctx.addParam("hiredAfter",
                                                                                 LocalDate.now().minusDays(days));

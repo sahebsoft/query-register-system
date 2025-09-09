@@ -3,16 +3,17 @@ package com.balsam.oasis.common.registry.engine.sql;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.util.CriteriaUtils;
-import com.balsam.oasis.common.registry.util.FilterUtils;
-import com.balsam.oasis.common.registry.util.PaginationUtils;
-import com.balsam.oasis.common.registry.util.SortUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.balsam.oasis.common.registry.engine.sql.util.CriteriaUtils;
+import com.balsam.oasis.common.registry.engine.sql.util.FilterUtils;
+import com.balsam.oasis.common.registry.engine.sql.util.PaginationUtils;
+import com.balsam.oasis.common.registry.engine.sql.util.SortUtils;
+import com.balsam.oasis.common.registry.engine.sql.util.SqlUtils;
 
 /**
  * Builds dynamic SQL from query definition and context.
@@ -38,8 +39,8 @@ public class QuerySqlBuilder {
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
 
         sql = CriteriaUtils.applyCriteria(sql, definition.getCriteria(), context, bindParams, true);
-
-        sql = applyCustomModifications(sql, context, bindParams);
+        sql = FilterUtils.applyFilters(sql, context, bindParams);
+        sql = SortUtils.applySorting(sql, context);
 
         if (context.hasPagination()) {
             sql = PaginationUtils.applyPagination(sql, context.getPagination(), dialect, bindParams);
@@ -56,22 +57,9 @@ public class QuerySqlBuilder {
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
 
         sql = CriteriaUtils.applyCriteria(sql, definition.getCriteria(), context, bindParams, false);
-
-        sql = applyCustomModifications(sql, context, bindParams);
-
+        sql = FilterUtils.applyFilters(sql, context, bindParams);
         sql = SqlUtils.cleanPlaceholders(sql);
 
         return SqlUtils.wrapForCount(sql);
-    }
-
-    protected String applyCustomModifications(String sql, QueryContext context, Map<String, Object> bindParams) {
-        // Apply filters and sorting using utility classes
-        sql = FilterUtils.applyFilters(sql, context, bindParams);
-        sql = SortUtils.applySorting(sql, context);
-        return sql;
-    }
-
-    public String getDatabaseDialect() {
-        return dialect;
     }
 }

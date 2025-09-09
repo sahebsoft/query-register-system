@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.util;
+package com.balsam.oasis.common.registry.engine.sql.util;
 
 import java.util.Map;
 
