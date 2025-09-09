@@ -37,7 +37,7 @@ import lombok.Value;
  *     .name("userQuery")
  *     .sql("SELECT * FROM users WHERE 1=1 --statusFilter")
  *     .attribute("id", AttributeDef.builder()...)
- *     .param("minSalary", ParamDef.builder()...)
+ *     .parameter("minSalary", ParamDef.builder()...)
  *     .criteria("statusFilter", CriteriaDef.builder()...)
  *     .build();
  * </pre>
@@ -117,10 +117,6 @@ public class QueryDefinition {
 
     public CriteriaDef getCriteria(String name) {
         return criteria.get(name);
-    }
-
-    public boolean hasFindByKey() {
-        return findByKeyCriteriaName != null && criteria.containsKey(findByKeyCriteriaName);
     }
 
     public CriteriaDef getFindByKeyCriteria() {

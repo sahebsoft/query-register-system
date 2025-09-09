@@ -335,7 +335,7 @@ com.balsam.oasis.common.registry.extension/
 
 1. **Static Registry in QueryDefinitionValidator** - Replace with injected service
 2. **Backwards compatibility in AttributeDef.name()** - Remove static factory method
-3. **Backwards compatibility in ParamDef.param()** - Remove static factory method
+3. **Backwards compatibility in ParamDef.name()** - Remove static factory method
 4. **Direct QueryExecutor registration methods** - Already removed, ensure complete cleanup
 5. **Function<Object, Object> processors** - Replace with typed interfaces
 

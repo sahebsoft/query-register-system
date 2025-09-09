@@ -22,9 +22,6 @@ public class QueryResult {
     @Builder.Default
     List<Row> rows = ImmutableList.of();
 
-    @Builder.Default
-    List<Map<String, Object>> data = ImmutableList.of();
-
     QueryMetadata metadata;
 
     @Builder.Default
@@ -75,10 +72,7 @@ public class QueryResult {
         return null;
     }
 
-    public List<Map<String, Object>> toListOfMaps() {
-        if (data != null && !data.isEmpty()) {
-            return data;
-        }
+    public List<Map<String, Object>> getData() {
         if (rows != null && !rows.isEmpty()) {
             return rows.stream()
                     .map(Row::toMap)

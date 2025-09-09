@@ -109,7 +109,7 @@ public class MetadataBuilder {
                     // Table context metadata
                     .headerText(attr.getHeaderText())
                     .alignment(attr.getAlignment())
-                    .displayOrder(attr.getDisplayOrder())
+                    .headerStyle(attr.getHeaderStyle())
                     .visible(attr.isVisible())
                     // Form context metadata
                     .placeholder(attr.getPlaceholder())

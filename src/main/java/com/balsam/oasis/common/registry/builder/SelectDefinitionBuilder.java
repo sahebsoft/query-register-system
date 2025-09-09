@@ -57,7 +57,7 @@ public class SelectDefinitionBuilder {
     // Pagination configuration
     private int defaultPageSize = 100;
     private int maxPageSize = 1000;
-    
+
     // Fetch size configuration
     private Integer fetchSize = null; // null means use system default
 
@@ -65,7 +65,7 @@ public class SelectDefinitionBuilder {
     private boolean auditEnabled = true;
     private boolean metricsEnabled = true;
     private Integer queryTimeout;
-    
+
     // Dynamic attributes configuration
     private boolean includeDynamicAttributes = false;
     private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
@@ -237,7 +237,7 @@ public class SelectDefinitionBuilder {
     /**
      * Add a parameter
      */
-    public SelectDefinitionBuilder param(ParamDef<?> param) {
+    public SelectDefinitionBuilder parameter(ParamDef<?> param) {
         Preconditions.checkNotNull(param, "Parameter cannot be null");
         Preconditions.checkNotNull(param.getName(), "Parameter name cannot be null");
         this.params.put(param.getName(), param);
@@ -249,7 +249,7 @@ public class SelectDefinitionBuilder {
      */
     public <T> SelectDefinitionBuilder param(String name, Class<T> type,
             Function<ParamDef<T>, ParamDef<T>> customizer) {
-        ParamDef<T> param = ParamDef.<T>param(name)
+        ParamDef<T> param = ParamDef.<T>name(name)
                 .type(type)
                 .build();
 
@@ -257,7 +257,7 @@ public class SelectDefinitionBuilder {
             param = customizer.apply(param);
         }
 
-        return param(param);
+        return parameter(param);
     }
 
     /**
@@ -367,11 +367,13 @@ public class SelectDefinitionBuilder {
         this.queryTimeout = seconds;
         return this;
     }
-    
+
     /**
      * Set the JDBC fetch size for this select query.
+     * 
      * @param size The number of rows to fetch in each round trip.
-     *             Use null for system default, 0 for fetch all, positive for specific size.
+     *             Use null for system default, 0 for fetch all, positive for
+     *             specific size.
      */
     public SelectDefinitionBuilder fetchSize(Integer size) {
         if (size != null && size < 0 && size != -1) {
@@ -380,7 +382,7 @@ public class SelectDefinitionBuilder {
         this.fetchSize = size;
         return this;
     }
-    
+
     /**
      * Enable dynamic attributes with default naming strategy (CAMEL).
      */
@@ -389,7 +391,7 @@ public class SelectDefinitionBuilder {
         this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
         return this;
     }
-    
+
     /**
      * Enable dynamic attributes with specified naming strategy.
      */
@@ -412,7 +414,7 @@ public class SelectDefinitionBuilder {
         // If searchCriteria is defined, ensure we have a search parameter
         if (searchCriteria != null && !params.containsKey("search")) {
             // Auto-add search parameter
-            params.put("search", ParamDef.param("search")
+            params.put("search", ParamDef.name("search")
                     .type(String.class)
                     .description("Search term")
                     .required(false)

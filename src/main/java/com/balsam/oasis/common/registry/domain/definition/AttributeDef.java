@@ -83,7 +83,7 @@ public class AttributeDef<T> {
     // Table/Grid context metadata
     String headerText; // Column header for tables (alternative to label)
     String alignment; // Column alignment: left, center, right
-    Integer displayOrder; // Display order priority
+    String headerStyle; // CSS style for table header
     boolean visible; // Default visibility in table
 
     // Form context metadata
@@ -117,7 +117,7 @@ public class AttributeDef<T> {
         // Table context
         this.headerText = builder.headerText;
         this.alignment = builder.alignment;
-        this.displayOrder = builder.displayOrder;
+        this.headerStyle = builder.headerStyle;
         this.visible = builder.visible;
         // Form context
         this.placeholder = builder.placeholder;
@@ -131,11 +131,13 @@ public class AttributeDef<T> {
     }
 
     /**
-     * Static factory method to start building an attribute Returns TypeStage to
-     * force type specification
+     * Static factory method to start building an attribute
+     * Type defaults to Object.class if not specified
      */
-    public static TypeStage name(String name) {
-        return new TypeStage(name);
+    public static BuilderStage<Object> name(String name) {
+        Preconditions.checkNotNull(name, "Attribute name cannot be null");
+        Preconditions.checkArgument(!name.trim().isEmpty(), "Attribute name cannot be empty");
+        return new BuilderStage<>(name, Object.class);
     }
 
     public boolean isSecured() {
@@ -159,43 +161,16 @@ public class AttributeDef<T> {
     }
 
     /**
-     * Stage 1: TypeStage - ONLY allows setting type This ensures type must be
-     * specified immediately after attr()
-     */
-    public static class TypeStage {
-
-        private final String name;
-
-        private TypeStage(String name) {
-            Preconditions.checkNotNull(name, "Attribute name cannot be null");
-            Preconditions.checkArgument(!name.trim().isEmpty(), "Attribute name cannot be empty");
-            this.name = name;
-        }
-
-        /**
-         * Specify the type of this attribute This is the ONLY method available
-         * at this stage
-         *
-         * @param type the Java class representing the attribute type
-         * @return the builder stage with all configuration methods
-         */
-        public <T> BuilderStage<T> type(Class<T> type) {
-            Preconditions.checkNotNull(type, "Type cannot be null");
-            return new BuilderStage<>(name, type);
-        }
-    }
-
-    /**
-     * Stage 2: BuilderStage - all configuration methods available after type is
-     * set This stage is generic and knows the attribute type
+     * BuilderStage - all configuration methods available
+     * This stage is generic and knows the attribute type
      */
     public static class BuilderStage<T> {
 
         private final String name;
         private final Class<T> type;
         private String aliasName;
-        private boolean filterable = false;
-        private boolean sortable = false;
+        private boolean filterable = true; // Default true for non-virtual attributes
+        private boolean sortable = true; // Default true for non-virtual attributes
         private boolean primaryKey = false;
         private boolean virtual = false;
         private AttributeFormatter<T> formatter;
@@ -213,7 +188,7 @@ public class AttributeDef<T> {
         // Table context fields
         private String headerText;
         private String alignment = "left";
-        private Integer displayOrder;
+        private String headerStyle; // CSS style for header
         private boolean visible = true;
 
         // Form context fields
@@ -226,10 +201,58 @@ public class AttributeDef<T> {
         private String pattern;
         private String validationMsg;
 
+        @SuppressWarnings("unchecked")
         private BuilderStage(String name, Class<T> type) {
             this.name = name;
-            this.type = type;
+            this.type = type != null ? type : (Class<T>) Object.class;
             this.aliasName = name; // Default to same as name
+            // filterable and sortable default to true for regular attributes
+            this.filterable = true;
+            this.sortable = true;
+        }
+
+        /**
+         * Specify or change the type of this attribute
+         * Creates a new builder with the specified type and copies all settings
+         *
+         * @param newType the Java class representing the attribute type
+         * @return a new builder stage with the specified type
+         */
+        @SuppressWarnings("unchecked")
+        public <U> BuilderStage<U> type(Class<U> newType) {
+            Preconditions.checkNotNull(newType, "Type cannot be null");
+            BuilderStage<U> newBuilder = new BuilderStage<>(this.name, newType);
+            // Copy all current settings
+            newBuilder.aliasName = this.aliasName;
+            newBuilder.filterable = this.filterable;
+            newBuilder.sortable = this.sortable;
+            newBuilder.primaryKey = this.primaryKey;
+            newBuilder.virtual = this.virtual;
+            newBuilder.formatter = (AttributeFormatter<U>) this.formatter;
+            newBuilder.calculator = (Calculator<U>) this.calculator;
+            newBuilder.sortProperty = this.sortProperty;
+            newBuilder.securityRule = this.securityRule;
+            newBuilder.description = this.description;
+            // UI metadata
+            newBuilder.label = this.label;
+            newBuilder.labelKey = this.labelKey;
+            newBuilder.width = this.width;
+            newBuilder.flex = this.flex;
+            // Table context
+            newBuilder.headerText = this.headerText;
+            newBuilder.alignment = this.alignment;
+            newBuilder.headerStyle = this.headerStyle;
+            newBuilder.visible = this.visible;
+            // Form context
+            newBuilder.placeholder = this.placeholder;
+            newBuilder.helpText = this.helpText;
+            newBuilder.inputType = this.inputType;
+            newBuilder.required = this.required;
+            newBuilder.maxLength = this.maxLength;
+            newBuilder.minLength = this.minLength;
+            newBuilder.pattern = this.pattern;
+            newBuilder.validationMsg = this.validationMsg;
+            return newBuilder;
         }
 
         // sql column/alias name
@@ -259,9 +282,9 @@ public class AttributeDef<T> {
         }
 
         // Mark as transient and provide calculator
-        public BuilderStage<T> transient_(boolean transient_) {
-            this.virtual = transient_;
-            if (transient_) {
+        public BuilderStage<T> virtual(boolean virtual) {
+            this.virtual = virtual;
+            if (virtual) {
                 this.aliasName = null; // Transient attributes don't have DB columns
                 this.sortable = false; // Cannot sort at DB level
                 this.filterable = false; // Cannot filter at DB level
@@ -273,6 +296,8 @@ public class AttributeDef<T> {
         public BuilderStage<T> calculated(Calculator<T> calculator) {
             this.calculator = calculator;
             this.virtual = true; // Automatically mark as transient
+            this.sortable = false; // Cannot sort at DB level
+            this.filterable = false; // Cannot filter at DB level
             this.aliasName = null;
             // Don't automatically disable sortable/filterable - will validate later
             return this;
@@ -326,8 +351,8 @@ public class AttributeDef<T> {
             return this;
         }
 
-        public BuilderStage<T> displayOrder(Integer displayOrder) {
-            this.displayOrder = displayOrder;
+        public BuilderStage<T> headerStyle(String headerStyle) {
+            this.headerStyle = headerStyle;
             return this;
         }
 

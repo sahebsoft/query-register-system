@@ -25,7 +25,7 @@ public class AttributeMetadata {
     // Table context metadata
     String headerText;
     String alignment;
-    Integer displayOrder;
+    String headerStyle;
     Boolean visible;
 
     // Form context metadata

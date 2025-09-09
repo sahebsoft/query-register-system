@@ -122,7 +122,7 @@ public class SelectController {
 
             // Execute and build select response
             QueryResult queryResult = execution.execute();
-            return responseBuilder.buildSelectResponse(queryResult, queryDefinition);
+            return responseBuilder.buildSelectResponse(queryResult);
 
         } catch (QueryException e) {
             log.error("Select execution failed: {}", e.getMessage());

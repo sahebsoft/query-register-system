@@ -75,7 +75,7 @@ public class OracleHRSelectConfig {
                                                 .type(BigDecimal.class)
                                                 .aliasName("salary")
                                                 .build())
-                                .addition(AttributeDef.name("aaaa").type(Integer.class).transient_(true)
+                                .addition(AttributeDef.name("aaaa").type(Integer.class).virtual(true)
                                                 .calculated((row, context) -> {
                                                         return 0;
                                                 }).build())
@@ -93,11 +93,11 @@ public class OracleHRSelectConfig {
                                                 .sql("AND e.salary >= :minSalary")
                                                 .condition(ctx -> ctx.hasParam("minSalary"))
                                                 .build())
-                                .param(ParamDef.param("departmentId")
+                                .parameter(ParamDef.name("departmentId")
                                                 .type(Integer.class)
                                                 .description("Filter by department ID")
                                                 .build())
-                                .param(ParamDef.param("minSalary")
+                                .parameter(ParamDef.name("minSalary")
                                                 .type(BigDecimal.class)
                                                 .description("Minimum salary filter")
                                                 .build())
@@ -114,7 +114,7 @@ public class OracleHRSelectConfig {
                                 })
                                 .postProcessor((queryResult, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult.toBuilder().rows(List.of()).data(null)
+                                        return queryResult.toBuilder().rows(List.of())
                                                         .summary(Map.of("TEST", "Summary")).build();
                                 })
                                 .defaultPageSize(20)
@@ -174,7 +174,7 @@ public class OracleHRSelectConfig {
                                                 .condition(ctx -> ctx.hasParam("locationId"))
                                                 .build())
 
-                                .param(ParamDef.param("locationId")
+                                .parameter(ParamDef.name("locationId")
                                                 .type(Integer.class)
                                                 .description("Filter by location")
                                                 .build())
@@ -260,7 +260,7 @@ public class OracleHRSelectConfig {
                                                 .sql("AND LOWER(m.first_name || ' ' || m.last_name) LIKE LOWER(:search)")
                                                 .build())
 
-                                .param(ParamDef.param("search")
+                                .parameter(ParamDef.name("search")
                                                 .type(String.class)
                                                 .build())
 

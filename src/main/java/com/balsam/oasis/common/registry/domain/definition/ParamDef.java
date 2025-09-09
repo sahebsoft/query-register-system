@@ -44,7 +44,7 @@ public class ParamDef<T> {
      * Static factory method to start building a parameter Returns TypeStage to
      * force type specification
      */
-    public static TypeStage param(String name) {
+    public static TypeStage name(String name) {
         return new TypeStage(name);
     }
 

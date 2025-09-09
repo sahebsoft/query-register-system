@@ -47,7 +47,7 @@ public class QueryDefinitionBuilder {
     private int defaultPageSize = 50;
     private int maxPageSize = 1000;
     private boolean paginationEnabled = true;
-    
+
     // Fetch size configuration
     private Integer fetchSize = null; // null means use system default
 
@@ -102,7 +102,7 @@ public class QueryDefinitionBuilder {
     /**
      * Add a fully-built parameter to the query definition
      */
-    public QueryDefinitionBuilder param(ParamDef<?> param) {
+    public QueryDefinitionBuilder parameter(ParamDef<?> param) {
         Preconditions.checkNotNull(param, "Parameter cannot be null");
 
         // Check for duplicate parameter during building
@@ -198,11 +198,13 @@ public class QueryDefinitionBuilder {
         this.paginationEnabled = enabled;
         return this;
     }
-    
+
     /**
      * Set the JDBC fetch size for this query.
+     * 
      * @param size The number of rows to fetch in each round trip.
-     *             Use null for system default, 0 for fetch all, positive for specific size.
+     *             Use null for system default, 0 for fetch all, positive for
+     *             specific size.
      */
     public QueryDefinitionBuilder fetchSize(Integer size) {
         if (size != null && size < 0 && size != -1) {
@@ -229,7 +231,7 @@ public class QueryDefinitionBuilder {
     }
 
     // Dynamic attributes configuration
-    
+
     /**
      * Enable dynamic attributes with default naming strategy (CAMEL).
      */
@@ -238,7 +240,7 @@ public class QueryDefinitionBuilder {
         this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
         return this;
     }
-    
+
     /**
      * Enable dynamic attributes with specified naming strategy.
      */

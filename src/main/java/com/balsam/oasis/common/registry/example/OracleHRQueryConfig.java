@@ -2,16 +2,21 @@ package com.balsam.oasis.common.registry.example;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
+import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
+import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.result.Row;
+import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -27,6 +32,9 @@ public class OracleHRQueryConfig {
 
         @Autowired
         private QueryRegistrar queryRegistrar;
+
+        @Autowired
+        private QueryExecutor queryExecutor;
 
         @PostConstruct
         public void registerQueries() {
@@ -45,7 +53,7 @@ public class OracleHRQueryConfig {
                                                                                 """)
                                 .attribute(AttributeDef.name("EMPLOYEE_ID").type(Integer.class)
                                                 .build())
-                                .param(ParamDef.param("jobId").type(String.class).required(true).build())
+                                .parameter(ParamDef.name("jobId").type(String.class).required(true).build())
                                 .build());
 
         }
@@ -88,11 +96,8 @@ public class OracleHRQueryConfig {
 
                                 // Employee attributes
                                 .attribute(AttributeDef.name("employeeId")
-                                                .type(Integer.class)
                                                 .aliasName("employee_id")
                                                 .primaryKey(true)
-                                                .sortable(true)
-                                                .filterable(true)
                                                 .label("Employee ID")
                                                 .labelKey("employee.id.label")
                                                 .width("100px")
@@ -100,8 +105,6 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("firstName")
                                                 .type(String.class)
                                                 .aliasName("first_name")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .label("First Name")
                                                 .labelKey("employee.firstName.label")
                                                 .width("150px")
@@ -110,8 +113,6 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("lastName")
                                                 .type(String.class)
                                                 .aliasName("last_name")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .label("Last Name")
                                                 .labelKey("employee.lastName.label")
                                                 .width("150px")
@@ -120,44 +121,35 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("email")
                                                 .type(String.class)
                                                 .aliasName("email")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("phoneNumber")
                                                 .type(String.class)
                                                 .aliasName("phone_number")
-                                                .filterable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("hireDate")
                                                 .type(LocalDate.class)
                                                 .aliasName("hire_date")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
                                 // Job information
                                 .attribute(AttributeDef.name("jobId")
                                                 .type(String.class)
                                                 .aliasName("job_id")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("jobTitle")
                                                 .type(String.class)
                                                 .aliasName("job_title")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
                                 // Location information
                                 .attribute(AttributeDef.name("city")
                                                 .type(String.class)
                                                 .aliasName("city")
-                                                .filterable(true)
-                                                .sortable(true)
+                                                .formatter(value -> value.toLowerCase())
                                                 .build())
                                 // Transient attributes (calculated fields)
                                 .attribute(AttributeDef.name("totalCompensation")
                                                 .type(BigDecimal.class)
                                                 .calculated((row, context) -> {
+                                                        System.out.println("totalCompensation");
                                                         BigDecimal salary = row.getBigDecimal("salary");
                                                         BigDecimal commission = row.getBigDecimal("commissionPct");
                                                         if (salary == null)
@@ -175,30 +167,29 @@ public class OracleHRQueryConfig {
                                                 }).build())
 
                                 // Parameters
-                                .param(ParamDef.param("deptId")
+                                .parameter(ParamDef.name("deptId")
                                                 .type(Integer.class)
                                                 .description("Filter by department ID")
                                                 .build())
 
                                 // Parameters for IN clause criteria
-                                .param(ParamDef.param("departmentIds")
+                                .parameter(ParamDef.name("departmentIds")
                                                 .type(List.class)
                                                 .description("List of department IDs for IN clause")
                                                 .build())
-                                .param(ParamDef.param("employeeIds")
+                                .parameter(ParamDef.name("employeeIds")
                                                 .type(List.class)
                                                 .description("List of employee IDs for IN clause")
                                                 .build())
-                                .param(ParamDef.param("jobIds")
+                                .parameter(ParamDef.name("jobIds")
                                                 .type(List.class)
                                                 .description("List of job IDs for IN clause")
                                                 .build())
-                                .param(ParamDef.param("minSalary")
+                                .parameter(ParamDef.name("minSalary")
                                                 .type(BigDecimal.class)
-                                                .defaultValue(new BigDecimal("10000"))
                                                 .description("Minimum salary filter")
                                                 .build())
-                                .param(ParamDef.param("hiredAfter")
+                                .parameter(ParamDef.name("hiredAfter")
                                                 .type(LocalDate.class)
                                                 .processor((value) -> {
                                                         // Use TypeConverter for type safety
@@ -209,7 +200,7 @@ public class OracleHRQueryConfig {
                                                 })
                                                 .description("Filter employees hired after this date")
                                                 .build())
-                                .param(ParamDef.param("hiredAfterDays")
+                                .parameter(ParamDef.name("hiredAfterDays")
                                                 .type(Long.class)
                                                 .processor((value, ctx) -> {
                                                         System.out.println("proccess days " + value);
@@ -267,13 +258,6 @@ public class OracleHRQueryConfig {
                                 })
                                 .rowProcessor((row, context) -> {
                                         System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
-                                        System.out.println(row.getString("testVirtual"));
-                                        System.out.println(row.get("testVirtual", String.class));
-                                        System.out.println(row.getRaw("COUNTRY_ID", String.class));
-
-                                        row.set("aaaa", 1);
-                                        row.set("bbbb", 1);
-                                        row.set("salary", BigDecimal.TEN);
                                         return row;
                                 })
                                 .postProcessor((queryResult, context) -> {
@@ -281,7 +265,7 @@ public class OracleHRQueryConfig {
                                         return queryResult.toBuilder()
                                                         .summary(Map.of("TEST", "Summary")).build();
                                 })
-                                .dynamic(NamingStrategy.PASCAL)
+                                .dynamic(NamingStrategy.CAMEL)
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
                                 .cache(true)
@@ -322,66 +306,109 @@ public class OracleHRQueryConfig {
                                                 .type(Integer.class)
                                                 .aliasName("department_id")
                                                 .primaryKey(true)
-                                                .sortable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("departmentName")
                                                 .type(String.class)
                                                 .aliasName("department_name")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("employeeCount")
                                                 .type(Integer.class)
                                                 .aliasName("employee_count")
-                                                .sortable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("avgSalary")
                                                 .type(BigDecimal.class)
                                                 .aliasName("avg_salary")
-                                                .sortable(true)
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
                                 .attribute(AttributeDef.name("minSalary")
                                                 .type(BigDecimal.class)
                                                 .aliasName("min_salary")
-                                                .sortable(true)
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
                                 .attribute(AttributeDef.name("maxSalary")
                                                 .type(BigDecimal.class)
                                                 .aliasName("max_salary")
-                                                .sortable(true)
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
                                 .attribute(AttributeDef.name("totalSalary")
                                                 .type(BigDecimal.class)
                                                 .aliasName("total_salary")
-                                                .sortable(true)
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
                                 .attribute(AttributeDef.name("city")
                                                 .type(String.class)
                                                 .aliasName("city")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("stateProvince")
                                                 .type(String.class)
                                                 .aliasName("state_province")
-                                                .filterable(true)
                                                 .build())
                                 .attribute(AttributeDef.name("countryName")
                                                 .type(String.class)
                                                 .aliasName("country_name")
-                                                .filterable(true)
-                                                .sortable(true)
                                                 .build())
 
-                                .param(ParamDef.param("country")
+                                // Proof of concept: Fetch all employees in this department
+                                .attribute(AttributeDef.name("departmentEmployees")
+                                                .type(List.class)
+                                                .calculated((row, context) -> {
+                                                        System.out.println("Fetching employees for department");
+                                                        Integer deptId = row.getRaw("DEPARTMENT_ID", Integer.class);
+                                                        if (deptId == null) {
+                                                                return List.of();
+                                                        }
+
+                                                        try {
+                                                                // Debug: Check what department we're querying
+                                                                System.out.println(
+                                                                                "Fetching employees for department ID: "
+                                                                                                + deptId);
+
+                                                                // Execute query to get all employees in this department
+                                                                // Use departmentIds parameter for IN clause instead of
+                                                                // deptId
+                                                                QueryResult result = queryExecutor.execute("employees")
+                                                                                .withParam("departmentIds",
+                                                                                                List.of(deptId))
+                                                                                .withPagination(0, 100) // Increased
+                                                                                                        // limit to get
+                                                                                                        // more
+                                                                                                        // employees
+                                                                                .execute();
+
+                                                                System.out.println("Found " + result.getRows().size()
+                                                                                + " employees for dept " + deptId);
+
+                                                                // Return simplified employee data
+                                                                return result.getRows().stream()
+                                                                                .map(empRow -> Map.of(
+                                                                                                "employeeId",
+                                                                                                empRow.get("employeeId"),
+                                                                                                "name",
+                                                                                                empRow.get("firstName")
+                                                                                                                + " "
+                                                                                                                + empRow.get("lastName"),
+                                                                                                "email",
+                                                                                                empRow.get("email"),
+                                                                                                "jobTitle",
+                                                                                                empRow.get("jobTitle"),
+                                                                                                "salary",
+                                                                                                empRow.get("salary")))
+                                                                                .toList();
+                                                        } catch (Exception e) {
+                                                                System.err.println(
+                                                                                "Error fetching department employees: "
+                                                                                                + e.getMessage());
+                                                                return List.of();
+                                                        }
+                                                })
+                                                .build())
+
+                                .parameter(ParamDef.name("country")
                                                 .type(String.class)
                                                 .description("Filter by country name")
                                                 .build())

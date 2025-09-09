@@ -21,7 +21,6 @@ import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
-import com.balsam.oasis.common.registry.domain.definition.MetadataContext;
 import com.balsam.oasis.common.registry.exception.QueryException;
 import com.balsam.oasis.common.registry.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
@@ -212,18 +211,15 @@ public class QueryController {
                 }
             }
 
-            // Execute as single object query with FORM context
-            Object singleResult = queryExecutor.execute(queryName)
+            // Execute as single object query
+            QueryResult result = queryExecutor.execute(queryName)
                     .withParams(params)
                     .includeMetadata(_meta)
-                    .executeSingle();
+                    .withPagination(0, 1) // Limit to single result
+                    .execute();
 
-            // Build single object response with form metadata if requested
-            if (_meta) {
-                return responseBuilder.buildSingleWithMetadata(singleResult, queryName, MetadataContext.FORM);
-            } else {
-                return responseBuilder.buildSingle(singleResult, queryName);
-            }
+            // Build single object response
+            return responseBuilder.buildSingle(result, queryName);
 
         } catch (QueryException e) {
             log.error("Find-by-key execution failed: {}", e.getMessage());
