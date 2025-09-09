@@ -54,7 +54,6 @@ public class QueryProperties {
 
         @Data
         public static class CacheProperties {
-            private boolean enabled = true;
             private boolean prewarm = false;
             private boolean failOnError = true; // Stop application if pre-warming fails
         }
