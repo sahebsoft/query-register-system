@@ -281,8 +281,7 @@ public class OracleHRQueryConfig {
                                         return queryResult.toBuilder()
                                                         .summary(Map.of("TEST", "Summary")).build();
                                 })
-                                .includeDynamicAttributes(true)
-                                .dynamicAttributeNamingStrategy(NamingStrategy.PASCAL)
+                                .dynamic(NamingStrategy.PASCAL)
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
                                 .cache(true)

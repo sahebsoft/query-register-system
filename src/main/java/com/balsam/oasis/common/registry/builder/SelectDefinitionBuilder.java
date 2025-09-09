@@ -382,18 +382,20 @@ public class SelectDefinitionBuilder {
     }
     
     /**
-     * Enable/disable dynamic attributes (columns not defined in AttributeDef)
+     * Enable dynamic attributes with default naming strategy (CAMEL).
      */
-    public SelectDefinitionBuilder includeDynamicAttributes(boolean include) {
-        this.includeDynamicAttributes = include;
+    public SelectDefinitionBuilder dynamic() {
+        this.includeDynamicAttributes = true;
+        this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
         return this;
     }
     
     /**
-     * Set the naming strategy for dynamic attributes
+     * Enable dynamic attributes with specified naming strategy.
      */
-    public SelectDefinitionBuilder dynamicAttributeNamingStrategy(NamingStrategy strategy) {
+    public SelectDefinitionBuilder dynamic(NamingStrategy strategy) {
         Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
+        this.includeDynamicAttributes = true;
         this.dynamicAttributeNamingStrategy = strategy;
         return this;
     }

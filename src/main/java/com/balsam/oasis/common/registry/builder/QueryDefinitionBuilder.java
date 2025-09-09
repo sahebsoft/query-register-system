@@ -229,13 +229,22 @@ public class QueryDefinitionBuilder {
     }
 
     // Dynamic attributes configuration
-    public QueryDefinitionBuilder includeDynamicAttributes(boolean include) {
-        this.includeDynamicAttributes = include;
+    
+    /**
+     * Enable dynamic attributes with default naming strategy (CAMEL).
+     */
+    public QueryDefinitionBuilder dynamic() {
+        this.includeDynamicAttributes = true;
+        this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
         return this;
     }
-
-    public QueryDefinitionBuilder dynamicAttributeNamingStrategy(NamingStrategy strategy) {
+    
+    /**
+     * Enable dynamic attributes with specified naming strategy.
+     */
+    public QueryDefinitionBuilder dynamic(NamingStrategy strategy) {
         Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
+        this.includeDynamicAttributes = true;
         this.dynamicAttributeNamingStrategy = strategy;
         return this;
     }
