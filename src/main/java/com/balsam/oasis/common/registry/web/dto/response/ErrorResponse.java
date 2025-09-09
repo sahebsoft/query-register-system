@@ -21,6 +21,4 @@ public class ErrorResponse {
     private String queryName;
     private Map<String, Object> details;
     private long timestamp;
-    @Builder.Default
-    private Integer count = 0;
 }

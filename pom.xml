@@ -10,9 +10,9 @@
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.balsam.oasis.common</groupId>
-	<artifactId>query</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>query</name>
+	<artifactId>query-registry</artifactId>
+	<version>0.0.1</version>
+	<name>query-registry</name>
 	<description>Query Registration System</description>
 	<url />
 	<licenses>
@@ -56,7 +56,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
-		
+
 		<!-- DevTools for hot reload -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -82,23 +82,13 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>io.vavr</groupId>
-			<artifactId>vavr</artifactId>
-			<version>0.10.4</version>
-		</dependency>
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
 			<version>4.4</version>
 		</dependency>
 
-		<!-- Caching -->
-		<dependency>
-			<groupId>com.github.ben-manes.caffeine</groupId>
-			<artifactId>caffeine</artifactId>
-		</dependency>
- 
 		<!-- Documentation -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

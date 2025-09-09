@@ -14,7 +14,7 @@ import com.balsam.oasis.common.registry.domain.definition.MetadataContext;
 import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.domain.select.SelectItem;
 import com.balsam.oasis.common.registry.exception.QueryException;
-import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
+import com.balsam.oasis.common.registry.web.dto.response.QueryListResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
@@ -33,7 +33,7 @@ public class QueryResponseBuilder {
      * Build JSON response from query result
      */
     public ResponseEntity<?> build(QueryResult result, String queryName) {
-        QueryResponse response = QueryResponse.from(result);
+        QueryListResponse response = QueryListResponse.from(result);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -82,7 +82,7 @@ public class QueryResponseBuilder {
                 "context", context.name(),
                 "queryName", queryName);
 
-        QueryResponse response = QueryResponse.success(List.of(data), metadata, 1);
+        QueryListResponse response = QueryListResponse.success(List.of(data), metadata, 1);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +129,7 @@ public class QueryResponseBuilder {
             selectMetadata.put("pagination", queryResult.getMetadata().getPagination());
         }
 
-        QueryResponse response = QueryResponse.success(
+        QueryListResponse response = QueryListResponse.success(
                 selectItems,
                 selectMetadata.isEmpty() ? null : selectMetadata,
                 queryResult.getCount());

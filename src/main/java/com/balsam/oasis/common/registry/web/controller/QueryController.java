@@ -73,7 +73,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * @see QueryResponseBuilder
  */
 @RestController
-@RequestMapping("/api/query")
+@RequestMapping("/api/query/v2")
 @Tag(name = "Query API", description = "Query Registration System API")
 public class QueryController {
 
@@ -202,15 +202,6 @@ public class QueryController {
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(
                                 new QueryException("Query not found: " + queryName, "NOT_FOUND", queryName)));
-            }
-
-            // Check if findByKey is supported
-            if (!queryDefinition.hasFindByKey()) {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .body(buildErrorResponse(new QueryException(
-                                "Query does not support find-by-key: " + queryName, "FIND_BY_KEY_NOT_SUPPORTED",
-                                queryName)));
             }
 
             // Extract key parameters

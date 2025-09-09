@@ -1,7 +1,6 @@
 package com.balsam.oasis.common.registry.web.dto.response;
 
 import java.util.List;
-import java.util.Map;
 
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -20,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class QueryResponse {
+public class QueryListResponse {
 
     /**
      * The response data (list of results)
@@ -46,8 +45,8 @@ public class QueryResponse {
     /**
      * Create a successful query response from QueryResult
      */
-    public static QueryResponse success(List<?> data, Object metadata, Integer count) {
-        return QueryResponse.builder()
+    public static QueryListResponse success(List<?> data, Object metadata, Integer count) {
+        return QueryListResponse.builder()
                 .data(data)
                 .metadata(metadata)
                 .count(count)
@@ -58,8 +57,8 @@ public class QueryResponse {
     /**
      * Create a successful query response from QueryResult
      */
-    public static QueryResponse from(QueryResult queryResult) {
-        return QueryResponse.builder()
+    public static QueryListResponse from(QueryResult queryResult) {
+        return QueryListResponse.builder()
                 .data(queryResult.toListOfMaps())
                 .metadata(queryResult.getMetadata())
                 .count(queryResult.getCount())
@@ -70,8 +69,8 @@ public class QueryResponse {
     /**
      * Create a successful response with custom data and metadata
      */
-    public static QueryResponse success(List<?> data, Object metadata) {
-        return QueryResponse.builder()
+    public static QueryListResponse success(List<?> data, Object metadata) {
+        return QueryListResponse.builder()
                 .data(data)
                 .metadata(metadata)
                 .count(data != null ? data.size() : 0)
@@ -82,8 +81,8 @@ public class QueryResponse {
     /**
      * Create a successful response with just data
      */
-    public static QueryResponse success(List<?> data) {
-        return QueryResponse.builder()
+    public static QueryListResponse success(List<?> data) {
+        return QueryListResponse.builder()
                 .data(data)
                 .count(data != null ? data.size() : 0)
                 .success(true)
