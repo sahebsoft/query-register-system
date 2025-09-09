@@ -1,5 +1,6 @@
 package com.balsam.oasis.common.registry.engine;
 
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -171,10 +172,29 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             // Create final reference for lambda
             final QueryContext finalContext = contextToUse;
+            final QueryDefinition finalDefinition = contextToUse.getDefinition();
 
-            // Use the unified row mapper (it will adapt based on cache availability)
-            return namedJdbcTemplate.query(sql, params,
-                    (rs, rowNum) -> rowMapper.mapRow(rs, rowNum, finalContext));
+            // Execute query with fetch size optimization
+            return namedJdbcTemplate.execute(sql, params, (ps) -> {
+                // Apply fetch size if configured
+                if (finalDefinition.getFetchSize() != null) {
+                    ps.setFetchSize(finalDefinition.getFetchSize());
+                } else {
+                    ps.setFetchSize(100);
+                }
+                // Set fetch direction for optimization
+                ps.setFetchDirection(ResultSet.FETCH_FORWARD);
+
+                // Execute and map results
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Row> results = new ArrayList<>();
+                    int rowNum = 0;
+                    while (rs.next()) {
+                        results.add(rowMapper.mapRow(rs, rowNum++, finalContext));
+                    }
+                    return results;
+                }
+            });
 
         } catch (Exception e) {
             throw new QueryExecutionException(

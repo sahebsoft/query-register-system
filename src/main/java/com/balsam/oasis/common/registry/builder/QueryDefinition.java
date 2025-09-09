@@ -75,6 +75,13 @@ public class QueryDefinition {
     boolean paginationEnabled;
 
     String findByKeyCriteriaName; // Name of the criteria used for findByKey
+    
+    /**
+     * Fetch size for JDBC ResultSet processing.
+     * Controls how many rows are fetched from database in each round trip.
+     * -1 means use system default, 0 means fetch all, positive means fetch that many rows.
+     */
+    Integer fetchSize;
 
     /**
      * Cached metadata for optimized row mapping.
@@ -182,6 +189,7 @@ public class QueryDefinition {
                 .attributes(this.attributes)
                 .paginationEnabled(this.paginationEnabled)
                 .findByKeyCriteriaName(this.findByKeyCriteriaName)
+                .fetchSize(this.fetchSize)
                 .metadataCache(cache)
                 .metadataCacheEnabled(this.metadataCacheEnabled)
                 .includeDynamicAttributes(this.includeDynamicAttributes)

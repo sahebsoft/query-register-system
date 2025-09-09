@@ -47,6 +47,9 @@ public class QueryDefinitionBuilder {
     private int defaultPageSize = 50;
     private int maxPageSize = 1000;
     private boolean paginationEnabled = true;
+    
+    // Fetch size configuration
+    private Integer fetchSize = null; // null means use system default
 
     // Other configurations
     private boolean auditEnabled = true;
@@ -195,6 +198,19 @@ public class QueryDefinitionBuilder {
         this.paginationEnabled = enabled;
         return this;
     }
+    
+    /**
+     * Set the JDBC fetch size for this query.
+     * @param size The number of rows to fetch in each round trip.
+     *             Use null for system default, 0 for fetch all, positive for specific size.
+     */
+    public QueryDefinitionBuilder fetchSize(Integer size) {
+        if (size != null && size < 0 && size != -1) {
+            throw new IllegalArgumentException("Fetch size must be -1, 0, or positive");
+        }
+        this.fetchSize = size;
+        return this;
+    }
 
     // Other configurations
     public QueryDefinitionBuilder auditEnabled(boolean enabled) {
@@ -251,6 +267,7 @@ public class QueryDefinitionBuilder {
                 .defaultPageSize(defaultPageSize)
                 .maxPageSize(maxPageSize)
                 .paginationEnabled(paginationEnabled)
+                .fetchSize(fetchSize)
                 .auditEnabled(auditEnabled)
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)

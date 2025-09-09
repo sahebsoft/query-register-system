@@ -1,5 +1,6 @@
 package com.balsam.oasis.common.registry.domain.result;
 
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.ObjectUtils;
 
@@ -19,21 +20,21 @@ public class RowImpl implements Row {
 
     private final Map<String, Object> data;
     private final Map<String, Object> rawData;
-    private final Object context;
+    private final QueryContext context;
 
-    public RowImpl(Map<String, Object> data, Object context) {
+    public RowImpl(Map<String, Object> data, QueryContext context) {
         this.data = new HashMap<>(data);
         this.rawData = new HashMap<>();
         this.context = context;
     }
 
-    public RowImpl(Map<String, Object> data, Map<String, Object> rawData, Object context) {
+    public RowImpl(Map<String, Object> data, Map<String, Object> rawData, QueryContext context) {
         this.data = new HashMap<>(data);
         this.rawData = new HashMap<>(rawData);
         this.context = context;
     }
 
-    public RowImpl(Map<String, Object> data, ResultSet rs, Object context) throws SQLException {
+    public RowImpl(Map<String, Object> data, ResultSet rs, QueryContext context) throws SQLException {
         this.data = new HashMap<>(data);
         this.rawData = extractRawData(rs);
         this.context = context;
@@ -192,7 +193,7 @@ public class RowImpl implements Row {
     }
 
     @Override
-    public Object getContext() {
+    public QueryContext getContext() {
         return context;
     }
 

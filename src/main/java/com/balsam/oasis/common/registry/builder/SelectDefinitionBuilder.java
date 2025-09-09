@@ -57,6 +57,9 @@ public class SelectDefinitionBuilder {
     // Pagination configuration
     private int defaultPageSize = 100;
     private int maxPageSize = 1000;
+    
+    // Fetch size configuration
+    private Integer fetchSize = null; // null means use system default
 
     // Other configurations
     private boolean auditEnabled = true;
@@ -366,6 +369,19 @@ public class SelectDefinitionBuilder {
     }
     
     /**
+     * Set the JDBC fetch size for this select query.
+     * @param size The number of rows to fetch in each round trip.
+     *             Use null for system default, 0 for fetch all, positive for specific size.
+     */
+    public SelectDefinitionBuilder fetchSize(Integer size) {
+        if (size != null && size < 0 && size != -1) {
+            throw new IllegalArgumentException("Fetch size must be -1, 0, or positive");
+        }
+        this.fetchSize = size;
+        return this;
+    }
+    
+    /**
      * Enable/disable dynamic attributes (columns not defined in AttributeDef)
      */
     public SelectDefinitionBuilder includeDynamicAttributes(boolean include) {
@@ -450,6 +466,7 @@ public class SelectDefinitionBuilder {
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)
                 .paginationEnabled(true) // always true for select
+                .fetchSize(fetchSize)
                 .metadataCache(null) // set later if needed
                 .metadataCacheEnabled(true)
                 .includeDynamicAttributes(includeDynamicAttributes)

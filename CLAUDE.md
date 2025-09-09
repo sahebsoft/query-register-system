@@ -207,24 +207,7 @@ WHERE active = true
 - Apply security at definition time
 - Use SecurityContext for role-based access
 
-### 10. Code Organization
 
-#### Current Structure
-```
-src/main/java/com/balsam/oasis/common/query/
-├── core/
-│   ├── definition/        # Immutable definitions (AttributeDef<T>, ParamDef<T>, etc.)
-│   ├── execution/         # Execution engine (QueryExecutor, SqlBuilder, DynamicRowMapper)
-│   └── result/           # Result handling (QueryResult, Row, RowImpl)
-├── builder/              # QueryDefinitionBuilder (inline builders for now)
-├── processor/            # Processing interfaces with generics
-│   └── impl/            # Common processor implementations
-├── rest/                 # REST controllers and request/response handling
-├── config/               # Auto-configuration and properties
-├── exception/            # Custom exception hierarchy
-├── select/               # Parallel Select API implementation
-└── example/             # Example query configurations
-```
 
 ### Key Files to Understand First
 1. **QueryDefinition.java** - Core immutable query model

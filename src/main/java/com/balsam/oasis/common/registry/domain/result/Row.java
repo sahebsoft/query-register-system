@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
+
 /**
  * Interface representing a single row of query results
  */
@@ -67,5 +69,5 @@ public interface Row {
     Map<String, Object> toMap();
 
     // Context access
-    Object getContext();
+    QueryContext getContext();
 }

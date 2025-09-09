@@ -11,7 +11,6 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.domain.result.RowImpl;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 
 /**
  * Query-specific implementation of BaseRowMapper that produces Row objects.
