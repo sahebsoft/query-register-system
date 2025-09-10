@@ -2,7 +2,6 @@ package com.balsam.oasis.common.registry.engine;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -19,11 +18,9 @@ import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
+import com.balsam.oasis.common.registry.domain.metadata.MetadataBuilder;
 import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.engine.mapper.QueryRowMapperImpl;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataBuilder;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCacheBuilder;
 import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.exception.QueryNotFoundException;
@@ -41,7 +38,6 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final QueryRegistry queryRegistry;
     private final QuerySqlBuilder sqlBuilder;
     private final QueryRowMapperImpl rowMapper;
-    private final MetadataCacheBuilder metadataCacheBuilder;
 
     public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
@@ -49,7 +45,6 @@ public class QueryExecutorImpl implements QueryExecutor {
         this.queryRegistry = queryRegistry;
         this.sqlBuilder = sqlBuilder;
         this.rowMapper = new QueryRowMapperImpl();
-        this.metadataCacheBuilder = new MetadataCacheBuilder(jdbcTemplate, sqlBuilder);
     }
 
     @Override

@@ -46,15 +46,11 @@ public class OracleHRSelectConfig {
                                                 LEFT JOIN departments d ON e.department_id = d.department_id
                                                 WHERE 1=1
                                                 --departmentFilter
-                                                --salaryFilter
                                                 """)
                                 .description("Employee select for dropdowns with search and department filtering")
-
                                 // Value and label definitions (only aliasName and type required)
-                                .value("employee_id", Integer.class)
-                                .label("full_name")
-
-                                // Additional attributes
+                                .valueAttribute("employee_id", Integer.class)
+                                .labelAttribute("full_name")
                                 .addition(AttributeDef.name("email")
                                                 .type(String.class)
                                                 .aliasName("email")
@@ -63,55 +59,13 @@ public class OracleHRSelectConfig {
                                                 .type(String.class)
                                                 .aliasName("phone_number")
                                                 .build())
-                                .addition(AttributeDef.name("department_name")
-                                                .type(String.class)
-                                                .aliasName("department_name")
-                                                .build())
-                                .addition(AttributeDef.name("job_id")
-                                                .type(String.class)
-                                                .aliasName("job_id")
-                                                .build())
-                                .addition(AttributeDef.name("salary")
-                                                .type(BigDecimal.class)
-                                                .aliasName("salary")
-                                                .build())
-                                .addition(AttributeDef.name("aaaa").type(Integer.class).virtual(true)
-                                                .calculated((row, context) -> {
-                                                        return 0;
-                                                }).build())
-
-                                // Custom search criteria
-
-                                // Additional filters
-                                .criteria(CriteriaDef.criteria()
-                                                .name("departmentFilter")
+                                .criteria(CriteriaDef.name("departmentFilter")
                                                 .sql("AND d.department_id = :departmentId")
                                                 .condition(ctx -> ctx.hasParam("departmentId"))
                                                 .build())
-                                .criteria(CriteriaDef.criteria()
-                                                .name("salaryFilter")
-                                                .sql("AND e.salary >= :minSalary")
-                                                .condition(ctx -> ctx.hasParam("minSalary"))
-                                                .build())
                                 .parameter(ParamDef.name("departmentId")
                                                 .type(Integer.class)
-                                                .description("Filter by department ID")
                                                 .build())
-                                .parameter(ParamDef.name("minSalary")
-                                                .type(BigDecimal.class)
-                                                .description("Minimum salary filter")
-                                                .build())
-
-                                .preProcessor((context) -> {
-                                        System.out.println("@@@@@@@@@preProcessor@@@@@@@@");
-                                        context.setParam("departmentId", 110);
-                                })
-                                .rowProcessor((row, context) -> {
-                                        System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
-                                        System.out.println(row);
-                                        row.set("salary", BigDecimal.TEN);
-                                        return row;
-                                })
                                 .postProcessor((queryResult, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
                                         return queryResult.toBuilder().rows(List.of())
@@ -147,8 +101,8 @@ public class OracleHRSelectConfig {
                                 .description("Department select with location information")
 
                                 // Value and label
-                                .value("department_id", Integer.class)
-                                .label("department_name")
+                                .valueAttribute("department_id", Integer.class)
+                                .labelAttribute("department_name")
 
                                 // Additional attributes
                                 .addition(AttributeDef.name("city")
@@ -168,15 +122,13 @@ public class OracleHRSelectConfig {
                                 // SELECT * FROM (...) WHERE LOWER(department_name) LIKE LOWER(:search)
 
                                 // Optional location filter
-                                .criteria(CriteriaDef.criteria()
-                                                .name("locationFilter")
+                                .criteria(CriteriaDef.name("locationFilter")
                                                 .sql("AND l.location_id = :locationId")
                                                 .condition(ctx -> ctx.hasParam("locationId"))
                                                 .build())
 
                                 .parameter(ParamDef.name("locationId")
                                                 .type(Integer.class)
-                                                .description("Filter by location")
                                                 .build())
 
                                 .build();
@@ -202,8 +154,8 @@ public class OracleHRSelectConfig {
                                                 """)
                                 .description("Job titles for dropdowns")
 
-                                .value("job_id", String.class)
-                                .label("job_title")
+                                .valueAttribute("job_id", String.class)
+                                .labelAttribute("job_title")
 
                                 .addition(AttributeDef.name("min_salary")
                                                 .type(BigDecimal.class)
@@ -243,8 +195,8 @@ public class OracleHRSelectConfig {
                                                 """)
                                 .description("Managers only for selection")
 
-                                .value("employee_id", Integer.class)
-                                .label("full_name")
+                                .valueAttribute("employee_id", Integer.class)
+                                .labelAttribute("full_name")
 
                                 .addition(AttributeDef.name("email")
                                                 .type(String.class)
@@ -255,8 +207,7 @@ public class OracleHRSelectConfig {
                                                 .aliasName("department_name")
                                                 .build())
 
-                                .searchCriteria(CriteriaDef.criteria()
-                                                .name("searchFilter")
+                                .searchCriteria(CriteriaDef.name("searchFilter")
                                                 .sql("AND LOWER(m.first_name || ' ' || m.last_name) LIKE LOWER(:search)")
                                                 .build())
 

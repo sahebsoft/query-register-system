@@ -36,8 +36,8 @@ public class BindParameterValidator {
         if (queryDef.getCriteria() != null) {
             for (Map.Entry<String, CriteriaDef> entry : queryDef.getCriteria().entrySet()) {
                 CriteriaDef criteria = entry.getValue();
-                if (criteria.getSql() != null) {
-                    Set<String> params = extractBindParameters(criteria.getSql());
+                if (criteria.sql() != null) {
+                    Set<String> params = extractBindParameters(criteria.sql());
                     criteriaBindParams.addAll(params);
                 }
             }
@@ -50,14 +50,13 @@ public class BindParameterValidator {
 
         // Get all defined parameters
         Set<String> definedParams = new HashSet<>();
-        if (queryDef.getParams() != null) {
-            definedParams.addAll(queryDef.getParams().keySet());
+        if (queryDef.getParameters() != null) {
+            definedParams.addAll(queryDef.getParameters().keySet());
         }
 
         // Special handling for pagination parameters (these are system-provided)
         Set<String> systemParams = Set.of(
                 "offset", "limit", // Standard pagination
-                "startRow", "endRow", // Oracle pagination
                 "_start", "_end" // REST API pagination
         );
 
@@ -135,68 +134,5 @@ public class BindParameterValidator {
         }
 
         return params;
-    }
-
-    /**
-     * Validates all bind parameters for a query and returns detailed information.
-     * 
-     * @param queryDef the query definition
-     * @return validation result with details
-     */
-    public static ValidationResult validateWithDetails(QueryDefinition queryDef) {
-        try {
-            validate(queryDef);
-            return ValidationResult.success(queryDef.getName());
-        } catch (IllegalStateException e) {
-            return ValidationResult.failure(queryDef.getName(), e.getMessage());
-        }
-    }
-
-    /**
-     * Result of bind parameter validation.
-     */
-    public static class ValidationResult {
-        private final String queryName;
-        private final boolean valid;
-        private final String errorMessage;
-        private final Set<String> undefinedParams;
-        private final Set<String> unusedParams;
-
-        private ValidationResult(String queryName, boolean valid, String errorMessage,
-                Set<String> undefinedParams, Set<String> unusedParams) {
-            this.queryName = queryName;
-            this.valid = valid;
-            this.errorMessage = errorMessage;
-            this.undefinedParams = undefinedParams;
-            this.unusedParams = unusedParams;
-        }
-
-        public static ValidationResult success(String queryName) {
-            return new ValidationResult(queryName, true, null, Set.of(), Set.of());
-        }
-
-        public static ValidationResult failure(String queryName, String errorMessage) {
-            return new ValidationResult(queryName, false, errorMessage, Set.of(), Set.of());
-        }
-
-        public String getQueryName() {
-            return queryName;
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        public String getErrorMessage() {
-            return errorMessage;
-        }
-
-        public Set<String> getUndefinedParams() {
-            return undefinedParams;
-        }
-
-        public Set<String> getUnusedParams() {
-            return unusedParams;
-        }
     }
 }

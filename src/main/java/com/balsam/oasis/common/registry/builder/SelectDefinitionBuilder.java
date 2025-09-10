@@ -13,7 +13,6 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.ValidationRule;
 import com.balsam.oasis.common.registry.domain.select.LabelDef;
 import com.balsam.oasis.common.registry.domain.select.ValueDef;
 import com.balsam.oasis.common.registry.processor.PostProcessor;
@@ -39,7 +38,7 @@ public class SelectDefinitionBuilder {
     private ValueDef valueDef;
     private LabelDef labelDef;
     private final List<AttributeDef<?>> additionAttributes = new ArrayList<>();
-    private final Map<String, ParamDef<?>> params = new LinkedHashMap<>();
+    private final Map<String, ParamDef> parameters = new LinkedHashMap<>();
     private final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
     private CriteriaDef searchCriteria;
 
@@ -47,7 +46,6 @@ public class SelectDefinitionBuilder {
     private final List<PreProcessor> preProcessors = new ArrayList<>();
     private final List<RowProcessor> rowProcessors = new ArrayList<>();
     private final List<PostProcessor> postProcessors = new ArrayList<>();
-    private final List<ValidationRule> validationRules = new ArrayList<>();
 
     // Cache configuration
     private boolean cacheEnabled = false;
@@ -113,7 +111,7 @@ public class SelectDefinitionBuilder {
     /**
      * Create value definition with database column name and Java type
      */
-    public SelectDefinitionBuilder value(String aliasName, Class<?> type) {
+    public SelectDefinitionBuilder valueAttribute(String aliasName, Class<?> type) {
         this.valueDef = ValueDef.of(aliasName, type);
         return this;
     }
@@ -138,7 +136,7 @@ public class SelectDefinitionBuilder {
     /**
      * Create label definition with database column name (defaults to String type)
      */
-    public SelectDefinitionBuilder label(String aliasName) {
+    public SelectDefinitionBuilder labelAttribute(String aliasName) {
         this.labelDef = LabelDef.of(aliasName);
         return this;
     }
@@ -192,8 +190,7 @@ public class SelectDefinitionBuilder {
      * Create search criteria inline
      */
     public SelectDefinitionBuilder searchCriteria(String name, String sql) {
-        this.searchCriteria = CriteriaDef.criteria()
-                .name(name)
+        this.searchCriteria = CriteriaDef.name(name)
                 .sql(sql)
                 .build();
         return this;
@@ -204,8 +201,8 @@ public class SelectDefinitionBuilder {
      */
     public SelectDefinitionBuilder criteria(CriteriaDef criteria) {
         Preconditions.checkNotNull(criteria, "Criteria cannot be null");
-        Preconditions.checkNotNull(criteria.getName(), "Criteria name cannot be null");
-        this.criteria.put(criteria.getName(), criteria);
+        Preconditions.checkNotNull(criteria.name(), "Criteria name cannot be null");
+        this.criteria.put(criteria.name(), criteria);
         return this;
     }
 
@@ -213,8 +210,7 @@ public class SelectDefinitionBuilder {
      * Create criteria inline
      */
     public SelectDefinitionBuilder criteria(String name, String sql) {
-        return criteria(CriteriaDef.criteria()
-                .name(name)
+        return criteria(CriteriaDef.name(name)
                 .sql(sql)
                 .build());
     }
@@ -224,8 +220,7 @@ public class SelectDefinitionBuilder {
      */
     public SelectDefinitionBuilder criteria(String name, String sql,
             Predicate<Object> condition) {
-        return criteria(CriteriaDef.criteria()
-                .name(name)
+        return criteria(CriteriaDef.name(name)
                 .sql(sql)
                 .condition(ctx -> {
                     // Apply the condition to the context
@@ -237,10 +232,10 @@ public class SelectDefinitionBuilder {
     /**
      * Add a parameter
      */
-    public SelectDefinitionBuilder parameter(ParamDef<?> param) {
+    public SelectDefinitionBuilder parameter(ParamDef param) {
         Preconditions.checkNotNull(param, "Parameter cannot be null");
-        Preconditions.checkNotNull(param.getName(), "Parameter name cannot be null");
-        this.params.put(param.getName(), param);
+        Preconditions.checkNotNull(param.name(), "Parameter name cannot be null");
+        this.parameters.put(param.name(), param);
         return this;
     }
 
@@ -248,8 +243,8 @@ public class SelectDefinitionBuilder {
      * Create parameter inline with lambda customizer
      */
     public <T> SelectDefinitionBuilder param(String name, Class<T> type,
-            Function<ParamDef<T>, ParamDef<T>> customizer) {
-        ParamDef<T> param = ParamDef.<T>name(name)
+            Function<ParamDef, ParamDef> customizer) {
+        ParamDef param = ParamDef.name(name)
                 .type(type)
                 .build();
 
@@ -287,15 +282,6 @@ public class SelectDefinitionBuilder {
     public SelectDefinitionBuilder postProcessor(PostProcessor processor) {
         Preconditions.checkNotNull(processor, "Post-processor cannot be null");
         this.postProcessors.add(processor);
-        return this;
-    }
-
-    /**
-     * Add a validation rule
-     */
-    public SelectDefinitionBuilder validationRule(ValidationRule rule) {
-        Preconditions.checkNotNull(rule, "Validation rule cannot be null");
-        this.validationRules.add(rule);
         return this;
     }
 
@@ -412,11 +398,10 @@ public class SelectDefinitionBuilder {
         Preconditions.checkNotNull(labelDef, "Label definition must be set");
 
         // If searchCriteria is defined, ensure we have a search parameter
-        if (searchCriteria != null && !params.containsKey("search")) {
+        if (searchCriteria != null && !parameters.containsKey("search")) {
             // Auto-add search parameter
-            params.put("search", ParamDef.name("search")
+            parameters.put("search", ParamDef.name("search")
                     .type(String.class)
-                    .description("Search term")
                     .required(false)
                     .build());
         }
@@ -449,7 +434,7 @@ public class SelectDefinitionBuilder {
         // Add search criteria to main criteria if defined
         Map<String, CriteriaDef> allCriteria = new LinkedHashMap<>(criteria);
         if (searchCriteria != null) {
-            allCriteria.put(searchCriteria.getName(), searchCriteria);
+            allCriteria.put(searchCriteria.name(), searchCriteria);
         }
 
         return QueryDefinition.builder()
@@ -457,12 +442,11 @@ public class SelectDefinitionBuilder {
                 .description(description)
                 .sql(sql)
                 .attributes(ImmutableMap.copyOf(allAttributes))
-                .params(ImmutableMap.copyOf(params))
+                .parameters(ImmutableMap.copyOf(parameters))
                 .criteria(ImmutableMap.copyOf(allCriteria))
                 .preProcessors(ImmutableList.copyOf(preProcessors))
                 .rowProcessors(ImmutableList.copyOf(rowProcessors))
                 .postProcessors(ImmutableList.copyOf(postProcessors))
-                .validationRules(ImmutableList.copyOf(validationRules))
                 .cacheConfig(cacheConfig)
                 .defaultPageSize(defaultPageSize)
                 .maxPageSize(maxPageSize)

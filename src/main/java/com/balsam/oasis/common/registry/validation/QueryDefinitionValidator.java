@@ -83,19 +83,19 @@ public class QueryDefinitionValidator {
      * Validates that there are no duplicate parameter names.
      */
     private static void validateParameterDuplicates(QueryDefinition queryDef) {
-        Map<String, ParamDef<?>> params = queryDef.getParams();
+        Map<String, ParamDef> params = queryDef.getParameters();
         if (params == null || params.isEmpty()) {
             return;
         }
 
         Set<String> names = new HashSet<>();
 
-        for (ParamDef<?> param : params.values()) {
-            if (!names.add(param.getName())) {
+        for (ParamDef param : params.values()) {
+            if (!names.add(param.name())) {
                 throw new IllegalStateException(String.format(
                         "Query '%s' has duplicate parameter name: '%s'. " +
                                 "Each parameter must have a unique name.",
-                        queryDef.getName(), param.getName()));
+                        queryDef.getName(), param.name()));
             }
         }
     }
@@ -114,15 +114,15 @@ public class QueryDefinitionValidator {
 
         for (CriteriaDef criterion : criteria.values()) {
             // Check criteria name
-            if (!names.add(criterion.getName())) {
+            if (!names.add(criterion.name())) {
                 throw new IllegalStateException(String.format(
                         "Query '%s' has duplicate criteria name: '%s'. " +
                                 "Each criteria must have a unique name.",
-                        queryDef.getName(), criterion.getName()));
+                        queryDef.getName(), criterion.name()));
             }
 
             // Check SQL placeholder (for non-dynamic criteria)
-            String placeholder = "--" + criterion.getName();
+            String placeholder = "--" + criterion.name();
             if (!placeholders.add(placeholder)) {
                 throw new IllegalStateException(String.format(
                         "Query '%s' has duplicate criteria placeholder: '%s'. " +
@@ -151,8 +151,8 @@ public class QueryDefinitionValidator {
         }
 
         // Check against parameter names
-        if (queryDef.getParams() != null) {
-            for (String paramName : queryDef.getParams().keySet()) {
+        if (queryDef.getParameters() != null) {
+            for (String paramName : queryDef.getParameters().keySet()) {
                 if (!allNames.add(paramName)) {
                     throw new IllegalStateException(String.format(
                             "Query '%s' has naming conflict: " +

@@ -36,9 +36,23 @@ public class OracleHRQueryConfig {
         @PostConstruct
         public void registerQueries() {
 
-                queryRegistrar.register(QueryDefinitionBuilder.builder("zallom").sql("""
-                                select * from employees
-                                """)
+                queryRegistrar.register(QueryDefinitionBuilder.builder("deptWithEmp").sql("""
+                                SELECT
+                                    department_id,
+                                    department_name,
+                                    CURSOR(
+                                        SELECT
+                                            employee_id,
+                                            first_name,
+                                            last_name,
+                                            salary
+                                        FROM HR.employees e
+                                        WHERE e.department_id = d.department_id
+                                        ORDER BY salary DESC
+                                    ) as employees_in_dept
+                                FROM HR.departments d
+                                WHERE department_id IN (20, 30, 50)
+                                                    """)
                                 .dynamic().build());
 
                 // Register all queries defined in this configuration
@@ -177,36 +191,30 @@ public class OracleHRQueryConfig {
                                 // Parameters
                                 .parameter(ParamDef.name("deptId")
                                                 .type(Integer.class)
-                                                .description("Filter by department ID")
                                                 .build())
 
                                 // Parameters for IN clause criteria
                                 .parameter(ParamDef.name("departmentIds")
                                                 .type(List.class)
-                                                .description("List of department IDs for IN clause")
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")
                                                 .type(List.class)
-                                                .description("List of employee IDs for IN clause")
                                                 .build())
                                 .parameter(ParamDef.name("jobIds")
                                                 .type(List.class)
-                                                .description("List of job IDs for IN clause")
                                                 .build())
                                 .parameter(ParamDef.name("minSalary")
                                                 .type(BigDecimal.class)
-                                                .description("Minimum salary filter")
                                                 .build())
                                 .parameter(ParamDef.name("hiredAfter")
                                                 .type(LocalDate.class)
-                                                .processor((value) -> {
+                                                .processor((value, ctx) -> {
                                                         // Use TypeConverter for type safety
                                                         if (value == null)
                                                                 return null;
                                                         return com.balsam.oasis.common.registry.engine.sql.util.TypeConverter
                                                                         .convert(value, LocalDate.class);
                                                 })
-                                                .description("Filter employees hired after this date")
                                                 .build())
                                 .parameter(ParamDef.name("hiredAfterDays")
                                                 .type(Long.class)
@@ -222,44 +230,34 @@ public class OracleHRQueryConfig {
                                                         }
                                                         return null;
                                                 })
-                                                .description("Filter employees hired after this date")
                                                 .build())
 
                                 // Criteria
-                                .criteria(CriteriaDef.criteria()
-                                                .name("departmentFilter")
+                                .criteria(CriteriaDef.name("departmentFilter")
                                                 .sql("AND e.department_id = :deptId")
                                                 .condition(ctx -> ctx.hasParam("deptId"))
                                                 .build())
-                                .criteria(CriteriaDef.criteria()
-                                                .name("salaryFilter")
+                                .criteria(CriteriaDef.name("salaryFilter")
                                                 .sql("AND e.salary >= :minSalary")
                                                 .condition(ctx -> ctx.hasParam("minSalary"))
                                                 .build())
-                                .criteria(CriteriaDef.criteria()
-                                                .name("hiredAfterFilter")
+                                .criteria(CriteriaDef.name("hiredAfterFilter")
                                                 .sql("AND e.hire_date > :hiredAfter")
                                                 .condition(ctx -> ctx.hasParam("hiredAfter"))
                                                 .build())
 
                                 // IN clause criteria examples
-                                .criteria(CriteriaDef.criteria()
-                                                .name("departmentIdsFilter")
+                                .criteria(CriteriaDef.name("departmentIdsFilter")
                                                 .sql("AND e.department_id IN (:departmentIds)")
                                                 .condition(ctx -> ctx.hasParam("departmentIds"))
-                                                .description("Filter by multiple department IDs")
                                                 .build())
-                                .criteria(CriteriaDef.criteria()
-                                                .name("employeeIdsFilter")
+                                .criteria(CriteriaDef.name("employeeIdsFilter")
                                                 .sql("AND e.employee_id IN (:employeeIds)")
                                                 .condition(ctx -> ctx.hasParam("employeeIds"))
-                                                .description("Filter by specific employee IDs")
                                                 .build())
-                                .criteria(CriteriaDef.criteria()
-                                                .name("jobIdsFilter")
+                                .criteria(CriteriaDef.name("jobIdsFilter")
                                                 .sql("AND e.job_id IN (:jobIds)")
                                                 .condition(ctx -> ctx.hasParam("jobIds"))
-                                                .description("Filter by multiple job IDs")
                                                 .build())
                                 .preProcessor((context) -> {
                                         System.out.println("@@@@@@@@@preProcessor@@@@@@@@");
@@ -405,11 +403,9 @@ public class OracleHRQueryConfig {
 
                                 .parameter(ParamDef.name("country")
                                                 .type(String.class)
-                                                .description("Filter by country name")
                                                 .build())
 
-                                .criteria(CriteriaDef.criteria()
-                                                .name("countryFilter")
+                                .criteria(CriteriaDef.name("countryFilter")
                                                 .sql("AND c.country_name = :country")
                                                 .condition(ctx -> ctx.hasParam("country"))
                                                 .build())

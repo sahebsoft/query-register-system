@@ -99,7 +99,7 @@ public class SelectController {
                 log.debug("Searching with term: {}", search);
 
                 // Check if query has search parameter or search criteria
-                boolean hasSearchParam = queryDefinition.getParams().containsKey("search");
+                boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
                 boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
                         queryDefinition.getCriteria().containsKey("searchFilter");
 

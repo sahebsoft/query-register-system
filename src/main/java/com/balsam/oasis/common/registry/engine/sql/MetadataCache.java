@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine.metadata;
+package com.balsam.oasis.common.registry.engine.sql;
 
 import java.util.Collections;
 import java.util.Map;
@@ -60,7 +60,7 @@ public class MetadataCache {
      * Pre-calculated mapping from attribute names to column SQL types
      */
     private final Map<String, Integer> attributeToColumnType;
-    
+
     /**
      * Mapping from column names to Java types (derived from SQL types)
      * This enables proper type-safe dynamic attribute creation
@@ -145,11 +145,11 @@ public class MetadataCache {
         if (columnName == null || columnJavaTypes == null) {
             return null;
         }
-        
+
         // Convert to uppercase for lookup (Oracle standard)
         return columnJavaTypes.get(columnName.toUpperCase());
     }
-    
+
     /**
      * Get SQL type for a column index
      * 

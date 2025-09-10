@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine.metadata;
+package com.balsam.oasis.common.registry.engine.sql;
 
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -20,7 +20,6 @@ import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 
@@ -178,7 +177,6 @@ public class MetadataCacheBuilder {
         }
     }
 
-
     /**
      * Build cache from ResultSetMetaData without executing the query.
      * Used when PreparedStatement.getMetaData() returns metadata without execution.
@@ -281,16 +279,16 @@ public class MetadataCacheBuilder {
 
         // Add default values for all defined parameters to avoid missing parameter
         // errors
-        for (Map.Entry<String, ParamDef<?>> entry : definition.getParams().entrySet()) {
+        for (Map.Entry<String, ParamDef> entry : definition.getParameters().entrySet()) {
             String paramName = entry.getKey();
-            ParamDef<?> paramDef = entry.getValue();
+            ParamDef paramDef = entry.getValue();
 
             // Use the default value if defined, otherwise use a dummy value based on type
-            if (paramDef.getDefaultValue() != null) {
-                params.put(paramName, paramDef.getDefaultValue());
+            if (paramDef.defaultValue() != null) {
+                params.put(paramName, paramDef.defaultValue());
             } else {
                 // Provide dummy values based on type using centralized logic
-                Object dummyValue = SqlTypeMapper.getDummyValue(paramDef.getType());
+                Object dummyValue = SqlTypeMapper.getDummyValue(paramDef.type());
                 params.put(paramName, dummyValue);
             }
         }
@@ -302,6 +300,5 @@ public class MetadataCacheBuilder {
                 .sorts(new ArrayList<>())
                 .build();
     }
-
 
 }

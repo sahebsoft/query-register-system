@@ -12,7 +12,6 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.ValidationRule;
 import com.balsam.oasis.common.registry.processor.PostProcessor;
 import com.balsam.oasis.common.registry.processor.PreProcessor;
 import com.balsam.oasis.common.registry.processor.RowProcessor;
@@ -31,12 +30,11 @@ public class QueryDefinitionBuilder {
     private String sql;
     private String description;
     private final Map<String, AttributeDef<?>> attributes = new LinkedHashMap<>();
-    private final Map<String, ParamDef<?>> params = new LinkedHashMap<>();
+    private final Map<String, ParamDef> parameters = new LinkedHashMap<>();
     private final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
     private final List<PreProcessor> preProcessors = new ArrayList<>();
     private final List<RowProcessor> rowProcessors = new ArrayList<>();
     private final List<PostProcessor> postProcessors = new ArrayList<>();
-    private final List<ValidationRule> validationRules = new ArrayList<>();
 
     // Cache configuration
     private boolean cacheEnabled = false;
@@ -55,7 +53,6 @@ public class QueryDefinitionBuilder {
     private boolean auditEnabled = true;
     private boolean metricsEnabled = true;
     private Integer queryTimeout;
-    private String findByKeyCriteriaName;
 
     // Dynamic attributes configuration
     private boolean includeDynamicAttributes = false;
@@ -102,17 +99,17 @@ public class QueryDefinitionBuilder {
     /**
      * Add a fully-built parameter to the query definition
      */
-    public QueryDefinitionBuilder parameter(ParamDef<?> param) {
+    public QueryDefinitionBuilder parameter(ParamDef param) {
         Preconditions.checkNotNull(param, "Parameter cannot be null");
 
         // Check for duplicate parameter during building
-        if (this.params.containsKey(param.getName())) {
+        if (this.parameters.containsKey(param.name())) {
             throw new IllegalStateException(String.format(
                     "Duplicate parameter definition: Parameter '%s' is already defined in this query",
-                    param.getName()));
+                    param.name()));
         }
 
-        this.params.put(param.getName(), param);
+        this.parameters.put(param.name(), param);
         return this;
     }
 
@@ -123,16 +120,13 @@ public class QueryDefinitionBuilder {
         Preconditions.checkNotNull(criteria, "Criteria cannot be null");
 
         // Check for duplicate criteria during building
-        if (this.criteria.containsKey(criteria.getName())) {
+        if (this.criteria.containsKey(criteria.name())) {
             throw new IllegalStateException(String.format(
                     "Duplicate criteria definition: Criteria '%s' is already defined in this query",
-                    criteria.getName()));
+                    criteria.name()));
         }
 
-        this.criteria.put(criteria.getName(), criteria);
-        if (criteria.isFindByKey()) {
-            this.findByKeyCriteriaName = criteria.getName();
-        }
+        this.criteria.put(criteria.name(), criteria);
         return this;
     }
 
@@ -154,13 +148,6 @@ public class QueryDefinitionBuilder {
     public QueryDefinitionBuilder postProcessor(PostProcessor processor) {
         Preconditions.checkNotNull(processor, "PostProcessor cannot be null");
         this.postProcessors.add(processor);
-        return this;
-    }
-
-    // Validation rules
-    public QueryDefinitionBuilder validationRule(ValidationRule rule) {
-        Preconditions.checkNotNull(rule, "ValidationRule cannot be null");
-        this.validationRules.add(rule);
         return this;
     }
 
@@ -268,12 +255,11 @@ public class QueryDefinitionBuilder {
                 .sql(sql)
                 .description(description)
                 .attributes(ImmutableMap.copyOf(attributes))
-                .params(ImmutableMap.copyOf(params))
+                .parameters(ImmutableMap.copyOf(parameters))
                 .criteria(ImmutableMap.copyOf(criteria))
                 .preProcessors(ImmutableList.copyOf(preProcessors))
                 .rowProcessors(ImmutableList.copyOf(rowProcessors))
                 .postProcessors(ImmutableList.copyOf(postProcessors))
-                .validationRules(ImmutableList.copyOf(validationRules))
                 .cacheConfig(cacheConfig)
                 .defaultPageSize(defaultPageSize)
                 .maxPageSize(maxPageSize)
@@ -282,7 +268,6 @@ public class QueryDefinitionBuilder {
                 .auditEnabled(auditEnabled)
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)
-                .findByKeyCriteriaName(findByKeyCriteriaName)
                 .metadataCache(null) // set later if needed
                 .includeDynamicAttributes(includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
@@ -302,9 +287,6 @@ public class QueryDefinitionBuilder {
         Preconditions.checkNotNull(sql, "SQL is required");
         Preconditions.checkArgument(!sql.trim().isEmpty(), "SQL cannot be empty");
 
-        // Validate attributes
-        validateAttributes();
-
         // Validate criteria placeholders
         validateCriteriaPlaceholders();
 
@@ -312,26 +294,10 @@ public class QueryDefinitionBuilder {
         validateParamReferences();
     }
 
-    private void validateAttributes() {
-        // Check for primary key if needed
-        boolean hasPrimaryKey = attributes.values().stream()
-                .anyMatch(AttributeDef::isPrimaryKey);
-
-        // Validate transient attributes have calculators
-        attributes.values().stream()
-                .filter(AttributeDef::isVirual)
-                .forEach(attr -> {
-                    if (!attr.hasCalculator()) {
-                        throw new IllegalArgumentException(
-                                "Transient attribute must have a calculator: " + attr.getName());
-                    }
-                });
-    }
-
     private void validateCriteriaPlaceholders() {
         // Check that SQL contains placeholders for all criteria
         for (CriteriaDef criteriaDef : criteria.values()) {
-            String placeholder = "--" + criteriaDef.getName();
+            String placeholder = "--" + criteriaDef.name();
             if (!sql.contains(placeholder)) {
                 throw new IllegalArgumentException(
                         "SQL does not contain placeholder for criteria: " + placeholder);
@@ -340,13 +306,13 @@ public class QueryDefinitionBuilder {
     }
 
     private void validateParamReferences() {
-        for (ParamDef<?> paramDef : params.values()) {
-            if (paramDef.isRequired()) {
-                boolean referenced = sql.contains(":" + paramDef.getName());
+        for (ParamDef paramDef : parameters.values()) {
+            if (paramDef.required()) {
+                boolean referenced = sql.contains(":" + paramDef.name());
 
                 if (!referenced) {
                     throw new IllegalArgumentException(
-                            "Required parameter not referenced in SQL: " + paramDef.getName());
+                            "Required parameter not referenced in SQL: " + paramDef.name());
                 }
             }
         }

@@ -13,16 +13,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCacheBuilder;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
+import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 
 /**
  * Default implementation of QueryRegistrar using ConcurrentHashMap.
@@ -47,57 +47,58 @@ public class QueryRegistrarImpl implements QueryRegistrar {
 
     private final ConcurrentMap<String, QueryDefinition> registry = new ConcurrentHashMap<>();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    
+
     @Autowired(required = false)
     private MetadataCacheBuilder metadataCacheBuilder;
 
     @Override
     public void register(QueryDefinition definition) {
         validateDefinition(definition);
-        
+
         // Automatically pre-warm metadata cache for dynamic queries
         if (definition.isIncludeDynamicAttributes() && metadataCacheBuilder != null) {
             try {
                 log.debug("Pre-warming metadata cache for dynamic query: {}", definition.getName());
                 MetadataCache cache = metadataCacheBuilder.buildCache(definition);
                 definition = definition.withMetadataCache(cache);
-                log.info("Successfully pre-warmed metadata cache for query '{}' with {} columns", 
-                         definition.getName(), cache.getColumnCount());
-                
+                log.info("Successfully pre-warmed metadata cache for query '{}' with {} columns",
+                        definition.getName(), cache.getColumnCount());
+
                 // Register dynamic attributes from metadata cache
                 Map<String, AttributeDef<?>> combinedAttributes = new LinkedHashMap<>(definition.getAttributes());
                 String[] columnNames = cache.getColumnNames();
                 NamingStrategy strategy = definition.getDynamicAttributeNamingStrategy();
-                
+
                 for (String columnName : columnNames) {
                     String attributeName = strategy.convert(columnName);
-                    
+
                     // Skip if this attribute is already defined statically
                     if (!combinedAttributes.containsKey(attributeName)) {
                         Class<?> javaType = cache.getJavaTypeForColumn(columnName);
                         if (javaType != null) {
                             AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName)
-                                .type(javaType)
-                                .aliasName(columnName)
-                                .filterable(true)
-                                .sortable(true)
-                                .selected(true)
-                                .build();
+                                    .type(javaType)
+                                    .aliasName(columnName)
+                                    .filterable(true)
+                                    .sortable(true)
+                                    .selected(true)
+                                    .build();
                             combinedAttributes.put(attributeName, dynamicAttr);
                             log.trace("Registered dynamic attribute '{}' for column '{}'", attributeName, columnName);
                         }
                     }
                 }
-                
+
                 // Create new definition with combined attributes
                 int originalSize = definition.getAttributes().size();
                 definition = definition.withAttributes(combinedAttributes);
-                log.info("Registered {} dynamic attributes for query '{}'", 
-                         combinedAttributes.size() - originalSize, definition.getName());
-                
+                log.info("Registered {} dynamic attributes for query '{}'",
+                        combinedAttributes.size() - originalSize, definition.getName());
+
             } catch (Exception e) {
-                log.warn("Failed to pre-warm metadata cache for query '{}': {}. Dynamic attributes may not work properly.", 
-                         definition.getName(), e.getMessage());
+                log.warn(
+                        "Failed to pre-warm metadata cache for query '{}': {}. Dynamic attributes may not work properly.",
+                        definition.getName(), e.getMessage());
                 // Continue with registration even if metadata pre-warming fails
             }
         }
@@ -108,9 +109,9 @@ public class QueryRegistrarImpl implements QueryRegistrar {
             if (registry.putIfAbsent(name, definition) != null) {
                 throw new IllegalStateException("Query already registered: " + name);
             }
-            log.info("Registered query: {} (dynamic: {}, metadata cached: {})", 
-                     name, definition.isIncludeDynamicAttributes(), 
-                     definition.getMetadataCache() != null);
+            log.info("Registered query: {} (dynamic: {}, metadata cached: {})",
+                    name, definition.isIncludeDynamicAttributes(),
+                    definition.getMetadataCache() != null);
         } finally {
             lock.writeLock().unlock();
         }
@@ -200,7 +201,6 @@ public class QueryRegistrarImpl implements QueryRegistrar {
             lock.readLock().unlock();
         }
     }
-
 
     /**
      * Validate a query definition before registration.

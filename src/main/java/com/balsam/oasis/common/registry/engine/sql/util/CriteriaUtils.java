@@ -1,7 +1,6 @@
 package com.balsam.oasis.common.registry.engine.sql.util;
 
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,19 +22,19 @@ public class CriteriaUtils {
         }
 
         for (CriteriaDef criteriaDef : criteria.values()) {
-            String placeholder = "--" + criteriaDef.getName();
+            String placeholder = "--" + criteriaDef.name();
             if (sql.contains(placeholder)) {
                 boolean shouldApply = shouldApplyCriteria(criteriaDef, context, params);
 
                 if (shouldApply) {
-                    sql = sql.replace(placeholder, criteriaDef.getSql());
+                    sql = sql.replace(placeholder, criteriaDef.sql());
 
                     if (trackApplied) {
                         context.addAppliedCriteria(
                                 AppliedCriteria.builder()
-                                        .name(criteriaDef.getName())
-                                        .sql(criteriaDef.getSql())
-                                        .params(SqlUtils.extractBindParams(criteriaDef.getSql(), params))
+                                        .name(criteriaDef.name())
+                                        .sql(criteriaDef.sql())
+                                        .params(SqlUtils.extractBindParams(criteriaDef.sql(), params))
                                         .build());
                     }
                 } else {
@@ -50,14 +49,14 @@ public class CriteriaUtils {
     public static boolean shouldApplyCriteria(CriteriaDef criteria,
             QueryContext context,
             Map<String, Object> params) {
-        if (criteria.getCondition() != null) {
+        if (criteria.condition() != null) {
             // The condition predicate expects QueryContext, but we have BaseContext
             // This is safe because the condition will only be used with appropriate context
             // types
-            return criteria.getCondition().test(context);
+            return criteria.condition().test(context);
         }
 
-        String criteriaSql = criteria.getSql();
+        String criteriaSql = criteria.sql();
         if (criteriaSql != null) {
             Matcher matcher = BIND_PARAM_PATTERN.matcher(criteriaSql);
             while (matcher.find()) {

@@ -277,8 +277,8 @@ public class QueryRequestParser {
         if (queryDefinition == null) {
             return null;
         }
-        ParamDef<?> paramDef = queryDefinition.getParam(paramName);
-        return paramDef != null ? paramDef.getType() : null;
+        ParamDef paramDef = queryDefinition.getParam(paramName);
+        return paramDef != null ? paramDef.type() : null;
     }
 
     /**

@@ -8,8 +8,7 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.definition.ValidationRule;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
+import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 import com.balsam.oasis.common.registry.processor.PostProcessor;
 import com.balsam.oasis.common.registry.processor.PreProcessor;
 import com.balsam.oasis.common.registry.processor.RowProcessor;
@@ -36,7 +35,7 @@ import lombok.Value;
  * QueryDefinition query = QueryDefinition.builder()
  *     .name("userQuery")
  *     .sql("SELECT * FROM users WHERE 1=1 --statusFilter")
- *     .attribute("id", AttributeDef.builder()...)
+ *     .attribute(AttributeDef.builder()...)
  *     .parameter("minSalary", ParamDef.builder()...)
  *     .criteria("statusFilter", CriteriaDef.builder()...)
  *     .build();
@@ -55,12 +54,11 @@ public class QueryDefinition {
     String name;
     String description;
     String sql;
-    Map<String, ParamDef<?>> params;
+    Map<String, ParamDef> parameters;
     Map<String, CriteriaDef> criteria;
     List<PreProcessor> preProcessors;
     List<RowProcessor> rowProcessors;
     List<PostProcessor> postProcessors;
-    List<ValidationRule> validationRules;
     CacheConfig cacheConfig;
     int defaultPageSize;
     int maxPageSize;
@@ -71,8 +69,6 @@ public class QueryDefinition {
     // Query-specific fields
     Map<String, AttributeDef<?>> attributes;
     boolean paginationEnabled;
-
-    String findByKeyCriteriaName; // Name of the criteria used for findByKey
 
     /**
      * Fetch size for JDBC ResultSet processing.
@@ -88,7 +84,6 @@ public class QueryDefinition {
      */
     transient MetadataCache metadataCache;
 
-
     /**
      * Flag to include dynamic attributes (columns not defined in AttributeDef)
      */
@@ -98,40 +93,24 @@ public class QueryDefinition {
      * Naming strategy for dynamic attributes
      */
     NamingStrategy dynamicAttributeNamingStrategy;
-    
+
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
     }
 
     public AttributeDef<?> getAttribute(String name) {
-        // Simply return from attributes map since dynamic attributes are now pre-registered
+        // Simply return from attributes map since dynamic attributes are now
+        // pre-registered
         return attributes.get(name);
     }
-    
 
-    public ParamDef<?> getParam(String name) {
-        return params.get(name);
-    }
-
-    public CriteriaDef getCriteria(String name) {
-        return criteria.get(name);
-    }
-
-    public CriteriaDef getFindByKeyCriteria() {
-        return findByKeyCriteriaName != null ? criteria.get(findByKeyCriteriaName) : null;
-    }
-
-    public boolean hasMetadataCache() {
-        return metadataCache != null && metadataCache.isInitialized();
-    }
-
-    public boolean shouldUseMetadataCache() {
-        return hasMetadataCache();
+    public ParamDef getParam(String name) {
+        return parameters.get(name);
     }
 
     // Methods from BaseDefinition
     public boolean hasParams() {
-        return params != null && !params.isEmpty();
+        return parameters != null && !parameters.isEmpty();
     }
 
     public boolean hasCriteria() {
@@ -140,10 +119,6 @@ public class QueryDefinition {
 
     public boolean hasCacheConfig() {
         return cacheConfig != null && cacheConfig.isEnabled();
-    }
-
-    public boolean hasValidationRules() {
-        return validationRules != null && !validationRules.isEmpty();
     }
 
     public boolean hasPreProcessors() {
@@ -167,12 +142,11 @@ public class QueryDefinition {
                 .name(this.name)
                 .description(this.description)
                 .sql(this.sql)
-                .params(this.params)
+                .parameters(this.parameters)
                 .criteria(this.criteria)
                 .preProcessors(this.preProcessors)
                 .rowProcessors(this.rowProcessors)
                 .postProcessors(this.postProcessors)
-                .validationRules(this.validationRules)
                 .cacheConfig(this.cacheConfig)
                 .defaultPageSize(this.defaultPageSize)
                 .maxPageSize(this.maxPageSize)
@@ -181,14 +155,13 @@ public class QueryDefinition {
                 .queryTimeout(this.queryTimeout)
                 .attributes(this.attributes)
                 .paginationEnabled(this.paginationEnabled)
-                .findByKeyCriteriaName(this.findByKeyCriteriaName)
                 .fetchSize(this.fetchSize)
                 .metadataCache(cache)
                 .includeDynamicAttributes(this.includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(this.dynamicAttributeNamingStrategy)
                 .build();
     }
-    
+
     /**
      * Returns a new instance with the attributes set.
      * Since this object is immutable, we create a new instance.
@@ -198,12 +171,11 @@ public class QueryDefinition {
                 .name(this.name)
                 .description(this.description)
                 .sql(this.sql)
-                .params(this.params)
+                .parameters(this.parameters)
                 .criteria(this.criteria)
                 .preProcessors(this.preProcessors)
                 .rowProcessors(this.rowProcessors)
                 .postProcessors(this.postProcessors)
-                .validationRules(this.validationRules)
                 .cacheConfig(this.cacheConfig)
                 .defaultPageSize(this.defaultPageSize)
                 .maxPageSize(this.maxPageSize)
@@ -212,7 +184,6 @@ public class QueryDefinition {
                 .queryTimeout(this.queryTimeout)
                 .attributes(newAttributes)
                 .paginationEnabled(this.paginationEnabled)
-                .findByKeyCriteriaName(this.findByKeyCriteriaName)
                 .fetchSize(this.fetchSize)
                 .metadataCache(this.metadataCache)
                 .includeDynamicAttributes(this.includeDynamicAttributes)

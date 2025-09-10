@@ -14,7 +14,6 @@ public class AttributeMetadata {
     Boolean filterable;
     Boolean sortable;
     Boolean restricted;
-    String restrictionReason;
 
     // UI metadata fields for frontend display
     String label; // Display label for the attribute

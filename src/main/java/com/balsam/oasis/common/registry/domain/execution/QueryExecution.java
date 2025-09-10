@@ -206,20 +206,20 @@ public class QueryExecution {
         List<String> violations = new ArrayList<>();
 
         // Apply default values and validate required parameters
-        definition.getParams().forEach((name, paramDef) -> {
+        definition.getParameters().forEach((name, paramDef) -> {
             // If parameter is not provided
             if (!context.hasParam(name)) {
                 if (paramDef.hasDefaultValue()) {
                     // Apply default value if it has one
-                    context.addParam(name, paramDef.getDefaultValue());
-                } else if (!paramDef.isRequired()) {
+                    context.addParam(name, paramDef.defaultValue());
+                } else if (!paramDef.required()) {
                     // Initialize non-required params with null if no default value
                     context.addParam(name, null);
                 }
             }
 
             // Check required parameters
-            if (paramDef.isRequired() && !context.hasParam(name)) {
+            if (paramDef.required() && !context.hasParam(name)) {
                 violations.add("Required parameter missing: " + name);
             }
 
@@ -230,8 +230,7 @@ public class QueryExecution {
                 // Apply processor if exists (handles validation and transformation)
                 if (paramDef.hasProcessor()) {
                     try {
-                        @SuppressWarnings("unchecked")
-                        ParamProcessor<Object> processor = (ParamProcessor<Object>) paramDef.getProcessor();
+                        ParamProcessor processor = (ParamProcessor) paramDef.processor();
                         Object processedValue = processor.process(value, context);
                         // Update the parameter with processed value
                         context.addParam(name, processedValue);
@@ -240,8 +239,7 @@ public class QueryExecution {
                     }
                 } else {
                     // Use the built-in validation method
-                    @SuppressWarnings("unchecked")
-                    ParamDef<Object> typedParam = (ParamDef<Object>) paramDef;
+                    ParamDef typedParam = paramDef;
                     if (!typedParam.isValid(value, context)) {
                         violations.add("Parameter validation failed: " + name);
                     }
@@ -280,15 +278,6 @@ public class QueryExecution {
             }
         }
 
-        // Run custom validation rules
-        if (definition.hasValidationRules()) {
-            definition.getValidationRules().forEach(rule -> {
-                if (!rule.getRule().test(context)) {
-                    violations.add(rule.getErrorMessage());
-                }
-            });
-        }
-
         if (!violations.isEmpty()) {
             throw new QueryValidationException(definition.getName(), violations);
         }
@@ -309,11 +298,11 @@ public class QueryExecution {
     }
 
     private void initializeNonRequiredParams() {
-        definition.getParams().forEach((name, paramDef) -> {
+        definition.getParameters().forEach((name, paramDef) -> {
             // If parameter is not provided and not required
-            if (!context.hasParam(name) && !paramDef.isRequired()) {
+            if (!context.hasParam(name) && !paramDef.required()) {
                 if (paramDef.hasDefaultValue()) {
-                    context.addParam(name, paramDef.getDefaultValue());
+                    context.addParam(name, paramDef.defaultValue());
                 } else {
                     context.addParam(name, null);
                 }

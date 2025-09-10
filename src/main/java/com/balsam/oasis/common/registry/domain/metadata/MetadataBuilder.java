@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine.metadata;
+package com.balsam.oasis.common.registry.domain.metadata;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,13 +12,6 @@ import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.domain.metadata.AttributeMetadata;
-import com.balsam.oasis.common.registry.domain.metadata.FilterMetadata;
-import com.balsam.oasis.common.registry.domain.metadata.PaginationMetadata;
-import com.balsam.oasis.common.registry.domain.metadata.ParameterMetadata;
-import com.balsam.oasis.common.registry.domain.metadata.PerformanceMetadata;
-import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
-import com.balsam.oasis.common.registry.domain.metadata.SortMetadata;
 
 /**
  * Builds metadata for query results
@@ -111,7 +104,6 @@ public class MetadataBuilder {
                     .filterable(attr.isFilterable())
                     .sortable(attr.isSortable())
                     .restricted(restricted)
-                    .restrictionReason(restrictionReason)
                     // Include UI metadata fields
                     .label(attr.getLabel())
                     .labelKey(attr.getLabelKey())
@@ -173,21 +165,21 @@ public class MetadataBuilder {
         Map<String, ParameterMetadata> metadata = new HashMap<>();
         QueryDefinition definition = context.getDefinition();
 
-        for (Map.Entry<String, ParamDef<?>> entry : definition.getParams().entrySet()) {
+        for (Map.Entry<String, ParamDef> entry : definition.getParameters().entrySet()) {
             String paramName = entry.getKey();
-            ParamDef<?> paramDef = entry.getValue();
+            ParamDef paramDef = entry.getValue();
 
             Object value = context.getParam(paramName);
             if (value == null && paramDef.hasDefaultValue()) {
-                value = paramDef.getDefaultValue();
+                value = paramDef.defaultValue();
             }
 
             ParameterMetadata paramMetadata = ParameterMetadata
                     .builder()
                     .name(paramName)
                     .value(value)
-                    .type(paramDef.getType() != null ? paramDef.getType().getSimpleName() : "Object")
-                    .required(paramDef.isRequired())
+                    .type(paramDef.type() != null ? paramDef.type().getSimpleName() : "Object")
+                    .required(paramDef.required())
                     .build();
 
             metadata.put(paramName, paramMetadata);

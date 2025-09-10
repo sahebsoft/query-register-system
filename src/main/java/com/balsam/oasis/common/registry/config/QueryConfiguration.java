@@ -10,7 +10,7 @@ import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.api.QueryRegistry;
 import com.balsam.oasis.common.registry.engine.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.QueryRegistrarImpl;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCacheBuilder;
+import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.controller.QueryController;
@@ -50,7 +50,7 @@ public class QueryConfiguration {
     public QueryResponseBuilder queryResponseBuilder(ObjectMapper objectMapper) {
         return new QueryResponseBuilder(objectMapper);
     }
-    
+
     @Bean
     public MetadataCacheBuilder metadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
         return new MetadataCacheBuilder(jdbcTemplate, sqlBuilder);
