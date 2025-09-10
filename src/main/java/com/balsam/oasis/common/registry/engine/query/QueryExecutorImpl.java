@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine;
+package com.balsam.oasis.common.registry.engine.query;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -19,9 +19,6 @@ import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.domain.metadata.MetadataBuilder;
-import com.balsam.oasis.common.registry.domain.result.Row;
-import com.balsam.oasis.common.registry.engine.mapper.QueryRowMapperImpl;
-import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.exception.QueryNotFoundException;
 import com.google.common.collect.ImmutableList;
@@ -92,7 +89,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
 
             // Execute query
-            List<Row> rows = executeQuery(context, finalSql, params);
+            List<QueryRow> rows = executeQuery(context, finalSql, params);
 
             // Run row processors (includes virtual attribute calculation)
             rows = runRowProcessors(context, rows);
@@ -142,7 +139,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
     }
 
-    private List<Row> executeQuery(QueryContext context, String sql, Map<String, Object> params) {
+    private List<QueryRow> executeQuery(QueryContext context, String sql, Map<String, Object> params) {
         try {
             // Set query timeout if configured
             if (context.getDefinition().getQueryTimeout() != null) {
@@ -165,7 +162,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                 // Execute and map results
                 try (ResultSet rs = ps.executeQuery()) {
-                    List<Row> results = new ArrayList<>();
+                    List<QueryRow> results = new ArrayList<>();
                     int rowNum = 0;
                     while (rs.next()) {
                         results.add(rowMapper.mapRow(rs, rowNum++, finalContext));
@@ -199,7 +196,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
     }
 
-    private List<Row> runRowProcessors(QueryContext context, List<Row> rows) {
+    private List<QueryRow> runRowProcessors(QueryContext context, List<QueryRow> rows) {
         QueryDefinition definition = context.getDefinition();
 
         // Note: Transient attributes are now handled by DynamicRowMapper
@@ -210,9 +207,9 @@ public class QueryExecutorImpl implements QueryExecutor {
             return rows;
         }
 
-        List<Row> processedRows = new ArrayList<>();
-        for (Row row : rows) {
-            Row processedRow = row;
+        List<QueryRow> processedRows = new ArrayList<>();
+        for (QueryRow row : rows) {
+            QueryRow processedRow = row;
             for (var processor : definition.getRowProcessors()) {
                 processedRow = processor.process(processedRow, context);
             }

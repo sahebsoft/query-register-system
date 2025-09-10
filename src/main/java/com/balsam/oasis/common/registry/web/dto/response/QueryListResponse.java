@@ -8,8 +8,8 @@ import java.util.Map;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
-import com.balsam.oasis.common.registry.domain.result.Row;
 import com.balsam.oasis.common.registry.domain.select.SelectItem;
+import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.balsam.oasis.common.registry.exception.QueryException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -120,7 +120,7 @@ public class QueryListResponse implements QuerySuccessResponse {
 
         List<SelectItem> selectItems = new ArrayList<>();
 
-        for (Row row : queryResult.getRows()) {
+        for (QueryRow row : queryResult.getRows()) {
             String value = String.valueOf(row.get("value"));
             String label = String.valueOf(row.get("label"));
 

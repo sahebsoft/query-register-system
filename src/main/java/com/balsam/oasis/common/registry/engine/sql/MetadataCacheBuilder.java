@@ -20,6 +20,7 @@ import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
+import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 

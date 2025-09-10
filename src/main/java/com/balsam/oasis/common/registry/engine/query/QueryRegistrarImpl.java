@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine;
+package com.balsam.oasis.common.registry.engine.query;
 
 import java.util.ArrayList;
 import java.util.Collection;

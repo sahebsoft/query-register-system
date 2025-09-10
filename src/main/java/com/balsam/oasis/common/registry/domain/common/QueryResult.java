@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
-import com.balsam.oasis.common.registry.domain.result.Row;
+import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -20,7 +20,7 @@ import lombok.Value;
 public class QueryResult {
 
     @Builder.Default
-    List<Row> rows = ImmutableList.of();
+    List<QueryRow> rows = ImmutableList.of();
 
     QueryMetadata metadata;
 
@@ -65,7 +65,7 @@ public class QueryResult {
         return !success || errorMessage != null;
     }
 
-    public Row getFirstRow() {
+    public QueryRow getFirstRow() {
         if (!isEmpty()) {
             return rows.get(0);
         }
@@ -75,7 +75,7 @@ public class QueryResult {
     public List<Map<String, Object>> getData() {
         if (rows != null && !rows.isEmpty()) {
             return rows.stream()
-                    .map(Row::toMap)
+                    .map(QueryRow::toMap)
                     .collect(ImmutableList.toImmutableList());
         }
         return ImmutableList.of();

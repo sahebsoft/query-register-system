@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine.mapper;
+package com.balsam.oasis.common.registry.engine.query;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -8,14 +8,11 @@ import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.domain.result.Row;
-import com.balsam.oasis.common.registry.domain.result.RowImpl;
-import com.balsam.oasis.common.registry.engine.sql.BaseRowMapper;
 
 /**
  * Query-specific implementation of BaseRowMapper that produces Row objects.
  */
-public class QueryRowMapperImpl extends BaseRowMapper<Row> {
+public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
 
     @Override
     protected Map<String, AttributeDef<?>> getAttributesToProcess(QueryDefinition definition) {
@@ -24,31 +21,31 @@ public class QueryRowMapperImpl extends BaseRowMapper<Row> {
     }
 
     @Override
-    protected Row createIntermediateOutput(Map<String, Object> processedData,
+    protected QueryRow createIntermediateOutput(Map<String, Object> processedData,
             Map<String, Object> rawData, QueryContext context) {
         // Create a Row that can be used in calculators
-        return new RowImpl(processedData, rawData, context);
+        return new QueryRowImpl(processedData, rawData, context);
     }
 
     @Override
-    protected Row createFinalOutput(Map<String, Object> processedData,
+    protected QueryRow createFinalOutput(Map<String, Object> processedData,
             Map<String, Object> rawData, QueryContext context) {
         // For Query, the final output is the same Row object
-        return new RowImpl(processedData, rawData, context);
+        return new QueryRowImpl(processedData, rawData, context);
     }
 
     @Override
-    protected Object getValueFromOutput(Row output, String attributeName) {
+    protected Object getValueFromOutput(QueryRow output, String attributeName) {
         return output.get(attributeName);
     }
 
     @Override
-    protected void setValueInOutput(Row output, String attributeName, Object value) {
+    protected void setValueInOutput(QueryRow output, String attributeName, Object value) {
         output.set(attributeName, value);
     }
 
     @Override
-    protected Object calculateAttribute(AttributeDef<?> attr, Row intermediateResult, QueryContext context) {
+    protected Object calculateAttribute(AttributeDef<?> attr, QueryRow intermediateResult, QueryContext context) {
         // Calculator now expects Row and QueryContext
         return attr.getCalculator().calculate(intermediateResult, context);
     }

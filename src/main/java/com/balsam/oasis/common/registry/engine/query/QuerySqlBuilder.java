@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.engine.sql;
+package com.balsam.oasis.common.registry.engine.query;
 
 import java.util.HashMap;
 import java.util.Map;

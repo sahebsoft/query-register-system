@@ -12,8 +12,8 @@ import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
-import com.balsam.oasis.common.registry.domain.result.Row;
-import com.balsam.oasis.common.registry.engine.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.balsam.oasis.common.registry.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.processor.ParamProcessor;
 
@@ -311,7 +311,7 @@ public class QueryExecution {
     }
 
     // Execute for single object (findByKey)
-    public Row executeSingle() {
+    public QueryRow executeSingle() {
         // Initialize non-required params with null if not provided
         initializeNonRequiredParams();
 

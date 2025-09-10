@@ -88,12 +88,10 @@ public class MetadataBuilder {
 
             // Check security restrictions
             Boolean restricted = null;
-            String restrictionReason = null;
             if (attr.isSecured() && context.getSecurityContext() != null) {
                 Boolean allowed = attr.getSecurityRule().apply(context.getSecurityContext());
                 if (!Boolean.TRUE.equals(allowed)) {
                     restricted = true;
-                    restrictionReason = "INSUFFICIENT_PERMISSIONS";
                 }
             }
 

@@ -326,7 +326,7 @@ public class MetadataCacheManager {
                 col.setNullable(columns.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
                 col.setPosition(columns.getInt("ORDINAL_POSITION"));
                 
-                columnMap.put(col.getName().toLowerCase(), col);
+                columnMap.put(col.getName().toUpperCase(), col);
             }
             
             metadata.setColumns(columnMap);

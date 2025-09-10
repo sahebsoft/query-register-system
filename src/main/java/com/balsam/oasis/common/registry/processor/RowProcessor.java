@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.processor;
 
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.domain.result.Row;
+import com.balsam.oasis.common.registry.engine.query.QueryRow;
 
 /**
  * Processor for individual rows during query execution
@@ -15,5 +15,5 @@ public interface RowProcessor {
      * @param context the query context
      * @return the processed row (can be the same or a new instance)
      */
-    Row process(Row row, QueryContext context);
+    QueryRow process(QueryRow row, QueryContext context);
 }
