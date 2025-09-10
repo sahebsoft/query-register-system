@@ -11,5 +11,4 @@ public class AppliedCriteria {
     private String name;
     private String sql;
     private Map<String, Object> params;
-    private String reason;
 }

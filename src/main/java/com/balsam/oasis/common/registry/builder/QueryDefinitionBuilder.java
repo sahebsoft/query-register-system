@@ -284,7 +284,6 @@ public class QueryDefinitionBuilder {
                 .queryTimeout(queryTimeout)
                 .findByKeyCriteriaName(findByKeyCriteriaName)
                 .metadataCache(null) // set later if needed
-                .metadataCacheEnabled(true)
                 .includeDynamicAttributes(includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
                 .build();

@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +21,7 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.sql.QuerySqlBuilder;
+import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
 import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 
 /**
@@ -48,12 +48,10 @@ public class MetadataCacheBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(MetadataCacheBuilder.class);
 
-    private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final QuerySqlBuilder sqlBuilder;
 
     public MetadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
-        this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.sqlBuilder = sqlBuilder;
     }
@@ -129,7 +127,7 @@ public class MetadataCacheBuilder {
                     for (int i = 1; i <= paramCount; i++) {
                         try {
                             int paramType = pmd.getParameterType(i);
-                            setDummyParameter(ps, i, paramType);
+                            SqlTypeMapper.setDummyParameter(ps, i, paramType);
                         } catch (SQLException e) {
                             // If can't get type, use generic string
                             ps.setString(i, "DUMMY");
@@ -167,7 +165,8 @@ public class MetadataCacheBuilder {
 
             return namedJdbcTemplate.execute(wrappedSql, params, (PreparedStatement ps) -> {
                 try (ResultSet rs = ps.executeQuery()) {
-                    return buildCacheFromResultSet(rs, definition);
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    return buildCacheFromMetaData(metaData, definition);
                 } catch (Exception e) {
                     log.trace("Error in WHERE 1=0 approach: {}", e.getMessage());
                     return null;
@@ -179,19 +178,6 @@ public class MetadataCacheBuilder {
         }
     }
 
-    /**
-     * Build metadata cache from an active ResultSet.
-     * This can be called during first query execution to build cache on-the-fly.
-     * 
-     * @param rs         The ResultSet to extract metadata from
-     * @param definition The query definition
-     * @return A populated metadata cache
-     * @throws SQLException if metadata access fails
-     */
-    public MetadataCache buildCacheFromResultSet(ResultSet rs, QueryDefinition definition) throws SQLException {
-        ResultSetMetaData metaData = rs.getMetaData();
-        return buildCacheFromMetaData(metaData, definition);
-    }
 
     /**
      * Build cache from ResultSetMetaData without executing the query.
@@ -204,6 +190,7 @@ public class MetadataCacheBuilder {
         // Create maps for the cache
         Map<String, Integer> columnIndexMap = new ConcurrentHashMap<>();
         Map<Integer, Integer> columnTypeMap = new ConcurrentHashMap<>();
+        Map<String, Class<?>> columnJavaTypes = new ConcurrentHashMap<>();
         String[] columnNames = new String[columnCount];
         String[] columnLabels = new String[columnCount];
 
@@ -217,19 +204,24 @@ public class MetadataCacheBuilder {
             columnNames[i - 1] = columnName;
             columnLabels[i - 1] = columnLabel;
 
-            // Map column names to indexes (case variations for Oracle compatibility)
-            columnIndexMap.put(columnName.toLowerCase(), i);
-            columnIndexMap.put(columnLabel.toLowerCase(), i);
+            // Map column names to indexes (uppercase only for consistency with Oracle)
             columnIndexMap.put(columnName.toUpperCase(), i);
-            columnIndexMap.put(columnLabel.toUpperCase(), i);
-            columnIndexMap.put(columnName, i);
-            columnIndexMap.put(columnLabel, i);
+            if (!columnName.equals(columnLabel)) {
+                columnIndexMap.put(columnLabel.toUpperCase(), i);
+            }
 
             // Map column index to SQL type
             columnTypeMap.put(i, columnType);
 
-            log.trace("Cached column {}: name='{}', label='{}', type={}",
-                    i, columnName, columnLabel, columnType);
+            // Map column names to Java types (uppercase only)
+            Class<?> javaType = SqlTypeMapper.sqlTypeToJavaClass(columnType);
+            columnJavaTypes.put(columnName.toUpperCase(), javaType);
+            if (!columnName.equals(columnLabel)) {
+                columnJavaTypes.put(columnLabel.toUpperCase(), javaType);
+            }
+
+            log.trace("Cached column {}: name='{}', label='{}', sqlType={}, javaType={}",
+                    i, columnName, columnLabel, columnType, javaType.getSimpleName());
         }
 
         // Pre-calculate attribute to column mappings
@@ -247,7 +239,7 @@ public class MetadataCacheBuilder {
 
             // Find column index for this attribute
             String columnKey = attr.getAliasName() != null ? attr.getAliasName() : attrName;
-            Integer columnIndex = findColumnIndex(columnKey, columnIndexMap);
+            Integer columnIndex = columnKey != null ? columnIndexMap.get(columnKey.toUpperCase()) : null;
 
             if (columnIndex != null) {
                 attributeToColumnIndex.put(attrName, columnIndex);
@@ -264,6 +256,7 @@ public class MetadataCacheBuilder {
                 .queryName(definition.getName())
                 .columnIndexMap(columnIndexMap)
                 .columnTypeMap(columnTypeMap)
+                .columnJavaTypes(columnJavaTypes)
                 .columnNames(columnNames)
                 .columnLabels(columnLabels)
                 .attributeToColumnIndex(attributeToColumnIndex)
@@ -277,43 +270,6 @@ public class MetadataCacheBuilder {
                 definition.getName(), columnCount, attributeToColumnIndex.size());
 
         return cache;
-    }
-
-    /**
-     * Pre-warm metadata caches for multiple queries.
-     * This can be called on application startup to avoid first-query latency.
-     * 
-     * @param definitions Query definitions to pre-warm
-     * @return Map of query names to their metadata caches
-     * @throws QueryExecutionException if any cache fails to build
-     */
-    public Map<String, MetadataCache> prewarmCaches(Iterable<QueryDefinition> definitions) {
-        Map<String, MetadataCache> caches = new HashMap<>();
-        Map<String, Exception> failures = new HashMap<>();
-
-        for (QueryDefinition definition : definitions) {
-            try {
-                MetadataCache cache = buildCache(definition);
-                if (cache.isInitialized()) {
-                    caches.put(definition.getName(), cache);
-                    log.debug("Pre-warmed metadata cache for query: {}", definition.getName());
-                }
-            } catch (Exception e) {
-                log.error("Failed to pre-warm cache for query '{}': {}",
-                        definition.getName(), e.getMessage(), e);
-                failures.put(definition.getName(), e);
-            }
-        }
-
-        if (!failures.isEmpty()) {
-            String failedQueries = String.join(", ", failures.keySet());
-            throw new QueryExecutionException(
-                    String.format("Failed to pre-warm metadata caches for %d queries: %s",
-                            failures.size(), failedQueries));
-        }
-
-        log.info("Successfully pre-warmed {} metadata caches", caches.size());
-        return caches;
     }
 
     /**
@@ -333,22 +289,9 @@ public class MetadataCacheBuilder {
             if (paramDef.getDefaultValue() != null) {
                 params.put(paramName, paramDef.getDefaultValue());
             } else {
-                // Provide dummy values based on type
-                Class<?> type = paramDef.getType();
-                if (type == String.class) {
-                    params.put(paramName, "dummy");
-                } else if (type == Integer.class || type == int.class) {
-                    params.put(paramName, 0);
-                } else if (type == Long.class || type == long.class) {
-                    params.put(paramName, 0L);
-                } else if (type == Boolean.class || type == boolean.class) {
-                    params.put(paramName, false);
-                } else if (type == Double.class || type == double.class) {
-                    params.put(paramName, 0.0);
-                } else {
-                    // For other types, use null and let the query handle it
-                    params.put(paramName, null);
-                }
+                // Provide dummy values based on type using centralized logic
+                Object dummyValue = SqlTypeMapper.getDummyValue(paramDef.getType());
+                params.put(paramName, dummyValue);
             }
         }
 
@@ -360,104 +303,5 @@ public class MetadataCacheBuilder {
                 .build();
     }
 
-    /**
-     * Set a dummy parameter value based on SQL type.
-     */
-    private void setDummyParameter(PreparedStatement ps, int index, int sqlType) throws SQLException {
-        switch (sqlType) {
-            case Types.VARCHAR:
-            case Types.CHAR:
-            case Types.LONGVARCHAR:
-                ps.setString(index, "DUMMY");
-                break;
-            case Types.INTEGER:
-            case Types.BIGINT:
-            case Types.SMALLINT:
-            case Types.TINYINT:
-                ps.setInt(index, 0);
-                break;
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-            case Types.FLOAT:
-            case Types.DOUBLE:
-            case Types.REAL:
-                ps.setDouble(index, 0.0);
-                break;
-            case Types.DATE:
-                ps.setDate(index, new java.sql.Date(System.currentTimeMillis()));
-                break;
-            case Types.TIMESTAMP:
-            case Types.TIMESTAMP_WITH_TIMEZONE:
-                ps.setTimestamp(index, new java.sql.Timestamp(System.currentTimeMillis()));
-                break;
-            case Types.BOOLEAN:
-            case Types.BIT:
-                ps.setBoolean(index, false);
-                break;
-            default:
-                // For unknown types, try null
-                ps.setObject(index, null);
-        }
-    }
 
-    /**
-     * Find column index for a column name, trying various case variations
-     */
-    private Integer findColumnIndex(String columnName, Map<String, Integer> columnIndexMap) {
-        if (columnName == null)
-            return null;
-
-        // Try lowercase first (most common)
-        Integer index = columnIndexMap.get(columnName.toLowerCase());
-        if (index != null)
-            return index;
-
-        // Try uppercase (Oracle)
-        index = columnIndexMap.get(columnName.toUpperCase());
-        if (index != null)
-            return index;
-
-        // Try original case
-        return columnIndexMap.get(columnName);
-    }
-
-    /**
-     * Validate that a cache is still valid for the current ResultSet structure
-     */
-    public boolean isCacheValid(MetadataCache cache, ResultSetMetaData currentMetaData) throws SQLException {
-        if (cache == null || !cache.isInitialized()) {
-            return false;
-        }
-
-        // Check column count matches
-        int currentColumnCount = currentMetaData.getColumnCount();
-        if (cache.getColumnCount() != currentColumnCount) {
-            log.debug("Cache invalid: column count changed from {} to {}",
-                    cache.getColumnCount(), currentColumnCount);
-            return false;
-        }
-
-        // Optionally validate column names match (more expensive)
-        // This could be made configurable
-        for (int i = 1; i <= currentColumnCount; i++) {
-            String cachedName = cache.getColumnName(i);
-            String currentName = currentMetaData.getColumnName(i);
-
-            if (!equalsIgnoreCase(cachedName, currentName)) {
-                log.debug("Cache invalid: column {} name changed from '{}' to '{}'",
-                        i, cachedName, currentName);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean equalsIgnoreCase(String s1, String s2) {
-        if (s1 == s2)
-            return true;
-        if (s1 == null || s2 == null)
-            return false;
-        return s1.equalsIgnoreCase(s2);
-    }
 }

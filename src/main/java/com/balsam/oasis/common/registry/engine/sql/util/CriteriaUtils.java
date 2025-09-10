@@ -1,6 +1,7 @@
 package com.balsam.oasis.common.registry.engine.sql.util;
 
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,7 +15,7 @@ public class CriteriaUtils {
 
     public static String applyCriteria(String sql,
             Map<String, CriteriaDef> criteria,
-            Object context,
+            QueryContext context,
             Map<String, Object> params,
             boolean trackApplied) {
         if (criteria == null || criteria.isEmpty()) {
@@ -29,13 +30,12 @@ public class CriteriaUtils {
                 if (shouldApply) {
                     sql = sql.replace(placeholder, criteriaDef.getSql());
 
-                    if (trackApplied && context instanceof QueryContext) {
-                        ((QueryContext) context).addAppliedCriteria(
+                    if (trackApplied) {
+                        context.addAppliedCriteria(
                                 AppliedCriteria.builder()
                                         .name(criteriaDef.getName())
                                         .sql(criteriaDef.getSql())
                                         .params(SqlUtils.extractBindParams(criteriaDef.getSql(), params))
-                                        .reason("Criteria condition met")
                                         .build());
                     }
                 } else {
@@ -47,16 +47,14 @@ public class CriteriaUtils {
         return sql;
     }
 
-    @SuppressWarnings("unchecked")
     public static boolean shouldApplyCriteria(CriteriaDef criteria,
-            Object context,
+            QueryContext context,
             Map<String, Object> params) {
         if (criteria.getCondition() != null) {
             // The condition predicate expects QueryContext, but we have BaseContext
             // This is safe because the condition will only be used with appropriate context
             // types
-            return ((java.util.function.Predicate<Object>) (java.util.function.Predicate<?>) criteria.getCondition())
-                    .test(context);
+            return criteria.getCondition().test(context);
         }
 
         String criteriaSql = criteria.getSql();

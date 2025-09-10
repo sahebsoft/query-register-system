@@ -154,25 +154,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 jdbcTemplate.setQueryTimeout(context.getDefinition().getQueryTimeout());
             }
 
-            // Try to ensure metadata cache exists for optimal performance
-            QueryDefinition definition = context.getDefinition();
-            QueryContext contextToUse = context; // Context to use for execution
-
-            if (definition.getMetadataCache() == null) {
-                try {
-                    log.debug("Building metadata cache for query: {}", definition.getName());
-                    MetadataCache cache = metadataCacheBuilder.buildCache(definition);
-                    // Create new definition with cache and update context
-                    definition = definition.withMetadataCache(cache);
-                    contextToUse = context.withDefinition(definition);
-                } catch (Exception e) {
-                    log.debug("Could not build metadata cache, will use name-based access: {}", e.getMessage());
-                }
-            }
-
-            // Create final reference for lambda
-            final QueryContext finalContext = contextToUse;
-            final QueryDefinition finalDefinition = contextToUse.getDefinition();
+            final QueryContext finalContext = context;
+            final QueryDefinition finalDefinition = context.getDefinition();
 
             // Execute query with fetch size optimization
             return namedJdbcTemplate.execute(sql, params, (ps) -> {
@@ -201,32 +184,6 @@ public class QueryExecutorImpl implements QueryExecutor {
                     context.getDefinition().getName(),
                     "Failed to execute query: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Pre-warm metadata caches for all registered queries
-     */
-    public void prewarmAllCaches() {
-        Collection<QueryDefinition> queries = queryRegistry.getAllQueries();
-        log.info("Pre-warming metadata caches for {} queries", queries.size());
-        Map<String, MetadataCache> caches = metadataCacheBuilder.prewarmCaches(queries);
-
-        // Update registry with cached definitions if it supports updates
-        for (Map.Entry<String, MetadataCache> entry : caches.entrySet()) {
-            QueryDefinition definition = queryRegistry.get(entry.getKey());
-            if (definition != null && entry.getValue() != null) {
-                // Create updated definition with metadata cache
-                QueryDefinition updatedDefinition = definition.withMetadataCache(entry.getValue());
-
-                // Update the registry if it's a QueryRegistrarImpl
-                if (queryRegistry instanceof QueryRegistrarImpl registrarImpl) {
-                    registrarImpl.updateWithMetadataCache(entry.getKey(), updatedDefinition);
-                } else {
-                }
-            }
-        }
-
-        log.info("Pre-warmed {} metadata caches", caches.size());
     }
 
     private int executeTotalCountQuery(QueryContext context, SqlResult sqlResult) {

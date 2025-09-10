@@ -20,6 +20,7 @@ import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
+import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
 import com.balsam.oasis.common.registry.engine.sql.util.TypeConverter;
 import com.balsam.oasis.common.registry.processor.AttributeFormatter;
 
@@ -245,11 +246,12 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
                 Integer sqlType = cache.getColumnType(columnIndex);
                 Object value = extractValueByIndex(rs, columnIndex, sqlType != null ? sqlType : Types.OTHER);
 
-                String columnName = columnNames[i].toLowerCase();
+                // Store with uppercase keys (Oracle standard)
+                String columnName = columnNames[i].toUpperCase();
                 rawData.put(columnName, value);
 
                 if (columnLabels != null && i < columnLabels.length) {
-                    String label = columnLabels[i].toLowerCase();
+                    String label = columnLabels[i].toUpperCase();
                     if (!columnName.equals(label)) {
                         rawData.put(label, value);
                     }
@@ -261,8 +263,8 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
             int columnCount = metaData.getColumnCount();
 
             for (int i = 1; i <= columnCount; i++) {
-                String columnName = metaData.getColumnName(i).toLowerCase();
-                String columnLabel = metaData.getColumnLabel(i).toLowerCase();
+                String columnName = metaData.getColumnName(i).toUpperCase();
+                String columnLabel = metaData.getColumnLabel(i).toUpperCase();
                 Object value = extractValueByIndex(rs, i, metaData.getColumnType(i));
 
                 rawData.put(columnName, value);
@@ -283,14 +285,10 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
             MetadataCache cache, Map<String, Object> rawData) throws SQLException {
         // First try to get from raw data if available
         if (rawData != null && attr.getAliasName() != null) {
-            String aliasName = attr.getAliasName().toLowerCase();
+            // Use uppercase for lookup (Oracle standard)
+            String aliasName = attr.getAliasName().toUpperCase();
             if (rawData.containsKey(aliasName)) {
                 return rawData.get(aliasName);
-            }
-            // Try uppercase variant
-            aliasName = attr.getAliasName().toUpperCase();
-            if (rawData.containsKey(aliasName.toLowerCase())) {
-                return rawData.get(aliasName.toLowerCase());
             }
         }
 
@@ -322,60 +320,45 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
     /**
      * Extract value by column index with proper type handling.
+     * Uses SqlTypeMapper to determine the expected Java type for consistency.
      */
     protected Object extractValueByIndex(ResultSet rs, int columnIndex, int sqlType) throws SQLException {
         // Check for NULL first
-        Object value = rs.getObject(columnIndex);
+        rs.getObject(columnIndex);
         if (rs.wasNull()) {
             return null;
         }
 
-        // Handle types based on SQL type for best performance
-        switch (sqlType) {
-            case Types.VARCHAR:
-            case Types.CHAR:
-            case Types.LONGVARCHAR:
-            case Types.NVARCHAR:
-            case Types.NCHAR:
-                return rs.getString(columnIndex);
-
-            case Types.INTEGER:
-            case Types.SMALLINT:
-            case Types.TINYINT:
-                return rs.getInt(columnIndex);
-
-            case Types.BIGINT:
-                return rs.getLong(columnIndex);
-
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-                return rs.getBigDecimal(columnIndex);
-
-            case Types.FLOAT:
-            case Types.REAL:
-                return rs.getFloat(columnIndex);
-
-            case Types.DOUBLE:
-                return rs.getDouble(columnIndex);
-
-            case Types.BOOLEAN:
-            case Types.BIT:
-                return rs.getBoolean(columnIndex);
-
-            case Types.DATE:
-                Date date = rs.getDate(columnIndex);
-                return date != null ? date.toLocalDate() : null;
-
-            case Types.TIME:
-                Time time = rs.getTime(columnIndex);
-                return time != null ? time.toLocalTime() : null;
-
-            case Types.TIMESTAMP:
-            case Types.TIMESTAMP_WITH_TIMEZONE:
-                Timestamp timestamp = rs.getTimestamp(columnIndex);
-                return timestamp != null ? timestamp.toLocalDateTime() : null;
-
-            case Types.BLOB:
+        // Use SqlTypeMapper to determine expected Java type
+        Class<?> expectedType = SqlTypeMapper.sqlTypeToJavaClass(sqlType);
+        
+        // Handle types based on expected Java type for best performance
+        if (expectedType == String.class) {
+            return rs.getString(columnIndex);
+        } else if (expectedType == Integer.class) {
+            return rs.getInt(columnIndex);
+        } else if (expectedType == Long.class) {
+            return rs.getLong(columnIndex);
+        } else if (expectedType == java.math.BigDecimal.class) {
+            return rs.getBigDecimal(columnIndex);
+        } else if (expectedType == Float.class) {
+            return rs.getFloat(columnIndex);
+        } else if (expectedType == Double.class) {
+            return rs.getDouble(columnIndex);
+        } else if (expectedType == Boolean.class) {
+            return rs.getBoolean(columnIndex);
+        } else if (expectedType == java.time.LocalDate.class) {
+            Date date = rs.getDate(columnIndex);
+            return date != null ? date.toLocalDate() : null;
+        } else if (expectedType == java.time.LocalTime.class) {
+            Time time = rs.getTime(columnIndex);
+            return time != null ? time.toLocalTime() : null;
+        } else if (expectedType == java.time.LocalDateTime.class) {
+            Timestamp timestamp = rs.getTimestamp(columnIndex);
+            return timestamp != null ? timestamp.toLocalDateTime() : null;
+        } else if (expectedType == byte[].class) {
+            // Handle BLOB and binary types
+            if (sqlType == Types.BLOB) {
                 Blob blob = rs.getBlob(columnIndex);
                 if (blob != null) {
                     try {
@@ -386,31 +369,26 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
                     }
                 }
                 return null;
-
-            case Types.CLOB:
-            case Types.NCLOB:
-                Clob clob = rs.getClob(columnIndex);
-                if (clob != null) {
-                    try {
-                        return clob.getSubString(1, (int) clob.length());
-                    } catch (SQLException e) {
-                        log.warn("Error reading CLOB at column {}: {}", columnIndex, e.getMessage());
-                        return clob;
-                    }
-                }
-                return null;
-
-            case Types.BINARY:
-            case Types.VARBINARY:
-            case Types.LONGVARBINARY:
+            } else {
                 return rs.getBytes(columnIndex);
-
-            case Types.ARRAY:
-                return rs.getArray(columnIndex);
-
-            default:
-                // Fall back to generic getObject for unknown types
-                return rs.getObject(columnIndex);
+            }
+        } else if (sqlType == Types.CLOB || sqlType == Types.NCLOB) {
+            // Special handling for CLOBs
+            Clob clob = rs.getClob(columnIndex);
+            if (clob != null) {
+                try {
+                    return clob.getSubString(1, (int) clob.length());
+                } catch (SQLException e) {
+                    log.warn("Error reading CLOB at column {}: {}", columnIndex, e.getMessage());
+                    return clob;
+                }
+            }
+            return null;
+        } else if (sqlType == Types.ARRAY) {
+            return rs.getArray(columnIndex);
+        } else {
+            // Fall back to generic getObject for unknown types
+            return rs.getObject(columnIndex);
         }
     }
 

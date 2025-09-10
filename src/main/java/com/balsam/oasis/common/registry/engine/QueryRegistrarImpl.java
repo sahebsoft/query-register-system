@@ -13,9 +13,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
+import com.balsam.oasis.common.registry.engine.metadata.MetadataCacheBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Default implementation of QueryRegistrar using ConcurrentHashMap.
@@ -40,10 +43,28 @@ public class QueryRegistrarImpl implements QueryRegistrar {
 
     private final ConcurrentMap<String, QueryDefinition> registry = new ConcurrentHashMap<>();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    
+    @Autowired(required = false)
+    private MetadataCacheBuilder metadataCacheBuilder;
 
     @Override
     public void register(QueryDefinition definition) {
         validateDefinition(definition);
+        
+        // Automatically pre-warm metadata cache for dynamic queries
+        if (definition.isIncludeDynamicAttributes() && metadataCacheBuilder != null) {
+            try {
+                log.debug("Pre-warming metadata cache for dynamic query: {}", definition.getName());
+                MetadataCache cache = metadataCacheBuilder.buildCache(definition);
+                definition = definition.withMetadataCache(cache);
+                log.info("Successfully pre-warmed metadata cache for query '{}' with {} columns", 
+                         definition.getName(), cache.getColumnCount());
+            } catch (Exception e) {
+                log.warn("Failed to pre-warm metadata cache for query '{}': {}. Dynamic attributes may not work properly.", 
+                         definition.getName(), e.getMessage());
+                // Continue with registration even if metadata pre-warming fails
+            }
+        }
 
         String name = definition.getName();
         lock.writeLock().lock();
@@ -51,7 +72,9 @@ public class QueryRegistrarImpl implements QueryRegistrar {
             if (registry.putIfAbsent(name, definition) != null) {
                 throw new IllegalStateException("Query already registered: " + name);
             }
-            log.info("Registered query: {}", name);
+            log.info("Registered query: {} (dynamic: {}, metadata cached: {})", 
+                     name, definition.isIncludeDynamicAttributes(), 
+                     definition.getMetadataCache() != null);
         } finally {
             lock.writeLock().unlock();
         }
@@ -142,30 +165,6 @@ public class QueryRegistrarImpl implements QueryRegistrar {
         }
     }
 
-    /**
-     * Update an existing query definition with metadata cache.
-     * This is used after metadata cache pre-warming.
-     * 
-     * @param name the query name
-     * @param updatedDefinition the updated definition with metadata cache
-     */
-    public void updateWithMetadataCache(String name, QueryDefinition updatedDefinition) {
-        if (name == null || updatedDefinition == null) {
-            return;
-        }
-        
-        lock.writeLock().lock();
-        try {
-            if (registry.containsKey(name)) {
-                registry.put(name, updatedDefinition);
-                log.debug("Updated query '{}' with metadata cache", name);
-            } else {
-                log.warn("Cannot update non-existent query: {}", name);
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
 
     /**
      * Validate a query definition before registration.

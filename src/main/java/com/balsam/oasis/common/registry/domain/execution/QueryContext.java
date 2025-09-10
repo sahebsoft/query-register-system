@@ -209,23 +209,4 @@ public class QueryContext {
                selectedFields.contains(fieldName);
     }
 
-    /**
-     * Returns a new context with the updated definition.
-     * Used when we need to update the definition with metadata cache.
-     */
-    public QueryContext withDefinition(QueryDefinition definition) {
-        QueryContext newContext = QueryContext.builder()
-                .definition(definition)
-                .params(new HashMap<>(this.params))
-                .pagination(this.pagination)
-                .sorts(this.sorts)
-                .filters(this.filters)
-                .appliedCriteria(new ArrayList<>(this.appliedCriteria))
-                .metadata(new HashMap<>(this.metadata))
-                .startTime(this.startTime)
-                .endTime(this.endTime)
-                .build();
-        newContext.setSelectedFields(this.selectedFields);
-        return newContext;
-    }
 }

@@ -251,8 +251,8 @@ public class QueryExecution {
 
         // Validate filters
         context.getFilters().forEach((attribute, filter) -> {
-            // Use getAttributeWithDynamicResolution for dynamic query support
-            var attrDef = definition.getAttributeWithDynamicResolution(attribute);
+            // Use getAttribute which now supports dynamic queries
+            var attrDef = definition.getAttribute(attribute);
             if (attrDef == null) {
                 violations.add("Unknown attribute for filter: " + attribute);
             } else if (!attrDef.isFilterable()) {
@@ -262,8 +262,8 @@ public class QueryExecution {
 
         // Validate sorts
         context.getSorts().forEach(sort -> {
-            // Use getAttributeWithDynamicResolution for dynamic query support
-            var attrDef = definition.getAttributeWithDynamicResolution(sort.getAttribute());
+            // Use getAttribute which now supports dynamic queries
+            var attrDef = definition.getAttribute(sort.getAttribute());
             if (attrDef == null) {
                 violations.add("Unknown attribute for sort: " + sort.getAttribute());
             } else if (!attrDef.isSortable()) {

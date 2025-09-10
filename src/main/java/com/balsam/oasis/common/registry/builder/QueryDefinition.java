@@ -88,10 +88,6 @@ public class QueryDefinition {
      */
     transient MetadataCache metadataCache;
 
-    /**
-     * Flag to enable/disable metadata caching for this query
-     */
-    boolean metadataCacheEnabled;
 
     /**
      * Flag to include dynamic attributes (columns not defined in AttributeDef)
@@ -103,13 +99,6 @@ public class QueryDefinition {
      */
     NamingStrategy dynamicAttributeNamingStrategy;
     
-    /**
-     * Resolver for dynamic attributes (transient field).
-     * We use a singleton instance since resolver is stateless except for caching.
-     */
-    private static final com.balsam.oasis.common.registry.engine.resolver.DynamicAttributeResolver DYNAMIC_RESOLVER = 
-        new com.balsam.oasis.common.registry.engine.resolver.DynamicAttributeResolver();
-
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
     }
@@ -121,32 +110,33 @@ public class QueryDefinition {
             return staticAttr;
         }
         
-        // If not found and dynamic attributes are enabled, try to resolve
-        if (includeDynamicAttributes) {
-            return DYNAMIC_RESOLVER.resolveDynamicAttribute(this, name);
+        // For dynamic queries with metadata cache, create attribute on-the-fly
+        if (includeDynamicAttributes && metadataCache != null && metadataCache.isInitialized()) {
+            // Apply naming strategy if needed
+            String columnName = name;
+            if (dynamicAttributeNamingStrategy != null) {
+                // Reverse the naming strategy to get column name from attribute name
+                // This is a simple approach - for more complex cases, we'd need a reverse mapping
+                columnName = name; // For now, assume direct mapping
+            }
+            
+            // Get Java type from metadata cache
+            Class<?> javaType = metadataCache.getJavaTypeForColumn(columnName);
+            if (javaType != null) {
+                // Create dynamic attribute with real database type
+                return AttributeDef.name(name)
+                    .type(javaType)
+                    .aliasName(columnName)
+                    .filterable(true)
+                    .sortable(true)
+                    .selected(true)
+                    .build();
+            }
         }
         
         return null;
     }
     
-    /**
-     * Get attribute with explicit dynamic resolution.
-     * This method always attempts dynamic resolution if enabled.
-     */
-    public AttributeDef<?> getAttributeWithDynamicResolution(String name) {
-        // First check static attributes
-        AttributeDef<?> staticAttr = attributes.get(name);
-        if (staticAttr != null) {
-            return staticAttr;
-        }
-        
-        // Try dynamic resolution
-        if (includeDynamicAttributes) {
-            return DYNAMIC_RESOLVER.resolveDynamicAttribute(this, name);
-        }
-        
-        return null;
-    }
 
     public ParamDef<?> getParam(String name) {
         return params.get(name);
@@ -165,7 +155,7 @@ public class QueryDefinition {
     }
 
     public boolean shouldUseMetadataCache() {
-        return metadataCacheEnabled && hasMetadataCache();
+        return hasMetadataCache();
     }
 
     // Methods from BaseDefinition
@@ -223,7 +213,6 @@ public class QueryDefinition {
                 .findByKeyCriteriaName(this.findByKeyCriteriaName)
                 .fetchSize(this.fetchSize)
                 .metadataCache(cache)
-                .metadataCacheEnabled(this.metadataCacheEnabled)
                 .includeDynamicAttributes(this.includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(this.dynamicAttributeNamingStrategy)
                 .build();

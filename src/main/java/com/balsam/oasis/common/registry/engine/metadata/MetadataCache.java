@@ -2,9 +2,6 @@ package com.balsam.oasis.common.registry.engine.metadata;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -63,6 +60,12 @@ public class MetadataCache {
      * Pre-calculated mapping from attribute names to column SQL types
      */
     private final Map<String, Integer> attributeToColumnType;
+    
+    /**
+     * Mapping from column names to Java types (derived from SQL types)
+     * This enables proper type-safe dynamic attribute creation
+     */
+    private final Map<String, Class<?>> columnJavaTypes;
 
     /**
      * Total number of columns in the ResultSet
@@ -128,20 +131,25 @@ public class MetadataCache {
         if (columnName == null)
             return null;
 
-        // Try lowercase first (most common)
-        Integer index = columnIndexMap.get(columnName.toLowerCase());
-        if (index != null)
-            return index;
-
-        // Try uppercase
-        index = columnIndexMap.get(columnName.toUpperCase());
-        if (index != null)
-            return index;
-
-        // Try original case
-        return columnIndexMap.get(columnName);
+        // Convert to uppercase for lookup (Oracle standard)
+        return columnIndexMap.get(columnName.toUpperCase());
     }
 
+    /**
+     * Get Java type for a column by name (case-insensitive)
+     * 
+     * @param columnName The column name
+     * @return The Java class type, or null if not found
+     */
+    public Class<?> getJavaTypeForColumn(String columnName) {
+        if (columnName == null || columnJavaTypes == null) {
+            return null;
+        }
+        
+        // Convert to uppercase for lookup (Oracle standard)
+        return columnJavaTypes.get(columnName.toUpperCase());
+    }
+    
     /**
      * Get SQL type for a column index
      * 
@@ -232,17 +240,4 @@ public class MetadataCache {
         this.initialized = true;
     }
 
-    /**
-     * Static factory to build cache for a query definition
-     * (Will be populated by MetadataCacheBuilder)
-     */
-    public static MetadataCacheBuilder builderForQuery(QueryDefinition definition) {
-        return MetadataCache.builder()
-                .queryName(definition.getName())
-                .columnIndexMap(new ConcurrentHashMap<>())
-                .columnTypeMap(new ConcurrentHashMap<>())
-                .attributeToColumnIndex(new ConcurrentHashMap<>())
-                .attributeToColumnType(new ConcurrentHashMap<>())
-                .createdAt(System.currentTimeMillis());
-    }
 }

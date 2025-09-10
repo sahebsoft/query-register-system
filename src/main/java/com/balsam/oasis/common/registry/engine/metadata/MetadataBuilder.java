@@ -88,8 +88,8 @@ public class MetadataBuilder {
             }
 
             // Skip attributes with selected=false unless explicitly requested
-            if (!attr.isSelected() && (context.getSelectedFields() == null || 
-                !context.getSelectedFields().contains(attrName))) {
+            if (!attr.isSelected() && (context.getSelectedFields() == null ||
+                    !context.getSelectedFields().contains(attrName))) {
                 continue;
             }
 

@@ -29,11 +29,6 @@ public class QueryProperties {
      */
     private JdbcProperties jdbc = new JdbcProperties();
 
-    /**
-     * Metadata cache configuration
-     */
-    private MetadataProperties metadata = new MetadataProperties();
-
     @Data
     public static class RestProperties {
         private String prefix = "/api/query";
@@ -48,14 +43,4 @@ public class QueryProperties {
         private boolean enableSqlLogging = true;
     }
 
-    @Data
-    public static class MetadataProperties {
-        private CacheProperties cache = new CacheProperties();
-
-        @Data
-        public static class CacheProperties {
-            private boolean prewarm = false;
-            private boolean failOnError = true; // Stop application if pre-warming fails
-        }
-    }
 }

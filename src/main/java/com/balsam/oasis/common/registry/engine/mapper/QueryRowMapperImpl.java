@@ -65,22 +65,22 @@ public class QueryRowMapperImpl extends BaseRowMapper<Row> {
         // Get the naming strategy
         NamingStrategy namingStrategy = definition.getDynamicAttributeNamingStrategy();
 
-        // Create a set of defined attribute names and their aliases for quick lookup
+        // Create a set of defined attribute names and their aliases for quick lookup (uppercase)
         Set<String> definedNames = new HashSet<>();
         for (Map.Entry<String, AttributeDef<?>> entry : definedAttributes.entrySet()) {
-            definedNames.add(entry.getKey().toLowerCase());
+            definedNames.add(entry.getKey().toUpperCase());
             AttributeDef<?> attr = entry.getValue();
             if (attr.getAliasName() != null) {
-                definedNames.add(attr.getAliasName().toLowerCase());
+                definedNames.add(attr.getAliasName().toUpperCase());
             }
         }
 
         // Add undefined columns with naming strategy
         for (Map.Entry<String, Object> entry : rawData.entrySet()) {
-            String columnName = entry.getKey();
+            String columnName = entry.getKey(); // Already uppercase from BaseRowMapper
 
             // Skip if this column is already defined
-            if (definedNames.contains(columnName.toLowerCase())) {
+            if (definedNames.contains(columnName)) {
                 continue;
             }
 

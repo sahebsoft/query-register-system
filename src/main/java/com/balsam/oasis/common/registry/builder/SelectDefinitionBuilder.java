@@ -472,7 +472,6 @@ public class SelectDefinitionBuilder {
                 .paginationEnabled(true) // always true for select
                 .fetchSize(fetchSize)
                 .metadataCache(null) // set later if needed
-                .metadataCacheEnabled(true)
                 .includeDynamicAttributes(includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
                 .build();
