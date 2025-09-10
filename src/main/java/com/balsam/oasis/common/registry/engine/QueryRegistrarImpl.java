@@ -143,6 +143,31 @@ public class QueryRegistrarImpl implements QueryRegistrar {
     }
 
     /**
+     * Update an existing query definition with metadata cache.
+     * This is used after metadata cache pre-warming.
+     * 
+     * @param name the query name
+     * @param updatedDefinition the updated definition with metadata cache
+     */
+    public void updateWithMetadataCache(String name, QueryDefinition updatedDefinition) {
+        if (name == null || updatedDefinition == null) {
+            return;
+        }
+        
+        lock.writeLock().lock();
+        try {
+            if (registry.containsKey(name)) {
+                registry.put(name, updatedDefinition);
+                log.debug("Updated query '{}' with metadata cache", name);
+            } else {
+                log.warn("Cannot update non-existent query: {}", name);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * Validate a query definition before registration.
      * 
      * @param definition the definition to validate

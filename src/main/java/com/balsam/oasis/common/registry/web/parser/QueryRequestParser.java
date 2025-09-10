@@ -53,7 +53,7 @@ public class QueryRequestParser {
 
         // Parse each parameter
         for (Map.Entry<String, List<String>> entry : allParams.entrySet()) {
-            String key = entry.getKey();
+            String paramName = entry.getKey();
             List<String> values = entry.getValue();
 
             if (values == null || values.isEmpty()) {
@@ -62,13 +62,8 @@ public class QueryRequestParser {
 
             String value = values.get(0); // Take first value for single-valued params
 
-            // Skip pagination and format parameters (except _fields)
-            if (key.startsWith("_") && !key.equals("_fields")) {
-                continue;
-            }
-
-            // Check for fields parameter
-            if (key.equals("fields") || key.equals("_fields")) {
+            // Check for _select parameter
+            if (paramName.equals("_select")) {
                 // Parse comma-separated field names
                 if (selectedFields == null) {
                     selectedFields = new HashSet<>();
@@ -80,8 +75,13 @@ public class QueryRequestParser {
                 continue;
             }
 
+            // Skip pagination and system parameters
+            if (paramName.startsWith("_")) {
+                continue;
+            }
+
             // Check for filter pattern: filter.attribute or filter.attribute.op
-            Matcher filterMatcher = FILTER_PATTERN.matcher(key);
+            Matcher filterMatcher = FILTER_PATTERN.matcher(paramName);
             if (filterMatcher.matches()) {
                 String attribute = filterMatcher.group(1);
                 String opPart = filterMatcher.group(2);
@@ -164,7 +164,7 @@ public class QueryRequestParser {
             }
 
             // Check for sort pattern
-            if (key.equals("sort")) {
+            if (paramName.equals("sort")) {
                 parseSortParameter(value, sorts);
                 continue;
             }
@@ -173,7 +173,7 @@ public class QueryRequestParser {
             // Only accept parameters that are defined in the QueryDefinition
             // Skip empty string parameters to let defaults apply
             if (value != null && !value.trim().isEmpty()) {
-                Class<?> paramType = getParamType(queryDefinition, key);
+                Class<?> paramType = getParamType(queryDefinition, paramName);
 
                 // Only process if the parameter is defined in the query
                 if (paramType != null) {
@@ -184,12 +184,12 @@ public class QueryRequestParser {
                             List<String> valueList = Arrays.stream(value.split(","))
                                     .map(String::trim)
                                     .collect(Collectors.toList());
-                            params.put(key, valueList);
+                            params.put(paramName, valueList);
                         } else {
-                            params.put(key, Collections.singletonList(value.trim()));
+                            params.put(paramName, Collections.singletonList(value.trim()));
                         }
                     } else {
-                        params.put(key, parseValue(value, paramType));
+                        params.put(paramName, parseValue(value, paramType));
                     }
                 }
                 // If paramType is null, the parameter is not defined in the query - ignore it

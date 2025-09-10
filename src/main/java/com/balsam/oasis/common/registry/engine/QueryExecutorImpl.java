@@ -211,14 +211,18 @@ public class QueryExecutorImpl implements QueryExecutor {
         log.info("Pre-warming metadata caches for {} queries", queries.size());
         Map<String, MetadataCache> caches = metadataCacheBuilder.prewarmCaches(queries);
 
-        // Store updated definitions with caches locally
-        // Since QueryRegistry is read-only, we can't update it directly
-        // The cached definitions will be used when queries are executed
+        // Update registry with cached definitions if it supports updates
         for (Map.Entry<String, MetadataCache> entry : caches.entrySet()) {
             QueryDefinition definition = queryRegistry.get(entry.getKey());
-            if (definition != null) {
-                // The metadata cache is already built and will be used during execution
-                log.debug("Metadata cache ready for query: {}", entry.getKey());
+            if (definition != null && entry.getValue() != null) {
+                // Create updated definition with metadata cache
+                QueryDefinition updatedDefinition = definition.withMetadataCache(entry.getValue());
+
+                // Update the registry if it's a QueryRegistrarImpl
+                if (queryRegistry instanceof QueryRegistrarImpl registrarImpl) {
+                    registrarImpl.updateWithMetadataCache(entry.getKey(), updatedDefinition);
+                } else {
+                }
             }
         }
 

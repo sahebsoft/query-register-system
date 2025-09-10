@@ -35,6 +35,12 @@ public class OracleHRQueryConfig {
 
         @PostConstruct
         public void registerQueries() {
+
+                queryRegistrar.register(QueryDefinitionBuilder.builder("zallom").sql("""
+                                select * from employees
+                                """)
+                                .dynamic().build());
+
                 // Register all queries defined in this configuration
                 queryRegistrar.register(employeesQuery());
                 queryRegistrar.register(departmentStatsQuery());

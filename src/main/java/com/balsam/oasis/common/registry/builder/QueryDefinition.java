@@ -102,13 +102,50 @@ public class QueryDefinition {
      * Naming strategy for dynamic attributes
      */
     NamingStrategy dynamicAttributeNamingStrategy;
+    
+    /**
+     * Resolver for dynamic attributes (transient field).
+     * We use a singleton instance since resolver is stateless except for caching.
+     */
+    private static final com.balsam.oasis.common.registry.engine.resolver.DynamicAttributeResolver DYNAMIC_RESOLVER = 
+        new com.balsam.oasis.common.registry.engine.resolver.DynamicAttributeResolver();
 
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
     }
 
     public AttributeDef<?> getAttribute(String name) {
-        return attributes.get(name);
+        // First check static attributes
+        AttributeDef<?> staticAttr = attributes.get(name);
+        if (staticAttr != null) {
+            return staticAttr;
+        }
+        
+        // If not found and dynamic attributes are enabled, try to resolve
+        if (includeDynamicAttributes) {
+            return DYNAMIC_RESOLVER.resolveDynamicAttribute(this, name);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get attribute with explicit dynamic resolution.
+     * This method always attempts dynamic resolution if enabled.
+     */
+    public AttributeDef<?> getAttributeWithDynamicResolution(String name) {
+        // First check static attributes
+        AttributeDef<?> staticAttr = attributes.get(name);
+        if (staticAttr != null) {
+            return staticAttr;
+        }
+        
+        // Try dynamic resolution
+        if (includeDynamicAttributes) {
+            return DYNAMIC_RESOLVER.resolveDynamicAttribute(this, name);
+        }
+        
+        return null;
     }
 
     public ParamDef<?> getParam(String name) {
