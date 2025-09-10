@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.processor;
+package com.balsam.oasis.common.registry.domain.processor;
 
 /**
  * Functional interface for formatting attribute values to strings

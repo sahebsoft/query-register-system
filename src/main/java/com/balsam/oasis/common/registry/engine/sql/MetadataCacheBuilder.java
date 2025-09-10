@@ -19,27 +19,15 @@ import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
+import com.balsam.oasis.common.registry.domain.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
-import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 
 /**
- * Builds and manages metadata caches for queries. This builder is responsible
- * for:
- * <ul>
- * <li>Using PreparedStatement.getMetaData() as primary approach (fastest)</li>
- * <li>Falling back to WHERE ROWNUM = 0 for Oracle when needed</li>
- * <li>Using WHERE 1=0 as final fallback</li>
- * <li>Building column index and type mappings</li>
- * <li>Pre-calculating attribute to column mappings</li>
- * <li>Caching metadata for reuse across query executions</li>
- * </ul>
- * 
- * <p>
- * Based on METADATA.md recommendations, this implementation prioritizes
- * PreparedStatement.getMetaData() to avoid query execution when possible.
- * </p>
+ * Builds and manages metadata caches for queries.
+ * Uses PreparedStatement.getMetaData() as primary approach (fastest),
+ * with wrapped WHERE 1=0 as fallback.
  * 
  * @author Query Registration System
  * @since 1.0
@@ -58,11 +46,6 @@ public class MetadataCacheBuilder {
 
     /**
      * Build metadata cache for a query definition.
-     * Uses PreparedStatement.getMetaData() as the primary approach,
-     * with wrapped WHERE 1=0 as fallback.
-     * 
-     * @param definition The query definition
-     * @return A populated metadata cache
      */
     public MetadataCache buildCache(QueryDefinition definition) {
         String queryName = definition.getName();
@@ -71,21 +54,17 @@ public class MetadataCacheBuilder {
         try {
             // Create a context for metadata query
             QueryContext metadataContext = createMetadataContext(definition);
-
-            // Build SQL
             SqlResult sqlResult = sqlBuilder.build(metadataContext);
-            String sql = sqlResult.getSql();
-            Map<String, Object> params = sqlResult.getParams();
 
-            // Primary approach: PreparedStatement.getMetaData() without executing
-            MetadataCache cache = tryPreparedStatementMetadata(sql, params, definition);
+            // Try approaches in order
+            MetadataCache cache = tryPreparedStatementMetadata(sqlResult.getSql(),
+                    sqlResult.getParams(), definition);
             if (cache != null && cache.isInitialized()) {
                 log.info("Retrieved metadata using PreparedStatement.getMetaData() for query: {}", queryName);
                 return cache;
             }
 
-            // Fallback: Execute with wrapped WHERE 1=0
-            cache = tryExecuteWithWhere10(sql, params, definition);
+            cache = tryExecuteWithWhere10(sqlResult.getSql(), sqlResult.getParams(), definition);
             if (cache != null && cache.isInitialized()) {
                 log.info("Retrieved metadata using wrapped WHERE 1=0 for query: {}", queryName);
                 return cache;
@@ -102,73 +81,69 @@ public class MetadataCacheBuilder {
     }
 
     /**
-     * Try to get metadata using PreparedStatement.getMetaData() without executing
-     * the query.
-     * This is the fastest approach as recommended in METADATA.md.
+     * Try to get metadata using PreparedStatement.getMetaData() without executing.
      */
     private MetadataCache tryPreparedStatementMetadata(String sql, Map<String, Object> params,
             QueryDefinition definition) {
         try {
             return namedJdbcTemplate.execute(sql, params, (PreparedStatement ps) -> {
                 try {
-                    // Try to get metadata WITHOUT executing the query
+                    // Try without parameters first
                     ResultSetMetaData metaData = ps.getMetaData();
-
                     if (metaData != null) {
-                        log.trace("PreparedStatement.getMetaData() returned metadata without parameters");
+                        log.trace("Got metadata without parameters");
                         return buildCacheFromMetaData(metaData, definition);
                     }
 
-                    // If null, try setting dummy parameters and get metadata again
-                    log.trace("PreparedStatement.getMetaData() returned null, trying with dummy parameters");
-                    ParameterMetaData pmd = ps.getParameterMetaData();
-                    int paramCount = pmd.getParameterCount();
-
-                    for (int i = 1; i <= paramCount; i++) {
-                        try {
-                            int paramType = pmd.getParameterType(i);
-                            SqlTypeMapper.setDummyParameter(ps, i, paramType);
-                        } catch (SQLException e) {
-                            // If can't get type, use generic string
-                            ps.setString(i, "DUMMY");
-                        }
-                    }
-
-                    // Try again with parameters set
+                    // Try with dummy parameters
+                    setDummyParameters(ps);
                     metaData = ps.getMetaData();
                     if (metaData != null) {
-                        log.trace("PreparedStatement.getMetaData() returned metadata with dummy parameters");
+                        log.trace("Got metadata with dummy parameters");
                         return buildCacheFromMetaData(metaData, definition);
                     }
-
                 } catch (Exception e) {
-                    log.trace("Error in PreparedStatement.getMetaData() approach: {}", e.getMessage());
+                    log.trace("PreparedStatement.getMetaData() approach failed: {}", e.getMessage());
                 }
                 return null;
             });
         } catch (Exception e) {
-            log.trace("PreparedStatement.getMetaData() approach failed: {}", e.getMessage());
+            log.trace("PreparedStatement approach failed: {}", e.getMessage());
             return null;
         }
     }
 
     /**
-     * Fallback: Get metadata by executing wrapped query with WHERE 1=0.
-     * This executes the query but returns no rows, working for all query types.
-     * We wrap the original query to avoid syntax issues with complex queries.
+     * Set dummy parameters on PreparedStatement for metadata retrieval.
      */
-    private MetadataCache tryExecuteWithWhere10(String sql, Map<String, Object> params, QueryDefinition definition) {
+    private void setDummyParameters(PreparedStatement ps) throws SQLException {
+        ParameterMetaData pmd = ps.getParameterMetaData();
+        int paramCount = pmd.getParameterCount();
+
+        for (int i = 1; i <= paramCount; i++) {
+            try {
+                SqlTypeMapper.setDummyParameter(ps, i, pmd.getParameterType(i));
+            } catch (SQLException e) {
+                // Fallback to string if type unknown
+                ps.setString(i, "DUMMY");
+            }
+        }
+    }
+
+    /**
+     * Fallback: Get metadata by executing wrapped query with WHERE 1=0.
+     */
+    private MetadataCache tryExecuteWithWhere10(String sql, Map<String, Object> params,
+            QueryDefinition definition) {
         try {
-            // Wrap the query to ensure WHERE 1=0 works with all query types
-            // This handles UNION, GROUP BY, HAVING, etc. correctly
+            // Wrap to handle all query types
             String wrappedSql = "SELECT * FROM (" + sql + ") WHERE 1=0";
 
             return namedJdbcTemplate.execute(wrappedSql, params, (PreparedStatement ps) -> {
                 try (ResultSet rs = ps.executeQuery()) {
-                    ResultSetMetaData metaData = rs.getMetaData();
-                    return buildCacheFromMetaData(metaData, definition);
+                    return buildCacheFromMetaData(rs.getMetaData(), definition);
                 } catch (Exception e) {
-                    log.trace("Error in WHERE 1=0 approach: {}", e.getMessage());
+                    log.trace("WHERE 1=0 approach failed: {}", e.getMessage());
                     return null;
                 }
             });
@@ -179,78 +154,32 @@ public class MetadataCacheBuilder {
     }
 
     /**
-     * Build cache from ResultSetMetaData without executing the query.
-     * Used when PreparedStatement.getMetaData() returns metadata without execution.
+     * Build cache from ResultSetMetaData.
      */
-    private MetadataCache buildCacheFromMetaData(ResultSetMetaData metaData, QueryDefinition definition)
-            throws SQLException {
+    private MetadataCache buildCacheFromMetaData(ResultSetMetaData metaData,
+            QueryDefinition definition) throws SQLException {
         int columnCount = metaData.getColumnCount();
 
-        // Create maps for the cache
+        // Initialize collections
         Map<String, Integer> columnIndexMap = new ConcurrentHashMap<>();
         Map<Integer, Integer> columnTypeMap = new ConcurrentHashMap<>();
         Map<String, Class<?>> columnJavaTypes = new ConcurrentHashMap<>();
         String[] columnNames = new String[columnCount];
         String[] columnLabels = new String[columnCount];
 
-        // Build column metadata mappings
+        // Process columns
         for (int i = 1; i <= columnCount; i++) {
-            String columnName = metaData.getColumnName(i);
-            String columnLabel = metaData.getColumnLabel(i);
-            int columnType = metaData.getColumnType(i);
-
-            // Store in arrays (0-based)
-            columnNames[i - 1] = columnName;
-            columnLabels[i - 1] = columnLabel;
-
-            // Map column names to indexes (uppercase only for consistency with Oracle)
-            columnIndexMap.put(columnName.toUpperCase(), i);
-            if (!columnName.equals(columnLabel)) {
-                columnIndexMap.put(columnLabel.toUpperCase(), i);
-            }
-
-            // Map column index to SQL type
-            columnTypeMap.put(i, columnType);
-
-            // Map column names to Java types (uppercase only)
-            Class<?> javaType = SqlTypeMapper.sqlTypeToJavaClass(columnType);
-            columnJavaTypes.put(columnName.toUpperCase(), javaType);
-            if (!columnName.equals(columnLabel)) {
-                columnJavaTypes.put(columnLabel.toUpperCase(), javaType);
-            }
-
-            log.trace("Cached column {}: name='{}', label='{}', sqlType={}, javaType={}",
-                    i, columnName, columnLabel, columnType, javaType.getSimpleName());
+            processColumn(i, metaData, columnIndexMap, columnTypeMap,
+                    columnJavaTypes, columnNames, columnLabels);
         }
 
-        // Pre-calculate attribute to column mappings
+        // Map attributes to columns
         Map<String, Integer> attributeToColumnIndex = new ConcurrentHashMap<>();
         Map<String, Integer> attributeToColumnType = new ConcurrentHashMap<>();
+        mapAttributesToColumns(definition, columnIndexMap, columnTypeMap,
+                attributeToColumnIndex, attributeToColumnType);
 
-        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-
-            // Skip transient attributes
-            if (attr.isVirual()) {
-                continue;
-            }
-
-            // Find column index for this attribute
-            String columnKey = attr.getAliasName() != null ? attr.getAliasName() : attrName;
-            Integer columnIndex = columnKey != null ? columnIndexMap.get(columnKey.toUpperCase()) : null;
-
-            if (columnIndex != null) {
-                attributeToColumnIndex.put(attrName, columnIndex);
-                attributeToColumnType.put(attrName, columnTypeMap.get(columnIndex));
-                log.trace("Mapped attribute '{}' to column index {}", attrName, columnIndex);
-            } else {
-                log.warn("No column found for attribute '{}' with alias '{}'",
-                        attrName, attr.getAliasName());
-            }
-        }
-
-        // Build and return the cache
+        // Build cache
         MetadataCache cache = MetadataCache.builder()
                 .queryName(definition.getName())
                 .columnIndexMap(columnIndexMap)
@@ -265,33 +194,94 @@ public class MetadataCacheBuilder {
                 .initialized(true)
                 .build();
 
-        log.info("Built metadata cache for query '{}': {} columns, {} attribute mappings",
+        log.info("Built metadata cache for '{}': {} columns, {} attributes",
                 definition.getName(), columnCount, attributeToColumnIndex.size());
 
         return cache;
     }
 
     /**
-     * Create a context for metadata-only query
+     * Process a single column's metadata.
+     */
+    private void processColumn(int index, ResultSetMetaData metaData,
+            Map<String, Integer> columnIndexMap, Map<Integer, Integer> columnTypeMap,
+            Map<String, Class<?>> columnJavaTypes, String[] columnNames,
+            String[] columnLabels) throws SQLException {
+
+        String name = metaData.getColumnName(index);
+        String label = metaData.getColumnLabel(index);
+        int type = metaData.getColumnType(index);
+        Class<?> javaType = SqlTypeMapper.sqlTypeToJavaClass(type);
+
+        // Store in arrays
+        columnNames[index - 1] = name;
+        columnLabels[index - 1] = label;
+
+        // Map names to index (uppercase for Oracle)
+        String upperName = name.toUpperCase();
+        String upperLabel = label.toUpperCase();
+
+        columnIndexMap.put(upperName, index);
+        if (!upperName.equals(upperLabel)) {
+            columnIndexMap.put(upperLabel, index);
+        }
+
+        // Map types
+        columnTypeMap.put(index, type);
+        columnJavaTypes.put(upperName, javaType);
+        if (!upperName.equals(upperLabel)) {
+            columnJavaTypes.put(upperLabel, javaType);
+        }
+
+        log.trace("Column {}: name='{}', label='{}', type={}, javaType={}",
+                index, name, label, type, javaType.getSimpleName());
+    }
+
+    /**
+     * Map attributes to their corresponding columns.
+     */
+    private void mapAttributesToColumns(QueryDefinition definition,
+            Map<String, Integer> columnIndexMap, Map<Integer, Integer> columnTypeMap,
+            Map<String, Integer> attributeToColumnIndex,
+            Map<String, Integer> attributeToColumnType) {
+
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            AttributeDef<?> attr = entry.getValue();
+
+            // Skip virtual attributes
+            if (attr.isVirtual()) {
+                continue;
+            }
+
+            // Find column for attribute
+            String columnKey = attr.getAliasName() != null ? attr.getAliasName() : attrName;
+            Integer columnIndex = columnIndexMap.get(columnKey.toUpperCase());
+
+            if (columnIndex != null) {
+                attributeToColumnIndex.put(attrName, columnIndex);
+                attributeToColumnType.put(attrName, columnTypeMap.get(columnIndex));
+                log.trace("Mapped attribute '{}' to column {}", attrName, columnIndex);
+            } else {
+                log.warn("No column found for attribute '{}' with alias '{}'",
+                        attrName, attr.getAliasName());
+            }
+        }
+    }
+
+    /**
+     * Create a context for metadata-only query.
      */
     private QueryContext createMetadataContext(QueryDefinition definition) {
-        // Create params map with default values for all parameters
         Map<String, Object> params = new HashMap<>();
 
-        // Add default values for all defined parameters to avoid missing parameter
-        // errors
+        // Add default/dummy values for all parameters
         for (Map.Entry<String, ParamDef> entry : definition.getParameters().entrySet()) {
-            String paramName = entry.getKey();
             ParamDef paramDef = entry.getValue();
-
-            // Use the default value if defined, otherwise use a dummy value based on type
-            if (paramDef.defaultValue() != null) {
-                params.put(paramName, paramDef.defaultValue());
-            } else {
-                // Provide dummy values based on type using centralized logic
-                Object dummyValue = SqlTypeMapper.getDummyValue(paramDef.type());
-                params.put(paramName, dummyValue);
-            }
+            Object value = paramDef.defaultValue() != null
+                    ? paramDef.defaultValue()
+                    : SqlTypeMapper.getDummyValue(paramDef.type());
+            params.put(entry.getKey(), value);
         }
 
         return QueryContext.builder()
@@ -301,5 +291,4 @@ public class MetadataCacheBuilder {
                 .sorts(new ArrayList<>())
                 .build();
     }
-
 }

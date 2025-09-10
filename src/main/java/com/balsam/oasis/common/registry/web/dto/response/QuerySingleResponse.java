@@ -1,8 +1,8 @@
 package com.balsam.oasis.common.registry.web.dto.response;
 
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
-import com.balsam.oasis.common.registry.exception.QueryException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -12,7 +12,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * Response structure for single object queries (find-by-key operations).
- * Unlike QueryListResponse, this contains a single data object without a count field.
+ * Unlike QueryListResponse, this contains a single data object without a count
+ * field.
  */
 @Data
 @Builder
@@ -60,16 +61,17 @@ public class QuerySingleResponse implements QuerySuccessResponse {
 
     /**
      * Create a single response from QueryResult (takes first row)
+     * 
      * @throws QueryException if no data found
      */
     public static QuerySingleResponse from(QueryResult queryResult) {
         if (queryResult == null || queryResult.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
-        
+
         // Get first row as single result
         Object data = queryResult.getRows().get(0).toMap();
-        
+
         return QuerySingleResponse.builder()
                 .data(data)
                 .metadata(queryResult.getMetadata())

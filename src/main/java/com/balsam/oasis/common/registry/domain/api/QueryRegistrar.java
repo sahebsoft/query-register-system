@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.api;
+package com.balsam.oasis.common.registry.domain.api;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 

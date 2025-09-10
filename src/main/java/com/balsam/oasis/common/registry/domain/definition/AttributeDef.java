@@ -2,8 +2,8 @@ package com.balsam.oasis.common.registry.domain.definition;
 
 import java.util.function.Function;
 
-import com.balsam.oasis.common.registry.processor.AttributeFormatter;
-import com.balsam.oasis.common.registry.processor.Calculator;
+import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
+import com.balsam.oasis.common.registry.domain.processor.Calculator;
 import com.google.common.base.Preconditions;
 
 import lombok.Value;

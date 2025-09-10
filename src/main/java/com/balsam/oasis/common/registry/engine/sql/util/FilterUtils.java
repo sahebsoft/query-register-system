@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
+import com.balsam.oasis.common.registry.domain.exception.QueryExecutionException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.exception.QueryExecutionException;
 
 /**
  * Utility class for applying filters to SQL queries.

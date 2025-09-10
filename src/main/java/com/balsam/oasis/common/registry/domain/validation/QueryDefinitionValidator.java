@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.validation;
+package com.balsam.oasis.common.registry.domain.validation;
 
 import java.util.HashSet;
 import java.util.Map;

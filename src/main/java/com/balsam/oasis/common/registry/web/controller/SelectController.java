@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.api.QueryRegistry;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
-import com.balsam.oasis.common.registry.exception.QueryException;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.response.ErrorResponse;

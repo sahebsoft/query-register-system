@@ -8,10 +8,10 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
+import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;

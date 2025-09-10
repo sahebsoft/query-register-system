@@ -8,10 +8,10 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
+import com.balsam.oasis.common.registry.domain.processor.PostProcessor;
+import com.balsam.oasis.common.registry.domain.processor.PreProcessor;
+import com.balsam.oasis.common.registry.domain.processor.RowProcessor;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
-import com.balsam.oasis.common.registry.processor.PostProcessor;
-import com.balsam.oasis.common.registry.processor.PreProcessor;
-import com.balsam.oasis.common.registry.processor.RowProcessor;
 
 import lombok.AccessLevel;
 import lombok.Builder;

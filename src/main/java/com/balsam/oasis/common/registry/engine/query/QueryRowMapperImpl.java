@@ -24,14 +24,14 @@ public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
     protected QueryRow createIntermediateOutput(Map<String, Object> processedData,
             Map<String, Object> rawData, QueryContext context) {
         // Create a Row that can be used in calculators
-        return new QueryRowImpl(processedData, rawData, context);
+        return QueryRow.create(processedData, rawData, context);
     }
 
     @Override
     protected QueryRow createFinalOutput(Map<String, Object> processedData,
             Map<String, Object> rawData, QueryContext context) {
         // For Query, the final output is the same Row object
-        return new QueryRowImpl(processedData, rawData, context);
+        return QueryRow.create(processedData, rawData, context);
     }
 
     @Override

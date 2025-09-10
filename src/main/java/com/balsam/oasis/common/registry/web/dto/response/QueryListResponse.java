@@ -7,10 +7,10 @@ import java.util.Map;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
 import com.balsam.oasis.common.registry.domain.select.SelectItem;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
-import com.balsam.oasis.common.registry.exception.QueryException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;

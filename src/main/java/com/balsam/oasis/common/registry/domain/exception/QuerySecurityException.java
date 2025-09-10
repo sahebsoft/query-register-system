@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.exception;
+package com.balsam.oasis.common.registry.domain.exception;
 
 /**
  * Exception thrown when security constraints are violated

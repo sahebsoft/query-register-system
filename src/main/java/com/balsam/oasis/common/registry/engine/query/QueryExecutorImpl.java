@@ -11,16 +11,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.api.QueryRegistry;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
+import com.balsam.oasis.common.registry.domain.exception.QueryExecutionException;
+import com.balsam.oasis.common.registry.domain.exception.QueryNotFoundException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.domain.metadata.MetadataBuilder;
-import com.balsam.oasis.common.registry.exception.QueryExecutionException;
-import com.balsam.oasis.common.registry.exception.QueryNotFoundException;
 import com.google.common.collect.ImmutableList;
 
 /**

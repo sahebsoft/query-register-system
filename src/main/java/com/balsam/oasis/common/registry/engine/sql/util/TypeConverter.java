@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.balsam.oasis.common.registry.exception.QueryValidationException;
+import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
 
 /**
  * Utility class for type conversions in the Query Registration System.

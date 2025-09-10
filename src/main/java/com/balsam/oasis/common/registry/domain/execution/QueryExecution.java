@@ -5,17 +5,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
+import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
+import com.balsam.oasis.common.registry.domain.processor.ParamProcessor;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
-import com.balsam.oasis.common.registry.exception.QueryValidationException;
-import com.balsam.oasis.common.registry.processor.ParamProcessor;
 
 /**
  * Fluent builder for configuring and executing queries.

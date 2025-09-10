@@ -17,13 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
-import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
+import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
-import com.balsam.oasis.common.registry.exception.QueryException;
-import com.balsam.oasis.common.registry.exception.QueryValidationException;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
+import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
+import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequestBody;
@@ -131,12 +131,12 @@ public class QueryController {
                     .withSort(queryRequest.getSorts())
                     .withPagination(_start, _end)
                     .includeMetadata(!"none".equals(_meta));
-            
+
             // Apply field selection if specified
             if (queryRequest.getSelectedFields() != null && !queryRequest.getSelectedFields().isEmpty()) {
                 execution.selectFields(queryRequest.getSelectedFields());
             }
-            
+
             QueryResult result = execution.execute();
 
             // Build JSON response

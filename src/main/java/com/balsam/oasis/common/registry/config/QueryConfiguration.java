@@ -5,9 +5,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.balsam.oasis.common.registry.api.QueryExecutor;
-import com.balsam.oasis.common.registry.api.QueryRegistrar;
-import com.balsam.oasis.common.registry.api.QueryRegistry;
+import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistrarImpl;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
