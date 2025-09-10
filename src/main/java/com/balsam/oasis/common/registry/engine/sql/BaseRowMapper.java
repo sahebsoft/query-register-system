@@ -1,4 +1,4 @@
-package com.balsam.oasis.common.registry.base;
+package com.balsam.oasis.common.registry.engine.sql;
 
 import java.sql.Blob;
 import java.sql.Clob;
@@ -19,7 +19,6 @@ import org.springframework.jdbc.core.RowMapper;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
 import com.balsam.oasis.common.registry.engine.sql.util.TypeConverter;
 import com.balsam.oasis.common.registry.processor.AttributeFormatter;
@@ -215,16 +214,17 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
     /**
      * Check if an attribute should be included in the result based on:
-     * 1. The attribute's selected field (if false, exclude unless explicitly requested)
+     * 1. The attribute's selected field (if false, exclude unless explicitly
+     * requested)
      * 2. The context's field selection (if specified, only include selected fields)
      */
     protected boolean isAttributeIncluded(AttributeDef<?> attr, String attrName, QueryContext context) {
         // If attribute has selected=false, only include if explicitly requested
         if (!attr.isSelected()) {
-            return context.getSelectedFields() != null && 
-                   context.getSelectedFields().contains(attrName);
+            return context.getSelectedFields() != null &&
+                    context.getSelectedFields().contains(attrName);
         }
-        
+
         // Otherwise, include based on field selection
         return context.isFieldSelected(attrName);
     }
@@ -331,7 +331,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
         // Use SqlTypeMapper to determine expected Java type
         Class<?> expectedType = SqlTypeMapper.sqlTypeToJavaClass(sqlType);
-        
+
         // Handle types based on expected Java type for best performance
         if (expectedType == String.class) {
             return rs.getString(columnIndex);
