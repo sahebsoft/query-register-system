@@ -1,7 +1,6 @@
 package com.balsam.oasis.common.registry.domain.api;
 
 import java.util.Collection;
-import java.util.Optional;
 import java.util.Set;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
@@ -27,22 +26,6 @@ public interface QueryRegistry {
      * @return the query definition, or null if not found
      */
     QueryDefinition get(String name);
-
-    /**
-     * Get a query definition by name as an Optional.
-     * 
-     * @param name the name of the query
-     * @return an Optional containing the query definition, or empty if not found
-     */
-    Optional<QueryDefinition> find(String name);
-
-    /**
-     * Check if a query exists by name.
-     * 
-     * @param name the name of the query
-     * @return true if the query exists, false otherwise
-     */
-    boolean exists(String name);
 
     /**
      * Get all registered query names.
@@ -71,4 +54,18 @@ public interface QueryRegistry {
      * @return true if no queries are registered, false otherwise
      */
     boolean isEmpty();
+
+    /**
+     * Register a query definition.
+     * 
+     * @param definition the query definition to register
+     * @throws IllegalArgumentException if definition is null or invalid
+     * @throws IllegalStateException    if a query with the same name already exists
+     */
+    void register(QueryDefinition definition);
+
+    /**
+     * Clear all registered queries.
+     */
+    void clear();
 }

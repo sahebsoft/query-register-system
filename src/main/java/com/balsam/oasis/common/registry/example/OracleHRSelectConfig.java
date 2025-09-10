@@ -1,15 +1,13 @@
 package com.balsam.oasis.common.registry.example;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.SelectDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -21,10 +19,10 @@ import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 @Configuration
 public class OracleHRSelectConfig {
 
-        private final QueryRegistrar queryRegistrar;
+        private final QueryRegistry queryRegistry;
 
-        public OracleHRSelectConfig(QueryRegistrar queryRegistrar) {
-                this.queryRegistrar = queryRegistrar;
+        public OracleHRSelectConfig(QueryRegistry queryRegistry) {
+                this.queryRegistry = queryRegistry;
         }
 
         /**
@@ -35,30 +33,15 @@ public class OracleHRSelectConfig {
                 QueryDefinition select = SelectDefinitionBuilder.builder("employeesLov")
                                 .sql("""
                                                 SELECT
-                                                    e.employee_id,
-                                                    e.first_name || ' ' || e.last_name as full_name,
-                                                    e.email,
-                                                    e.phone_number,
-                                                    d.department_name,
-                                                    e.job_id,
-                                                    e.salary
+                                                    *
                                                 FROM employees e
                                                 LEFT JOIN departments d ON e.department_id = d.department_id
                                                 WHERE 1=1
                                                 --departmentFilter
                                                 """)
                                 .description("Employee select for dropdowns with search and department filtering")
-                                // Value and label definitions (only aliasName and type required)
-                                .valueAttribute("employee_id", Integer.class)
-                                .labelAttribute("full_name")
-                                .addition(AttributeDef.name("email")
-                                                .type(String.class)
-                                                .aliasName("email")
-                                                .build())
-                                .addition(AttributeDef.name("phone_number")
-                                                .type(String.class)
-                                                .aliasName("phone_number")
-                                                .build())
+                                .valueAttribute("EMPLOYEE_ID", Integer.class)
+                                .labelAttribute("FIRST_NAME")
                                 .criteria(CriteriaDef.name("departmentFilter")
                                                 .sql("AND d.department_id = :departmentId")
                                                 .condition(ctx -> ctx.hasParam("departmentId"))
@@ -68,14 +51,13 @@ public class OracleHRSelectConfig {
                                                 .build())
                                 .postProcessor((queryResult, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult.toBuilder().rows(List.of())
-                                                        .summary(Map.of("TEST", "Summary")).build();
+                                        return queryResult;
                                 })
-                                .defaultPageSize(20)
-                                .maxPageSize(500)
+                                .paginationEnabled(false)
+                                .dynamic()
                                 .build();
 
-                queryRegistrar.register(select);
+                queryRegistry.register(select);
                 return select;
         }
 
@@ -105,15 +87,15 @@ public class OracleHRSelectConfig {
                                 .labelAttribute("department_name")
 
                                 // Additional attributes
-                                .addition(AttributeDef.name("city")
+                                .attribute(AttributeDef.name("city")
                                                 .type(String.class)
                                                 .aliasName("city")
                                                 .build())
-                                .addition(AttributeDef.name("state_province")
+                                .attribute(AttributeDef.name("state_province")
                                                 .type(String.class)
                                                 .aliasName("state_province")
                                                 .build())
-                                .addition(AttributeDef.name("country_name")
+                                .attribute(AttributeDef.name("country_name")
                                                 .type(String.class)
                                                 .aliasName("country_name")
                                                 .build())
@@ -133,7 +115,7 @@ public class OracleHRSelectConfig {
 
                                 .build();
 
-                queryRegistrar.register(select);
+                queryRegistry.register(select);
                 return select;
         }
 
@@ -157,11 +139,11 @@ public class OracleHRSelectConfig {
                                 .valueAttribute("job_id", String.class)
                                 .labelAttribute("job_title")
 
-                                .addition(AttributeDef.name("min_salary")
+                                .attribute(AttributeDef.name("min_salary")
                                                 .type(BigDecimal.class)
                                                 .aliasName("min_salary")
                                                 .build())
-                                .addition(AttributeDef.name("max_salary")
+                                .attribute(AttributeDef.name("max_salary")
                                                 .type(BigDecimal.class)
                                                 .aliasName("max_salary")
                                                 .build())
@@ -171,7 +153,7 @@ public class OracleHRSelectConfig {
 
                                 .build();
 
-                queryRegistrar.register(select);
+                queryRegistry.register(select);
                 return select;
         }
 
@@ -198,16 +180,16 @@ public class OracleHRSelectConfig {
                                 .valueAttribute("employee_id", Integer.class)
                                 .labelAttribute("full_name")
 
-                                .addition(AttributeDef.name("email")
+                                .attribute(AttributeDef.name("email")
                                                 .type(String.class)
                                                 .aliasName("email")
                                                 .build())
-                                .addition(AttributeDef.name("department_name")
+                                .attribute(AttributeDef.name("department_name")
                                                 .type(String.class)
                                                 .aliasName("department_name")
                                                 .build())
 
-                                .searchCriteria(CriteriaDef.name("searchFilter")
+                                .criteria(CriteriaDef.name("searchFilter")
                                                 .sql("AND LOWER(m.first_name || ' ' || m.last_name) LIKE LOWER(:search)")
                                                 .build())
 
@@ -218,7 +200,7 @@ public class OracleHRSelectConfig {
                                 .defaultPageSize(50)
                                 .build();
 
-                queryRegistrar.register(select);
+                queryRegistry.register(select);
                 return select;
         }
 }

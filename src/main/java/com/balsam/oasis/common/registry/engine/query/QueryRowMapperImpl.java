@@ -60,7 +60,7 @@ public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
         }
 
         // Get the naming strategy
-        NamingStrategy namingStrategy = definition.getDynamicAttributeNamingStrategy();
+        NamingStrategy namingStrategy = definition.getNamingStrategy();
 
         // Create a set of defined attribute names and their aliases for quick lookup
         // (uppercase)

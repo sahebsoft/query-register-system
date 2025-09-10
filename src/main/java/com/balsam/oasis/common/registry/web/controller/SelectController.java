@@ -35,7 +35,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * Now consolidated to use the unified Query infrastructure.
  */
 @RestController
-@RequestMapping("/api/select")
+@RequestMapping("/api/select/v2")
 @Tag(name = "Select API", description = "List of Values endpoints for dropdowns and select components")
 public class SelectController {
 
@@ -117,8 +117,12 @@ public class SelectController {
             execution.withParams(queryRequest.getParams())
                     .withFilters(queryRequest.getFilters())
                     .withSort(queryRequest.getSorts())
-                    .withPagination(_start, _end)
                     .includeMetadata(true);
+
+            // Only apply pagination if enabled for this query
+            if (queryDefinition.isPaginationEnabled()) {
+                execution.withPagination(_start, _end);
+            }
 
             // Execute and build select response
             QueryResult queryResult = execution.execute();

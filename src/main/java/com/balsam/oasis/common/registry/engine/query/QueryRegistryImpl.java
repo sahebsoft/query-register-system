@@ -18,14 +18,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 
 /**
- * Default implementation of QueryRegistrar using ConcurrentHashMap.
+ * Default implementation of QueryRegistry using ConcurrentHashMap.
  * Thread-safe implementation with optimized read/write locking.
  * 
  * <p>
@@ -41,9 +41,9 @@ import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
  * @author Query Registration System
  * @since 2.0
  */
-public class QueryRegistrarImpl implements QueryRegistrar {
+public class QueryRegistryImpl implements QueryRegistry {
 
-    private static final Logger log = LoggerFactory.getLogger(QueryRegistrarImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
 
     private final ConcurrentMap<String, QueryDefinition> registry = new ConcurrentHashMap<>();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -67,7 +67,7 @@ public class QueryRegistrarImpl implements QueryRegistrar {
                 // Register dynamic attributes from metadata cache
                 Map<String, AttributeDef<?>> combinedAttributes = new LinkedHashMap<>(definition.getAttributes());
                 String[] columnNames = cache.getColumnNames();
-                NamingStrategy strategy = definition.getDynamicAttributeNamingStrategy();
+                NamingStrategy strategy = definition.getNamingStrategy();
 
                 for (String columnName : columnNames) {
                     String attributeName = strategy.convert(columnName);
@@ -144,25 +144,6 @@ public class QueryRegistrarImpl implements QueryRegistrar {
     }
 
     @Override
-    public Optional<QueryDefinition> find(String name) {
-        return Optional.ofNullable(get(name));
-    }
-
-    @Override
-    public boolean exists(String name) {
-        if (name == null) {
-            return false;
-        }
-
-        lock.readLock().lock();
-        try {
-            return registry.containsKey(name);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    @Override
     public Set<String> getQueryNames() {
         lock.readLock().lock();
         try {
@@ -228,4 +209,5 @@ public class QueryRegistrarImpl implements QueryRegistrar {
         // - Validate parameter definitions
         // - Check criteria definitions
     }
+
 }

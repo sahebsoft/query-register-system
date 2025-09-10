@@ -96,7 +96,7 @@ Both share core components but have separate execution paths. Default to Main Qu
 
 ### Critical Registration Flow
 1. **Build Phase**: `QueryDefinitionBuilder.build()` → creates immutable QueryDefinition → validates via QueryDefinitionValidator
-2. **Registration Phase**: `QueryExecutor.registerQuery()` or `QueryRegistrar.register()` → adds to runtime registry
+2. **Registration Phase**: `QueryExecutor.registerQuery()` or `QueryRegistry.register()` → adds to runtime registry
 3. **Execution Phase**: QueryExecutor looks up registered queries → executes with runtime context
 4. **IMPORTANT**: Never register queries globally during build - causes side effects and test pollution
 

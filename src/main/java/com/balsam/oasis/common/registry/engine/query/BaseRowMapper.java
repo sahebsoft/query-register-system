@@ -15,7 +15,7 @@ import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 import com.balsam.oasis.common.registry.engine.sql.MetadataOperations;
-import com.balsam.oasis.common.registry.engine.sql.util.TypeConverter;
+import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
 
 /**
  * Base row mapper that provides comprehensive attribute processing including
@@ -204,7 +204,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
         }
 
         try {
-            return TypeConverter.convert(value, targetType);
+            return JavaTypeConverter.convert(value, targetType);
         } catch (Exception e) {
             log.warn("Failed to convert value {} to type {}: {}",
                     value, targetType.getSimpleName(), e.getMessage());

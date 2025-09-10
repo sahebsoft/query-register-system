@@ -18,7 +18,7 @@ import com.balsam.oasis.common.registry.domain.exception.QueryValidationExceptio
  * @author Query Registration System
  * @since 1.0
  */
-public final class TypeConverter {
+public final class JavaTypeConverter {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -27,22 +27,22 @@ public final class TypeConverter {
 
     static {
         CONVERTERS.put(String.class, s -> s);
-        CONVERTERS.put(Integer.class, TypeConverter::toInteger);
-        CONVERTERS.put(int.class, TypeConverter::toInteger);
-        CONVERTERS.put(Long.class, TypeConverter::toLong);
-        CONVERTERS.put(long.class, TypeConverter::toLong);
-        CONVERTERS.put(Double.class, TypeConverter::toDouble);
-        CONVERTERS.put(double.class, TypeConverter::toDouble);
-        CONVERTERS.put(Float.class, TypeConverter::toFloat);
-        CONVERTERS.put(float.class, TypeConverter::toFloat);
-        CONVERTERS.put(Boolean.class, TypeConverter::toBoolean);
-        CONVERTERS.put(boolean.class, TypeConverter::toBoolean);
-        CONVERTERS.put(BigDecimal.class, TypeConverter::toBigDecimal);
-        CONVERTERS.put(LocalDate.class, TypeConverter::toLocalDate);
-        CONVERTERS.put(LocalDateTime.class, TypeConverter::toLocalDateTime);
+        CONVERTERS.put(Integer.class, JavaTypeConverter::toInteger);
+        CONVERTERS.put(int.class, JavaTypeConverter::toInteger);
+        CONVERTERS.put(Long.class, JavaTypeConverter::toLong);
+        CONVERTERS.put(long.class, JavaTypeConverter::toLong);
+        CONVERTERS.put(Double.class, JavaTypeConverter::toDouble);
+        CONVERTERS.put(double.class, JavaTypeConverter::toDouble);
+        CONVERTERS.put(Float.class, JavaTypeConverter::toFloat);
+        CONVERTERS.put(float.class, JavaTypeConverter::toFloat);
+        CONVERTERS.put(Boolean.class, JavaTypeConverter::toBoolean);
+        CONVERTERS.put(boolean.class, JavaTypeConverter::toBoolean);
+        CONVERTERS.put(BigDecimal.class, JavaTypeConverter::toBigDecimal);
+        CONVERTERS.put(LocalDate.class, JavaTypeConverter::toLocalDate);
+        CONVERTERS.put(LocalDateTime.class, JavaTypeConverter::toLocalDateTime);
     }
 
-    private TypeConverter() {
+    private JavaTypeConverter() {
         // Utility class, prevent instantiation
     }
 

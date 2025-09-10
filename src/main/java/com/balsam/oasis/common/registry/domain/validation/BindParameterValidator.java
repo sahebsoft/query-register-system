@@ -92,12 +92,12 @@ public class BindParameterValidator {
 
         // Report errors if there are still undefined parameters
         if (!undefinedParams.isEmpty()) {
-            String errorMsg = String.format(
-                    "Query '%s' uses undefined bind parameters: %s\n" +
-                            "Defined parameters: %s\n" +
-                            "Used in SQL: %s\n" +
-                            "Used in criteria: %s\n" +
-                            "Make sure all :paramName references have corresponding ParamDef definitions.",
+            String errorMsg = String.format("""
+                    Query '%s' uses undefined bind parameters: %s
+                    Defined parameters: %s
+                    Used in SQL: %s
+                    Used in criteria: %s
+                    Make sure all :paramName references have corresponding ParamDef definitions.""",
                     queryName,
                     undefinedParams,
                     definedParams,

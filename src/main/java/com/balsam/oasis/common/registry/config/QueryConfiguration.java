@@ -6,10 +6,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
-import com.balsam.oasis.common.registry.engine.query.QueryRegistrarImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
@@ -30,8 +29,8 @@ public class QueryConfiguration {
     }
 
     @Bean
-    public QueryRegistrar queryRegistrar() {
-        return new QueryRegistrarImpl();
+    public QueryRegistry queryRegistry() {
+        return new QueryRegistryImpl();
     }
 
     @Bean
@@ -59,9 +58,9 @@ public class QueryConfiguration {
     @Bean
     public QueryController queryController(
             QueryExecutor queryExecutor,
-            QueryRegistrar queryRegistrar,
+            QueryRegistry queryRegistry,
             QueryRequestParser requestParser,
             QueryResponseBuilder responseBuilder) {
-        return new QueryController(queryExecutor, queryRegistrar, requestParser, responseBuilder);
+        return new QueryController(queryExecutor, queryRegistry, requestParser, responseBuilder);
     }
 }

@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.engine.sql.util.TypeConverter;
+import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -58,7 +58,7 @@ public class QueryRow {
         if (type.isAssignableFrom(value.getClass())) {
             return (T) value;
         }
-        return TypeConverter.convert(value, type);
+        return JavaTypeConverter.convert(value, type);
     }
 
     public <T> Optional<T> getOptional(String attributeName, Class<T> type) {
@@ -146,7 +146,7 @@ public class QueryRow {
         if (type.isAssignableFrom(value.getClass())) {
             return (T) value;
         }
-        return TypeConverter.convert(value, type);
+        return JavaTypeConverter.convert(value, type);
     }
 
     // Setters for mutable operations

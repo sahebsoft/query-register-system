@@ -1,16 +1,6 @@
 package com.balsam.oasis.common.registry.builder;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
-import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.processor.PostProcessor;
@@ -19,8 +9,6 @@ import com.balsam.oasis.common.registry.domain.processor.RowProcessor;
 import com.balsam.oasis.common.registry.domain.select.LabelDef;
 import com.balsam.oasis.common.registry.domain.select.ValueDef;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Builder for creating select-type QueryDefinition instances with fluent API.
@@ -30,48 +18,13 @@ import com.google.common.collect.ImmutableMap;
  * Leverages the full Query infrastructure while maintaining the Select API
  * pattern.
  */
-public class SelectDefinitionBuilder {
-
-    private final String name;
-    private String description;
-    private String sql;
-    private ValueDef valueDef;
-    private LabelDef labelDef;
-    private final List<AttributeDef<?>> additionAttributes = new ArrayList<>();
-    private final Map<String, ParamDef> parameters = new LinkedHashMap<>();
-    private final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
-    private CriteriaDef searchCriteria;
-
-    // Processing pipeline
-    private final List<PreProcessor> preProcessors = new ArrayList<>();
-    private final List<RowProcessor> rowProcessors = new ArrayList<>();
-    private final List<PostProcessor> postProcessors = new ArrayList<>();
-
-    // Cache configuration
-    private boolean cacheEnabled = false;
-    private Duration cacheTTL;
-    private Function<Object, String> cacheKeyGenerator;
-
-    // Pagination configuration
-    private int defaultPageSize = 100;
-    private int maxPageSize = 1000;
-
-    // Fetch size configuration
-    private Integer fetchSize = null; // null means use system default
-
-    // Other configurations
-    private boolean auditEnabled = true;
-    private boolean metricsEnabled = true;
-    private Integer queryTimeout;
-
-    // Dynamic attributes configuration
-    private boolean includeDynamicAttributes = false;
-    private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
+public class SelectDefinitionBuilder extends QueryDefinitionBuilder {
 
     private SelectDefinitionBuilder(String name) {
-        Preconditions.checkNotNull(name, "Select name cannot be null");
-        Preconditions.checkArgument(!name.trim().isEmpty(), "Select name cannot be empty");
-        this.name = name;
+        super(name);
+        // Set select-specific defaults
+        super.defaultPageSize(100);
+        super.paginationEnabled(true);
     }
 
     /**
@@ -81,383 +34,113 @@ public class SelectDefinitionBuilder {
         return new SelectDefinitionBuilder(name);
     }
 
-    /**
-     * Set the description
-     */
-    public SelectDefinitionBuilder description(String description) {
-        this.description = description;
+    public SelectDefinitionBuilder valueAttribute(ValueDef valueDef) {
+        super.attribute(valueDef.toAttributeDef());
         return this;
     }
 
-    /**
-     * Set the SQL query
-     */
-    public SelectDefinitionBuilder sql(String sql) {
-        Preconditions.checkNotNull(sql, "SQL cannot be null");
-        Preconditions.checkArgument(!sql.trim().isEmpty(), "SQL cannot be empty");
-        this.sql = sql;
-        return this;
-    }
-
-    /**
-     * Set the value definition (only requires aliasName and type)
-     */
-    public SelectDefinitionBuilder value(ValueDef valueDef) {
-        Preconditions.checkNotNull(valueDef, "Value definition cannot be null");
-        this.valueDef = valueDef;
-        return this;
-    }
-
-    /**
-     * Create value definition with database column name and Java type
-     */
     public SelectDefinitionBuilder valueAttribute(String aliasName, Class<?> type) {
-        this.valueDef = ValueDef.of(aliasName, type);
+        super.attribute(ValueDef.of(aliasName, type).toAttributeDef());
         return this;
     }
 
-    /**
-     * Set the label definition (only requires aliasName and type)
-     */
-    public SelectDefinitionBuilder label(LabelDef labelDef) {
-        Preconditions.checkNotNull(labelDef, "Label definition cannot be null");
-        this.labelDef = labelDef;
+    public SelectDefinitionBuilder valueAttribute(String aliasName) {
+        super.attribute(ValueDef.of(aliasName, String.class).toAttributeDef());
         return this;
     }
 
-    /**
-     * Create label definition with database column name and Java type
-     */
-    public SelectDefinitionBuilder label(String aliasName, Class<?> type) {
-        this.labelDef = LabelDef.of(aliasName, type);
+    public SelectDefinitionBuilder labelAttribute(LabelDef labelDef) {
+        super.attribute(labelDef.toAttributeDef());
         return this;
     }
 
-    /**
-     * Create label definition with database column name (defaults to String type)
-     */
+    public SelectDefinitionBuilder labelAttribute(String aliasName, Class<?> type) {
+        super.attribute(LabelDef.of(aliasName, type).toAttributeDef());
+        return this;
+    }
+
     public SelectDefinitionBuilder labelAttribute(String aliasName) {
-        this.labelDef = LabelDef.of(aliasName);
+        super.attribute(LabelDef.of(aliasName).toAttributeDef());
         return this;
     }
 
-    /**
-     * Add an additional attribute to include in the additions field
-     */
-    public SelectDefinitionBuilder addition(AttributeDef<?> attribute) {
-        Preconditions.checkNotNull(attribute, "Addition attribute cannot be null");
-        this.additionAttributes.add(attribute);
+    // Override methods to return SelectDefinitionBuilder for fluent API
+
+    @Override
+    public SelectDefinitionBuilder sql(String sql) {
+        super.sql(sql);
         return this;
     }
 
-    /**
-     * Create addition attribute inline with lambda customizer
-     */
-    public <T> SelectDefinitionBuilder addition(String name, Class<T> type,
-            Function<AttributeDef.BuilderStage<T>, AttributeDef.BuilderStage<T>> customizer) {
-        AttributeDef.BuilderStage<T> builder = AttributeDef.name(name)
-                .type(type)
-                .aliasName(name);
-
-        if (customizer != null) {
-            builder = customizer.apply(builder);
-        }
-
-        this.additionAttributes.add(builder.build());
+    @Override
+    public SelectDefinitionBuilder description(String description) {
+        super.description(description);
         return this;
     }
 
-    /**
-     * Add multiple additional attributes
-     */
-    public SelectDefinitionBuilder additions(AttributeDef<?>... attributes) {
-        for (AttributeDef<?> attr : attributes) {
-            addition(attr);
-        }
+    @Override
+    public SelectDefinitionBuilder attribute(
+            AttributeDef<?> attribute) {
+        super.attribute(attribute);
         return this;
     }
 
-    /**
-     * Set the search criteria
-     */
-    public SelectDefinitionBuilder searchCriteria(CriteriaDef searchCriteria) {
-        Preconditions.checkNotNull(searchCriteria, "Search criteria cannot be null");
-        this.searchCriteria = searchCriteria;
-        return this;
-    }
-
-    /**
-     * Create search criteria inline
-     */
-    public SelectDefinitionBuilder searchCriteria(String name, String sql) {
-        this.searchCriteria = CriteriaDef.name(name)
-                .sql(sql)
-                .build();
-        return this;
-    }
-
-    /**
-     * Add a criteria
-     */
-    public SelectDefinitionBuilder criteria(CriteriaDef criteria) {
-        Preconditions.checkNotNull(criteria, "Criteria cannot be null");
-        Preconditions.checkNotNull(criteria.name(), "Criteria name cannot be null");
-        this.criteria.put(criteria.name(), criteria);
-        return this;
-    }
-
-    /**
-     * Create criteria inline
-     */
-    public SelectDefinitionBuilder criteria(String name, String sql) {
-        return criteria(CriteriaDef.name(name)
-                .sql(sql)
-                .build());
-    }
-
-    /**
-     * Create criteria inline with condition
-     */
-    public SelectDefinitionBuilder criteria(String name, String sql,
-            Predicate<Object> condition) {
-        return criteria(CriteriaDef.name(name)
-                .sql(sql)
-                .condition(ctx -> {
-                    // Apply the condition to the context
-                    return condition.test(ctx);
-                })
-                .build());
-    }
-
-    /**
-     * Add a parameter
-     */
+    @Override
     public SelectDefinitionBuilder parameter(ParamDef param) {
-        Preconditions.checkNotNull(param, "Parameter cannot be null");
-        Preconditions.checkNotNull(param.name(), "Parameter name cannot be null");
-        this.parameters.put(param.name(), param);
+        super.parameter(param);
         return this;
     }
 
-    /**
-     * Create parameter inline with lambda customizer
-     */
-    public <T> SelectDefinitionBuilder param(String name, Class<T> type,
-            Function<ParamDef, ParamDef> customizer) {
-        ParamDef param = ParamDef.name(name)
-                .type(type)
-                .build();
-
-        if (customizer != null) {
-            param = customizer.apply(param);
-        }
-
-        return parameter(param);
-    }
-
-    /**
-     * Add a pre-processor
-     */
-    public SelectDefinitionBuilder preProcessor(PreProcessor processor) {
-        Preconditions.checkNotNull(processor, "Pre-processor cannot be null");
-        // PreProcessor expects QueryContext, we can't use it directly with
-        // SelectContext
-        // Store as a Function<Object, Object> that will be adapted at runtime
-        this.preProcessors.add(processor);
+    @Override
+    public SelectDefinitionBuilder criteria(CriteriaDef criteria) {
+        super.criteria(criteria);
         return this;
     }
 
-    /**
-     * Add a row processor
-     */
-    public SelectDefinitionBuilder rowProcessor(RowProcessor processor) {
-        Preconditions.checkNotNull(processor, "Row processor cannot be null");
-        this.rowProcessors.add(processor);
+    @Override
+    public SelectDefinitionBuilder preProcessor(
+            PreProcessor processor) {
+        super.preProcessor(processor);
         return this;
     }
 
-    /**
-     * Add a post-processor
-     */
-    public SelectDefinitionBuilder postProcessor(PostProcessor processor) {
-        Preconditions.checkNotNull(processor, "Post-processor cannot be null");
-        this.postProcessors.add(processor);
+    @Override
+    public SelectDefinitionBuilder rowProcessor(
+            RowProcessor processor) {
+        super.rowProcessor(processor);
         return this;
     }
 
-    /**
-     * Configure caching
-     */
-    public SelectDefinitionBuilder cache(boolean enabled) {
-        this.cacheEnabled = enabled;
+    @Override
+    public SelectDefinitionBuilder postProcessor(
+            PostProcessor processor) {
+        super.postProcessor(processor);
         return this;
     }
 
-    /**
-     * Configure caching with TTL
-     */
-    public SelectDefinitionBuilder cache(Duration ttl) {
-        Preconditions.checkNotNull(ttl, "Cache TTL cannot be null");
-        this.cacheEnabled = true;
-        this.cacheTTL = ttl;
+    @Override
+    public SelectDefinitionBuilder defaultPageSize(Integer size) {
+        super.defaultPageSize(size);
         return this;
     }
 
-    /**
-     * Configure cache with custom key generator
-     */
-    public SelectDefinitionBuilder cacheKeyGenerator(Function<Object, String> generator) {
-        this.cacheKeyGenerator = generator;
+    @Override
+    public SelectDefinitionBuilder maxPageSize(Integer size) {
+        super.maxPageSize(size);
         return this;
     }
 
-    /**
-     * Set the default page size
-     */
-    public SelectDefinitionBuilder defaultPageSize(int defaultPageSize) {
-        Preconditions.checkArgument(defaultPageSize > 0, "Default page size must be positive");
-        this.defaultPageSize = defaultPageSize;
-        return this;
-    }
-
-    /**
-     * Set the maximum page size
-     */
-    public SelectDefinitionBuilder maxPageSize(int maxPageSize) {
-        Preconditions.checkArgument(maxPageSize > 0, "Max page size must be positive");
-        this.maxPageSize = maxPageSize;
-        return this;
-    }
-
-    /**
-     * Enable/disable audit logging
-     */
-    public SelectDefinitionBuilder auditEnabled(boolean enabled) {
-        this.auditEnabled = enabled;
-        return this;
-    }
-
-    /**
-     * Enable/disable metrics collection
-     */
-    public SelectDefinitionBuilder metricsEnabled(boolean enabled) {
-        this.metricsEnabled = enabled;
-        return this;
-    }
-
-    /**
-     * Set query timeout in seconds
-     */
-    public SelectDefinitionBuilder queryTimeout(int seconds) {
-        Preconditions.checkArgument(seconds > 0, "Query timeout must be positive");
-        this.queryTimeout = seconds;
-        return this;
-    }
-
-    /**
-     * Set the JDBC fetch size for this select query.
-     * 
-     * @param size The number of rows to fetch in each round trip.
-     *             Use null for system default, 0 for fetch all, positive for
-     *             specific size.
-     */
-    public SelectDefinitionBuilder fetchSize(Integer size) {
-        if (size != null && size < 0 && size != -1) {
-            throw new IllegalArgumentException("Fetch size must be -1, 0, or positive");
-        }
-        this.fetchSize = size;
-        return this;
-    }
-
-    /**
-     * Enable dynamic attributes with default naming strategy (CAMEL).
-     */
-    public SelectDefinitionBuilder dynamic() {
-        this.includeDynamicAttributes = true;
-        this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
-        return this;
-    }
-
-    /**
-     * Enable dynamic attributes with specified naming strategy.
-     */
-    public SelectDefinitionBuilder dynamic(NamingStrategy strategy) {
-        Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
-        this.includeDynamicAttributes = true;
-        this.dynamicAttributeNamingStrategy = strategy;
-        return this;
-    }
-
-    /**
-     * Build the QueryDefinition with select-type configuration
-     */
+    @Override
     public QueryDefinition build() {
-        // Validation
-        Preconditions.checkNotNull(sql, "SQL must be set");
-        Preconditions.checkNotNull(valueDef, "Value definition must be set");
-        Preconditions.checkNotNull(labelDef, "Label definition must be set");
+        // Validate that value and label attributes are defined
+        boolean hasValue = attributes.containsKey("value");
+        boolean hasLabel = attributes.containsKey("label");
 
-        // If searchCriteria is defined, ensure we have a search parameter
-        if (searchCriteria != null && !parameters.containsKey("search")) {
-            // Auto-add search parameter
-            parameters.put("search", ParamDef.name("search")
-                    .type(String.class)
-                    .required(false)
-                    .build());
-        }
+        Preconditions.checkState(hasValue,
+                "Value attribute must be defined. Use valueAttribute() to set it.");
+        Preconditions.checkState(hasLabel,
+                "Label attribute must be defined. Use labelAttribute() to set it.");
 
-        // Build cache config if enabled
-        CacheConfig cacheConfig = null;
-        if (cacheEnabled) {
-            cacheConfig = CacheConfig.builder()
-                    .enabled(true)
-                    .ttl(cacheTTL != null ? cacheTTL : Duration.ofMinutes(5))
-                    .keyGenerator(cacheKeyGenerator)
-                    .build();
-        }
-
-        // Build the attributes map with standardized names
-        Map<String, AttributeDef<?>> allAttributes = new LinkedHashMap<>();
-
-        // Convert ValueDef and LabelDef to AttributeDef with predefined properties
-        AttributeDef<?> valueAttribute = valueDef.toAttributeDef();
-        AttributeDef<?> labelAttribute = labelDef.toAttributeDef();
-
-        allAttributes.put("value", valueAttribute);
-        allAttributes.put("label", labelAttribute);
-
-        // Add addition attributes
-        for (AttributeDef<?> attr : additionAttributes) {
-            allAttributes.put(attr.getName(), attr);
-        }
-
-        // Add search criteria to main criteria if defined
-        Map<String, CriteriaDef> allCriteria = new LinkedHashMap<>(criteria);
-        if (searchCriteria != null) {
-            allCriteria.put(searchCriteria.name(), searchCriteria);
-        }
-
-        return QueryDefinition.builder()
-                .name(name)
-                .description(description)
-                .sql(sql)
-                .attributes(ImmutableMap.copyOf(allAttributes))
-                .parameters(ImmutableMap.copyOf(parameters))
-                .criteria(ImmutableMap.copyOf(allCriteria))
-                .preProcessors(ImmutableList.copyOf(preProcessors))
-                .rowProcessors(ImmutableList.copyOf(rowProcessors))
-                .postProcessors(ImmutableList.copyOf(postProcessors))
-                .cacheConfig(cacheConfig)
-                .defaultPageSize(defaultPageSize)
-                .maxPageSize(maxPageSize)
-                .auditEnabled(auditEnabled)
-                .metricsEnabled(metricsEnabled)
-                .queryTimeout(queryTimeout)
-                .paginationEnabled(true) // always true for select
-                .fetchSize(fetchSize)
-                .metadataCache(null) // set later if needed
-                .includeDynamicAttributes(includeDynamicAttributes)
-                .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
-                .build();
+        return super.build();
     }
 }

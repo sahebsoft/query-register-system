@@ -26,39 +26,39 @@ import com.google.common.collect.ImmutableMap;
  */
 public class QueryDefinitionBuilder {
 
-    private final String name;
-    private String sql;
-    private String description;
-    private final Map<String, AttributeDef<?>> attributes = new LinkedHashMap<>();
-    private final Map<String, ParamDef> parameters = new LinkedHashMap<>();
-    private final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
-    private final List<PreProcessor> preProcessors = new ArrayList<>();
-    private final List<RowProcessor> rowProcessors = new ArrayList<>();
-    private final List<PostProcessor> postProcessors = new ArrayList<>();
+    protected final String name;
+    protected String sql;
+    protected String description;
+    protected final Map<String, AttributeDef<?>> attributes = new LinkedHashMap<>();
+    protected final Map<String, ParamDef> parameters = new LinkedHashMap<>();
+    protected final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
+    protected final List<PreProcessor> preProcessors = new ArrayList<>();
+    protected final List<RowProcessor> rowProcessors = new ArrayList<>();
+    protected final List<PostProcessor> postProcessors = new ArrayList<>();
 
     // Cache configuration
-    private boolean cacheEnabled = false;
-    private Duration cacheTTL;
-    private Function<Object, String> cacheKeyGenerator;
+    protected Boolean cacheEnabled = false;
+    protected Duration cacheTTL;
+    protected Function<Object, String> cacheKeyGenerator;
 
     // Pagination configuration
-    private int defaultPageSize = 50;
-    private int maxPageSize = 1000;
-    private boolean paginationEnabled = true;
+    protected Integer defaultPageSize = 50;
+    protected Integer maxPageSize = 1000;
+    protected Boolean paginationEnabled = true;
 
     // Fetch size configuration
-    private Integer fetchSize = null; // null means use system default
+    protected Integer fetchSize = null; // null means use system default
 
     // Other configurations
-    private boolean auditEnabled = true;
-    private boolean metricsEnabled = true;
-    private Integer queryTimeout;
+    protected Boolean auditEnabled = true;
+    protected Boolean metricsEnabled = true;
+    protected Integer queryTimeout;
 
     // Dynamic attributes configuration
-    private boolean includeDynamicAttributes = false;
-    private NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
+    protected Boolean includeDynamicAttributes = false;
+    protected NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
 
-    private QueryDefinitionBuilder(String name) {
+    protected QueryDefinitionBuilder(String name) {
         Preconditions.checkNotNull(name, "Query name cannot be null");
         Preconditions.checkArgument(!name.trim().isEmpty(), "Query name cannot be empty");
         this.name = name;
@@ -152,7 +152,7 @@ public class QueryDefinitionBuilder {
     }
 
     // Cache configuration
-    public QueryDefinitionBuilder cache(boolean enabled) {
+    public QueryDefinitionBuilder cache(Boolean enabled) {
         this.cacheEnabled = enabled;
         return this;
     }
@@ -169,19 +169,19 @@ public class QueryDefinitionBuilder {
     }
 
     // Pagination configuration
-    public QueryDefinitionBuilder defaultPageSize(int size) {
+    public QueryDefinitionBuilder defaultPageSize(Integer size) {
         Preconditions.checkArgument(size > 0, "Page size must be positive");
         this.defaultPageSize = size;
         return this;
     }
 
-    public QueryDefinitionBuilder maxPageSize(int size) {
+    public QueryDefinitionBuilder maxPageSize(Integer size) {
         Preconditions.checkArgument(size > 0, "Max page size must be positive");
         this.maxPageSize = size;
         return this;
     }
 
-    public QueryDefinitionBuilder paginationEnabled(boolean enabled) {
+    public QueryDefinitionBuilder paginationEnabled(Boolean enabled) {
         this.paginationEnabled = enabled;
         return this;
     }
@@ -202,17 +202,17 @@ public class QueryDefinitionBuilder {
     }
 
     // Other configurations
-    public QueryDefinitionBuilder auditEnabled(boolean enabled) {
+    public QueryDefinitionBuilder auditEnabled(Boolean enabled) {
         this.auditEnabled = enabled;
         return this;
     }
 
-    public QueryDefinitionBuilder metricsEnabled(boolean enabled) {
+    public QueryDefinitionBuilder metricsEnabled(Boolean enabled) {
         this.metricsEnabled = enabled;
         return this;
     }
 
-    public QueryDefinitionBuilder queryTimeout(int seconds) {
+    public QueryDefinitionBuilder queryTimeout(Integer seconds) {
         this.queryTimeout = seconds;
         return this;
     }
@@ -270,7 +270,7 @@ public class QueryDefinitionBuilder {
                 .queryTimeout(queryTimeout)
                 .metadataCache(null) // set later if needed
                 .includeDynamicAttributes(includeDynamicAttributes)
-                .dynamicAttributeNamingStrategy(dynamicAttributeNamingStrategy)
+                .namingStrategy(dynamicAttributeNamingStrategy)
                 .build();
 
         // Comprehensive validation:
@@ -308,7 +308,7 @@ public class QueryDefinitionBuilder {
     private void validateParamReferences() {
         for (ParamDef paramDef : parameters.values()) {
             if (paramDef.required()) {
-                boolean referenced = sql.contains(":" + paramDef.name());
+                Boolean referenced = sql.contains(":" + paramDef.name());
 
                 if (!referenced) {
                     throw new IllegalArgumentException(

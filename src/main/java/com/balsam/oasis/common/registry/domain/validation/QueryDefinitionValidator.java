@@ -30,7 +30,6 @@ public class QueryDefinitionValidator {
      * @throws IllegalStateException if duplicates are found
      */
     public static void validateNoDuplicates(QueryDefinition queryDef) {
-        String queryName = queryDef.getName();
 
         // Check for duplicate attribute names
         validateAttributeDuplicates(queryDef);

@@ -83,7 +83,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             log.debug("Parameters: {}", params);
 
             // Calculate total count if pagination is used
-            if (context.hasPagination()) {
+            if (context.hasPagination() && context.getDefinition().isPaginationEnabled()) {
                 int totalCount = executeTotalCountQuery(context, sqlResult);
                 context.setTotalCount(totalCount);
             }
@@ -98,6 +98,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             QueryResult result = QueryResult.builder()
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
+                    .count(rows.size())  // Always set count to actual row size
                     .build();
 
             // Run post-processors

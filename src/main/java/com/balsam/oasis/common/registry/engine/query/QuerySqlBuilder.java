@@ -42,7 +42,7 @@ public class QuerySqlBuilder {
         sql = FilterUtils.applyFilters(sql, context, bindParams);
         sql = SortUtils.applySorting(sql, context);
 
-        if (context.hasPagination()) {
+        if (context.hasPagination() && context.getDefinition().isPaginationEnabled()) {
             sql = PaginationUtils.applyPagination(sql, context.getPagination(), dialect, bindParams);
         }
 

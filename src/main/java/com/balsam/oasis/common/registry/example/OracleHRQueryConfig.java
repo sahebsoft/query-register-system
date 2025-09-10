@@ -11,12 +11,13 @@ import org.springframework.context.annotation.Configuration;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
+import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
 
 import jakarta.annotation.PostConstruct;
 
@@ -28,7 +29,7 @@ import jakarta.annotation.PostConstruct;
 public class OracleHRQueryConfig {
 
         @Autowired
-        private QueryRegistrar queryRegistrar;
+        private QueryRegistry queryRegistry;
 
         @Autowired
         private QueryExecutor queryExecutor;
@@ -36,29 +37,15 @@ public class OracleHRQueryConfig {
         @PostConstruct
         public void registerQueries() {
 
-                queryRegistrar.register(QueryDefinitionBuilder.builder("deptWithEmp").sql("""
-                                SELECT
-                                    department_id,
-                                    department_name,
-                                    CURSOR(
-                                        SELECT
-                                            employee_id,
-                                            first_name,
-                                            last_name,
-                                            salary
-                                        FROM HR.employees e
-                                        WHERE e.department_id = d.department_id
-                                        ORDER BY salary DESC
-                                    ) as employees_in_dept
-                                FROM HR.departments d
-                                WHERE department_id IN (20, 30, 50)
+                queryRegistry.register(QueryDefinitionBuilder.builder("dynamic").sql("""
+                                SELECT * from employees
                                                     """)
                                 .dynamic().build());
 
                 // Register all queries defined in this configuration
-                queryRegistrar.register(employeesQuery());
-                queryRegistrar.register(departmentStatsQuery());
-                queryRegistrar.register(QueryDefinitionBuilder.builder("testUnion").sql(
+                queryRegistry.register(employeesQuery());
+                queryRegistry.register(departmentStatsQuery());
+                queryRegistry.register(QueryDefinitionBuilder.builder("testUnion").sql(
                                 """
                                                 select employee_id,email
                                                 from employees
@@ -212,7 +199,7 @@ public class OracleHRQueryConfig {
                                                         // Use TypeConverter for type safety
                                                         if (value == null)
                                                                 return null;
-                                                        return com.balsam.oasis.common.registry.engine.sql.util.TypeConverter
+                                                        return JavaTypeConverter
                                                                         .convert(value, LocalDate.class);
                                                 })
                                                 .build())
@@ -222,7 +209,7 @@ public class OracleHRQueryConfig {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
                                                                 // Convert Object to Long first
-                                                                Long days = com.balsam.oasis.common.registry.engine.sql.util.TypeConverter
+                                                                Long days = JavaTypeConverter
                                                                                 .convert(value, Long.class);
                                                                 ctx.addParam("hiredAfter",
                                                                                 LocalDate.now().minusDays(days));

@@ -60,8 +60,8 @@ public class QueryDefinition {
     List<RowProcessor> rowProcessors;
     List<PostProcessor> postProcessors;
     CacheConfig cacheConfig;
-    int defaultPageSize;
-    int maxPageSize;
+    Integer defaultPageSize;
+    Integer maxPageSize;
     boolean auditEnabled;
     boolean metricsEnabled;
     Integer queryTimeout;
@@ -92,7 +92,7 @@ public class QueryDefinition {
     /**
      * Naming strategy for dynamic attributes
      */
-    NamingStrategy dynamicAttributeNamingStrategy;
+    NamingStrategy namingStrategy;
 
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
@@ -158,7 +158,7 @@ public class QueryDefinition {
                 .fetchSize(this.fetchSize)
                 .metadataCache(cache)
                 .includeDynamicAttributes(this.includeDynamicAttributes)
-                .dynamicAttributeNamingStrategy(this.dynamicAttributeNamingStrategy)
+                .namingStrategy(this.namingStrategy)
                 .build();
     }
 
@@ -187,7 +187,7 @@ public class QueryDefinition {
                 .fetchSize(this.fetchSize)
                 .metadataCache(this.metadataCache)
                 .includeDynamicAttributes(this.includeDynamicAttributes)
-                .dynamicAttributeNamingStrategy(this.dynamicAttributeNamingStrategy)
+                .namingStrategy(this.namingStrategy)
                 .build();
     }
 }

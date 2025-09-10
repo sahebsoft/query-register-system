@@ -97,7 +97,7 @@ com.balsam.oasis.common.registry.validation/
 **Tasks**:
 - [ ] Remove static GLOBAL_QUERY_REGISTRY
 - [ ] Create QueryValidator interface
-- [ ] Inject QueryRegistrar into validators
+- [ ] Inject QueryRegistry into validators
 - [ ] Create ValidationContext for passing state
 - [ ] Implement composite validator pattern
 
@@ -169,7 +169,7 @@ com.balsam.oasis.common.registry.processing/
 com.balsam.oasis.common.registry/
 ├── api/                     # Public API interfaces
 │   ├── QueryExecutor.java
-│   ├── QueryRegistrar.java
+│   ├── QueryRegistry.java
 │   └── QueryRegistry.java
 ├── domain/                  # Core domain logic
 │   ├── model/

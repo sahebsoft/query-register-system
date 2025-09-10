@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistrar;
+import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
@@ -80,16 +80,16 @@ public class QueryController {
     private static final Logger log = LoggerFactory.getLogger(QueryController.class);
 
     private final QueryExecutor queryExecutor;
-    private final QueryRegistrar queryRegistrar;
+    private final QueryRegistry queryRegistry;
     private final QueryRequestParser requestParser;
     private final QueryResponseBuilder responseBuilder;
 
     public QueryController(QueryExecutor queryExecutor,
-            QueryRegistrar queryRegistrar,
+            QueryRegistry queryRegistry,
             QueryRequestParser requestParser,
             QueryResponseBuilder responseBuilder) {
         this.queryExecutor = queryExecutor;
-        this.queryRegistrar = queryRegistrar;
+        this.queryRegistry = queryRegistry;
         this.requestParser = requestParser;
         this.responseBuilder = responseBuilder;
     }
@@ -111,7 +111,7 @@ public class QueryController {
 
         try {
             // Get the query definition for type-aware parsing
-            QueryDefinition queryDefinition = queryRegistrar.get(queryName);
+            QueryDefinition queryDefinition = queryRegistry.get(queryName);
 
             if (queryDefinition == null) {
                 log.error("Query not found: {}", queryName);
@@ -129,8 +129,12 @@ public class QueryController {
                     .withParams(queryRequest.getParams())
                     .withFilters(queryRequest.getFilters())
                     .withSort(queryRequest.getSorts())
-                    .withPagination(_start, _end)
                     .includeMetadata(!"none".equals(_meta));
+
+            // Only apply pagination if enabled for this query
+            if (queryDefinition.isPaginationEnabled()) {
+                execution.withPagination(_start, _end);
+            }
 
             // Apply field selection if specified
             if (queryRequest.getSelectedFields() != null && !queryRequest.getSelectedFields().isEmpty()) {
@@ -164,14 +168,22 @@ public class QueryController {
         log.info("Executing query with body: {}", queryName);
 
         try {
+            // Get query definition to check pagination settings
+            QueryDefinition queryDef = queryRegistry.get(queryName);
+
             // Execute query
-            QueryResult result = queryExecutor.execute(queryName)
+            QueryExecution execution = queryExecutor.execute(queryName)
                     .withParams(body.getParams())
                     .withFilters(body.getFilters())
                     .withSort(body.getSorts())
-                    .withPagination(body.getStart(), body.getEnd())
-                    .includeMetadata(body.isIncludeMetadata())
-                    .execute();
+                    .includeMetadata(body.isIncludeMetadata());
+
+            // Only apply pagination if enabled for this query
+            if (queryDef != null && queryDef.isPaginationEnabled()) {
+                execution.withPagination(body.getStart(), body.getEnd());
+            }
+
+            QueryResult result = execution.execute();
 
             // Build JSON response
             return responseBuilder.build(result, queryName);
@@ -200,7 +212,7 @@ public class QueryController {
 
         try {
             // Get the query definition
-            QueryDefinition queryDefinition = queryRegistrar.get(queryName);
+            QueryDefinition queryDefinition = queryRegistry.get(queryName);
 
             if (queryDefinition == null) {
                 log.error("Query not found: {}", queryName);

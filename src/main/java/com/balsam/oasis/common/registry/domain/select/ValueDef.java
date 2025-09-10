@@ -1,7 +1,6 @@
 package com.balsam.oasis.common.registry.domain.select;
 
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
-import com.google.common.base.Preconditions;
 
 /**
  * Specialized definition for select value attributes.
@@ -32,23 +31,18 @@ public class ValueDef {
      * @return ValueDef instance
      */
     public static ValueDef of(String aliasName, Class<?> type) {
-        Preconditions.checkNotNull(aliasName, "Alias name cannot be null");
-        Preconditions.checkArgument(!aliasName.trim().isEmpty(), "Alias name cannot be empty");
-        Preconditions.checkNotNull(type, "Type cannot be null");
-
         return new ValueDef(aliasName, type);
     }
 
     /**
      * Convert to AttributeDef with predefined value-specific settings
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public AttributeDef<?> toAttributeDef() {
         return AttributeDef.name("value")
                 .type(type)
                 .aliasName(aliasName)
                 .filterable(true) // Always filterable for ID lookups
-                .sortable(false) // Values typically don't need sorting
+                .sortable(true) // Values typically don't need sorting
                 .primaryKey(true) // Values represent the primary key
                 .description("Value field for select component")
                 .build();
