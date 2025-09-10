@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +15,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.balsam.oasis.common.registry.api.QueryRegistrar;
 import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
+import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.engine.metadata.MetadataCache;
 import com.balsam.oasis.common.registry.engine.metadata.MetadataCacheBuilder;
 
@@ -59,6 +63,38 @@ public class QueryRegistrarImpl implements QueryRegistrar {
                 definition = definition.withMetadataCache(cache);
                 log.info("Successfully pre-warmed metadata cache for query '{}' with {} columns", 
                          definition.getName(), cache.getColumnCount());
+                
+                // Register dynamic attributes from metadata cache
+                Map<String, AttributeDef<?>> combinedAttributes = new LinkedHashMap<>(definition.getAttributes());
+                String[] columnNames = cache.getColumnNames();
+                NamingStrategy strategy = definition.getDynamicAttributeNamingStrategy();
+                
+                for (String columnName : columnNames) {
+                    String attributeName = strategy.convert(columnName);
+                    
+                    // Skip if this attribute is already defined statically
+                    if (!combinedAttributes.containsKey(attributeName)) {
+                        Class<?> javaType = cache.getJavaTypeForColumn(columnName);
+                        if (javaType != null) {
+                            AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName)
+                                .type(javaType)
+                                .aliasName(columnName)
+                                .filterable(true)
+                                .sortable(true)
+                                .selected(true)
+                                .build();
+                            combinedAttributes.put(attributeName, dynamicAttr);
+                            log.trace("Registered dynamic attribute '{}' for column '{}'", attributeName, columnName);
+                        }
+                    }
+                }
+                
+                // Create new definition with combined attributes
+                int originalSize = definition.getAttributes().size();
+                definition = definition.withAttributes(combinedAttributes);
+                log.info("Registered {} dynamic attributes for query '{}'", 
+                         combinedAttributes.size() - originalSize, definition.getName());
+                
             } catch (Exception e) {
                 log.warn("Failed to pre-warm metadata cache for query '{}': {}. Dynamic attributes may not work properly.", 
                          definition.getName(), e.getMessage());

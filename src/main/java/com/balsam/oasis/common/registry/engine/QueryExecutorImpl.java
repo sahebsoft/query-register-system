@@ -235,10 +235,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         QueryResult processedResult = result;
         for (var processor : definition.getPostProcessors()) {
-            Object processorResult = processor.process(processedResult, context);
-            if (processorResult instanceof QueryResult queryResult) {
-                processedResult = queryResult;
-            }
+            return processor.process(processedResult, context);
         }
 
         return processedResult;

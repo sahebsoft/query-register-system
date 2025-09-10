@@ -104,37 +104,8 @@ public class QueryDefinition {
     }
 
     public AttributeDef<?> getAttribute(String name) {
-        // First check static attributes
-        AttributeDef<?> staticAttr = attributes.get(name);
-        if (staticAttr != null) {
-            return staticAttr;
-        }
-        
-        // For dynamic queries with metadata cache, create attribute on-the-fly
-        if (includeDynamicAttributes && metadataCache != null && metadataCache.isInitialized()) {
-            // Apply naming strategy if needed
-            String columnName = name;
-            if (dynamicAttributeNamingStrategy != null) {
-                // Reverse the naming strategy to get column name from attribute name
-                // This is a simple approach - for more complex cases, we'd need a reverse mapping
-                columnName = name; // For now, assume direct mapping
-            }
-            
-            // Get Java type from metadata cache
-            Class<?> javaType = metadataCache.getJavaTypeForColumn(columnName);
-            if (javaType != null) {
-                // Create dynamic attribute with real database type
-                return AttributeDef.name(name)
-                    .type(javaType)
-                    .aliasName(columnName)
-                    .filterable(true)
-                    .sortable(true)
-                    .selected(true)
-                    .build();
-            }
-        }
-        
-        return null;
+        // Simply return from attributes map since dynamic attributes are now pre-registered
+        return attributes.get(name);
     }
     
 
@@ -213,6 +184,37 @@ public class QueryDefinition {
                 .findByKeyCriteriaName(this.findByKeyCriteriaName)
                 .fetchSize(this.fetchSize)
                 .metadataCache(cache)
+                .includeDynamicAttributes(this.includeDynamicAttributes)
+                .dynamicAttributeNamingStrategy(this.dynamicAttributeNamingStrategy)
+                .build();
+    }
+    
+    /**
+     * Returns a new instance with the attributes set.
+     * Since this object is immutable, we create a new instance.
+     */
+    public QueryDefinition withAttributes(Map<String, AttributeDef<?>> newAttributes) {
+        return QueryDefinition.builder()
+                .name(this.name)
+                .description(this.description)
+                .sql(this.sql)
+                .params(this.params)
+                .criteria(this.criteria)
+                .preProcessors(this.preProcessors)
+                .rowProcessors(this.rowProcessors)
+                .postProcessors(this.postProcessors)
+                .validationRules(this.validationRules)
+                .cacheConfig(this.cacheConfig)
+                .defaultPageSize(this.defaultPageSize)
+                .maxPageSize(this.maxPageSize)
+                .auditEnabled(this.auditEnabled)
+                .metricsEnabled(this.metricsEnabled)
+                .queryTimeout(this.queryTimeout)
+                .attributes(newAttributes)
+                .paginationEnabled(this.paginationEnabled)
+                .findByKeyCriteriaName(this.findByKeyCriteriaName)
+                .fetchSize(this.fetchSize)
+                .metadataCache(this.metadataCache)
                 .includeDynamicAttributes(this.includeDynamicAttributes)
                 .dynamicAttributeNamingStrategy(this.dynamicAttributeNamingStrategy)
                 .build();
