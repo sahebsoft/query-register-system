@@ -13,7 +13,6 @@ import com.balsam.oasis.common.registry.domain.processor.PreProcessor;
 import com.balsam.oasis.common.registry.domain.processor.RowProcessor;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 
-import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
 
@@ -87,7 +86,7 @@ public class QueryDefinition {
     /**
      * Flag to include dynamic attributes (columns not defined in AttributeDef)
      */
-    boolean includeDynamicAttributes;
+    boolean dynamic;
 
     /**
      * Naming strategy for dynamic attributes
@@ -157,7 +156,7 @@ public class QueryDefinition {
                 .paginationEnabled(this.paginationEnabled)
                 .fetchSize(this.fetchSize)
                 .metadataCache(cache)
-                .includeDynamicAttributes(this.includeDynamicAttributes)
+                .dynamic(this.dynamic)
                 .namingStrategy(this.namingStrategy)
                 .build();
     }
@@ -186,7 +185,7 @@ public class QueryDefinition {
                 .paginationEnabled(this.paginationEnabled)
                 .fetchSize(this.fetchSize)
                 .metadataCache(this.metadataCache)
-                .includeDynamicAttributes(this.includeDynamicAttributes)
+                .dynamic(this.dynamic)
                 .namingStrategy(this.namingStrategy)
                 .build();
     }

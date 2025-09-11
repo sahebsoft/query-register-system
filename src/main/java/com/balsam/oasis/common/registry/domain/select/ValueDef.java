@@ -9,8 +9,6 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
  * 
  * Value attributes are automatically configured with:
  * - name: "value" (fixed)
- * - filterable: true (for ID lookups)
- * - sortable: false (values typically don't need sorting)
  * - primaryKey: true (values represent the primary key)
  */
 public class ValueDef {
@@ -40,8 +38,6 @@ public class ValueDef {
     public AttributeDef<?> toAttributeDef() {
         return AttributeDef.name("value", type)
                 .aliasName(aliasName)
-                .filterable(true) // Always filterable for ID lookups
-                .sortable(true) // Values typically don't need sorting
                 .primaryKey(true) // Values represent the primary key
                 .description("Value field for select component")
                 .build();

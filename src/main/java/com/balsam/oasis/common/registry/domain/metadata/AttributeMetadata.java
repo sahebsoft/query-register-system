@@ -11,8 +11,6 @@ import lombok.Value;
 public class AttributeMetadata {
     String name;
     String type;
-    Boolean filterable;
-    Boolean sortable;
     Boolean restricted;
 
     // UI metadata fields for frontend display

@@ -55,7 +55,7 @@ public class QueryDefinitionBuilder {
     protected Integer queryTimeout;
 
     // Dynamic attributes configuration
-    protected Boolean includeDynamicAttributes = false;
+    protected Boolean dynamic = false;
     protected NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
 
     protected QueryDefinitionBuilder(String name) {
@@ -99,7 +99,7 @@ public class QueryDefinitionBuilder {
     /**
      * Add a fully-built parameter to the query definition
      */
-    public QueryDefinitionBuilder parameter(ParamDef param) {
+    public QueryDefinitionBuilder parameter(ParamDef<?> param) {
         Preconditions.checkNotNull(param, "Parameter cannot be null");
 
         // Check for duplicate parameter during building
@@ -223,7 +223,7 @@ public class QueryDefinitionBuilder {
      * Enable dynamic attributes with default naming strategy (CAMEL).
      */
     public QueryDefinitionBuilder dynamic() {
-        this.includeDynamicAttributes = true;
+        this.dynamic = true;
         this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
         return this;
     }
@@ -233,7 +233,7 @@ public class QueryDefinitionBuilder {
      */
     public QueryDefinitionBuilder dynamic(NamingStrategy strategy) {
         Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
-        this.includeDynamicAttributes = true;
+        this.dynamic = true;
         this.dynamicAttributeNamingStrategy = strategy;
         return this;
     }
@@ -269,7 +269,7 @@ public class QueryDefinitionBuilder {
                 .metricsEnabled(metricsEnabled)
                 .queryTimeout(queryTimeout)
                 .metadataCache(null) // set later if needed
-                .includeDynamicAttributes(includeDynamicAttributes)
+                .dynamic(dynamic)
                 .namingStrategy(dynamicAttributeNamingStrategy)
                 .build();
 
@@ -306,7 +306,7 @@ public class QueryDefinitionBuilder {
     }
 
     private void validateParamReferences() {
-        for (ParamDef paramDef : parameters.values()) {
+        for (ParamDef<?> paramDef : parameters.values()) {
             if (paramDef.required()) {
                 Boolean referenced = sql.contains(":" + paramDef.name());
 

@@ -4,22 +4,16 @@ import java.util.function.Function;
 import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.domain.processor.Calculator;
 import lombok.Builder;
-import lombok.With;
-import lombok.experimental.Accessors;
 
 /**
  * Immutable attribute definition for query result fields.
  * Supports both regular (database) and virtual (calculated) attributes.
  */
-@With
 @Builder(toBuilder = true)
-@Accessors(fluent = true)
 public record AttributeDef<T>(
         String name,
         Class<T> type,
         String aliasName,
-        boolean filterable,
-        boolean sortable,
         boolean primaryKey,
         boolean virtual,
         boolean selected,
@@ -60,8 +54,6 @@ public record AttributeDef<T>(
                 throw new IllegalStateException("Virtual attribute '" + name + "' cannot be primary key");
             }
             aliasName = null;
-            filterable = false;
-            sortable = false;
         } else if (calculator != null) {
             throw new IllegalStateException("Regular attribute '" + name + "' should not have calculator");
         }
@@ -76,8 +68,6 @@ public record AttributeDef<T>(
                 .name(name)
                 .type(Object.class)
                 .aliasName(name)
-                .filterable(true)
-                .sortable(true)
                 .selected(true)
                 .visible(true)
                 .alignment("left");
@@ -86,7 +76,6 @@ public record AttributeDef<T>(
     public static <T> AttributeDefBuilder<T> of(String name, Class<T> type) {
         return AttributeDef.<T>builder()
                 .name(name).type(type).aliasName(name)
-                .filterable(true).sortable(true)
                 .selected(true).visible(true);
     }
 
@@ -117,19 +106,27 @@ public record AttributeDef<T>(
     }
 
     /**
+     * Determines if this attribute can be filtered.
+     * Virtual attributes cannot be filtered.
+     */
+    public boolean filterable() {
+        return !virtual;
+    }
+
+    /**
+     * Determines if this attribute can be sorted.
+     * Virtual attributes cannot be sorted.
+     */
+    public boolean sortable() {
+        return !virtual;
+    }
+
+    /**
      * Custom builder extensions
      */
     public static class AttributeDefBuilder<T> {
         public AttributeDefBuilder<T> calculated(Calculator<T> calc) {
-            return calculator(calc).virtual(true).filterable(false).sortable(false).aliasName(null);
-        }
-
-        public AttributeDefBuilder<T> display(String label, String width) {
-            return label(label).width(width);
-        }
-
-        public AttributeDefBuilder<T> secure(Function<Object, Boolean> rule) {
-            return securityRule(rule);
+            return calculator(calc).virtual(true).aliasName(null);
         }
     }
 }

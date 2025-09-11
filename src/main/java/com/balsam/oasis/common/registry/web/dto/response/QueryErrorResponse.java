@@ -13,7 +13,7 @@ import lombok.Data;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ErrorResponse {
+public class QueryErrorResponse {
     @Builder.Default
     private boolean success = false;
     private String code;

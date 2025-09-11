@@ -22,7 +22,8 @@ import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
-import com.balsam.oasis.common.registry.web.dto.response.ErrorResponse;
+import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse;
+import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse.QueryErrorResponseBuilder;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -156,8 +157,8 @@ public class SelectController {
         };
     }
 
-    private ErrorResponse buildErrorResponse(Exception e) {
-        ErrorResponse.ErrorResponseBuilder builder = ErrorResponse.builder()
+    private QueryErrorResponse buildErrorResponse(Exception e) {
+        QueryErrorResponseBuilder builder = QueryErrorResponse.builder()
                 .message(e.getMessage())
                 .timestamp(System.currentTimeMillis());
 

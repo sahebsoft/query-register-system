@@ -10,7 +10,6 @@ import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
-import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.domain.processor.ParamProcessor;
@@ -115,13 +114,6 @@ public class QueryExecution {
         return this;
     }
 
-    public QueryExecution filterIf(boolean condition, String attr, FilterOp op, Object value) {
-        if (condition) {
-            withFilter(attr, op, value);
-        }
-        return this;
-    }
-
     // Sort methods
     public QueryExecution withSort(String attributeName, SortDir direction) {
         context.addSort(attributeName, direction);
@@ -143,9 +135,11 @@ public class QueryExecution {
             end = start; // Ensure end is not before start
         }
         int pageSize = end - start;
-        if (pageSize > 1000) {
+        if (definition.getMaxPageSize() != null
+                && definition.getMaxPageSize() > 0
+                && pageSize > definition.getMaxPageSize()) {
             // Limit page size to prevent excessive data retrieval
-            end = start + 1000;
+            end = start + definition.getMaxPageSize();
         }
         context.setPagination(Pagination.builder()
                 .start(start)
@@ -156,20 +150,12 @@ public class QueryExecution {
 
     public QueryExecution withOffsetLimit(int offset, int limit) {
         // Validate offset and limit
-        if (offset < 0) {
+        if (offset < 0 || limit < 0) {
             offset = 0;
+            limit = 0;
         }
-        if (limit <= 0) {
-            limit = 50; // Default page size
-        }
-        if (limit > 1000) {
-            limit = 1000; // Max page size
-        }
-        context.setPagination(Pagination.builder()
-                .start(offset)
-                .end(offset + limit)
-                .build());
-        return this;
+        // Reuse withPagination by converting offset+limit to start/end
+        return withPagination(offset, offset + limit);
     }
 
     // Security context

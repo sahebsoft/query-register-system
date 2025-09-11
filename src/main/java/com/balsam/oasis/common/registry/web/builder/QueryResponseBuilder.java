@@ -3,22 +3,14 @@ package com.balsam.oasis.common.registry.web.builder;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.web.dto.response.QueryListResponse;
 import com.balsam.oasis.common.registry.web.dto.response.QuerySingleResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Builds JSON HTTP responses from query results
  */
 public class QueryResponseBuilder {
-
-    private final ObjectMapper objectMapper;
-
-    public QueryResponseBuilder(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
 
     /**
      * Build JSON response from query result

@@ -14,7 +14,6 @@ import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.controller.QueryController;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Configuration for Query Registration System
@@ -24,39 +23,39 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class QueryConfiguration {
 
     @Bean
-    public QuerySqlBuilder sqlBuilder(QueryProperties properties) {
+    QuerySqlBuilder sqlBuilder(QueryProperties properties) {
         return new QuerySqlBuilder(properties.getDatabaseDialect());
     }
 
     @Bean
-    public QueryRegistry queryRegistry() {
+    QueryRegistry queryRegistry() {
         return new QueryRegistryImpl();
     }
 
     @Bean
-    public QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
+    QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
             QueryRegistry queryRegistry,
             QueryProperties properties) {
         return new QueryExecutorImpl(jdbcTemplate, sqlBuilder, queryRegistry);
     }
 
     @Bean
-    public QueryRequestParser queryRequestParser() {
+    QueryRequestParser queryRequestParser() {
         return new QueryRequestParser();
     }
 
     @Bean
-    public QueryResponseBuilder queryResponseBuilder(ObjectMapper objectMapper) {
-        return new QueryResponseBuilder(objectMapper);
+    QueryResponseBuilder queryResponseBuilder() {
+        return new QueryResponseBuilder();
     }
 
     @Bean
-    public MetadataCacheBuilder metadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
+    MetadataCacheBuilder metadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
         return new MetadataCacheBuilder(jdbcTemplate, sqlBuilder);
     }
 
     @Bean
-    public QueryController queryController(
+    QueryController queryController(
             QueryExecutor queryExecutor,
             QueryRegistry queryRegistry,
             QueryRequestParser requestParser,

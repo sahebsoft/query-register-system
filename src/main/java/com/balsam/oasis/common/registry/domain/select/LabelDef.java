@@ -10,8 +10,6 @@ import com.google.common.base.Preconditions;
  * 
  * Label attributes are automatically configured with:
  * - name: "label" (fixed)
- * - filterable: false (labels typically used for display, not filtering)
- * - sortable: true (labels should be sortable for user experience)
  * - primaryKey: false (labels are not primary keys)
  */
 public class LabelDef {
@@ -52,8 +50,6 @@ public class LabelDef {
     public AttributeDef<?> toAttributeDef() {
         return AttributeDef.name("label", type)
                 .aliasName(aliasName)
-                .filterable(true) // Labels typically used for display
-                .sortable(true) // Labels should be sortable
                 .primaryKey(false) // Labels are not primary keys
                 .description("Label field for select component")
                 .build();

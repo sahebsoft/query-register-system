@@ -99,8 +99,6 @@ public class MetadataBuilder {
                     .builder()
                     .name(attrName)
                     .type(attr.type() != null ? attr.type().getSimpleName() : "Object")
-                    .filterable(attr.filterable())
-                    .sortable(attr.sortable())
                     .restricted(restricted)
                     // Include UI metadata fields
                     .label(attr.label())

@@ -86,7 +86,7 @@ public class SelectDefinitionBuilder extends QueryDefinitionBuilder {
     }
 
     @Override
-    public SelectDefinitionBuilder parameter(ParamDef param) {
+    public SelectDefinitionBuilder parameter(ParamDef<?> param) {
         super.parameter(param);
         return this;
     }

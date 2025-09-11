@@ -270,7 +270,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
      * Subclasses can override to provide custom logic.
      */
     protected boolean shouldIncludeDynamicAttributes(QueryDefinition definition) {
-        return definition.isIncludeDynamicAttributes();
+        return definition.isDynamic();
     }
 
     /**

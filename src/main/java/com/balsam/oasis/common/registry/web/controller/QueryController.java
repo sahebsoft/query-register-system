@@ -27,7 +27,8 @@ import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequestBody;
-import com.balsam.oasis.common.registry.web.dto.response.ErrorResponse;
+import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse;
+import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse.QueryErrorResponseBuilder;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -98,13 +99,9 @@ public class QueryController {
     @Operation(summary = "Execute a query", description = "Execute a registered query with filters, sorting, and pagination")
     public ResponseEntity<?> executeQuery(
             @PathVariable @Parameter(description = "Name of the registered query") String queryName,
-
             @RequestParam(defaultValue = "0") @Parameter(description = "Start index for pagination") int _start,
-
             @RequestParam(defaultValue = "50") @Parameter(description = "End index for pagination") int _end,
-
             @RequestParam(defaultValue = "full") @Parameter(description = "Metadata level: full, minimal, none") String _meta,
-
             @RequestParam MultiValueMap<String, String> allParams) {
 
         log.info("Executing query: {} with params: {}", queryName, allParams);
@@ -284,8 +281,8 @@ public class QueryController {
         };
     }
 
-    private ErrorResponse buildErrorResponse(Exception e) {
-        ErrorResponse.ErrorResponseBuilder builder = ErrorResponse.builder()
+    private QueryErrorResponse buildErrorResponse(Exception e) {
+        QueryErrorResponseBuilder builder = QueryErrorResponse.builder()
                 .message(e.getMessage())
                 .timestamp(System.currentTimeMillis());
 

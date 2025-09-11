@@ -55,7 +55,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         validateDefinition(definition);
 
         // Automatically pre-warm metadata cache for dynamic queries
-        if (definition.isIncludeDynamicAttributes() && metadataCacheBuilder != null) {
+        if (definition.isDynamic() && metadataCacheBuilder != null) {
             try {
                 log.debug("Pre-warming metadata cache for dynamic query: {}", definition.getName());
                 MetadataCache cache = metadataCacheBuilder.buildCache(definition);
@@ -77,8 +77,6 @@ public class QueryRegistryImpl implements QueryRegistry {
                         if (javaType != null) {
                             AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName, javaType)
                                     .aliasName(columnName)
-                                    .filterable(true)
-                                    .sortable(true)
                                     .selected(true)
                                     .build();
                             combinedAttributes.put(attributeName, dynamicAttr);
@@ -108,7 +106,7 @@ public class QueryRegistryImpl implements QueryRegistry {
                 throw new IllegalStateException("Query already registered: " + name);
             }
             log.info("Registered query: {} (dynamic: {}, metadata cached: {})",
-                    name, definition.isIncludeDynamicAttributes(),
+                    name, definition.isDynamic(),
                     definition.getMetadataCache() != null);
         } finally {
             lock.writeLock().unlock();
