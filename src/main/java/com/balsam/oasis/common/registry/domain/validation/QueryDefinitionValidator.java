@@ -58,21 +58,21 @@ public class QueryDefinitionValidator {
 
         for (AttributeDef<?> attr : attributes.values()) {
             // Check attribute name
-            if (!names.add(attr.getName())) {
+            if (!names.add(attr.name())) {
                 throw new IllegalStateException(String.format(
                         "Query '%s' has duplicate attribute name: '%s'. " +
                                 "Each attribute must have a unique name.",
-                        queryDef.getName(), attr.getName()));
+                        queryDef.getName(), attr.name()));
             }
 
             // Check alias name (database column) for non-transient attributes
-            if (!attr.isVirual() && attr.getAliasName() != null) {
-                String aliasName = attr.getAliasName().toUpperCase(); // Case-insensitive check
+            if (!attr.virtual() && attr.aliasName() != null) {
+                String aliasName = attr.aliasName().toUpperCase(); // Case-insensitive check
                 if (!aliasNames.add(aliasName)) {
                     throw new IllegalStateException(String.format(
                             "Query '%s' has duplicate attribute alias/column name: '%s'. " +
                                     "Multiple attributes are mapped to the same database column.",
-                            queryDef.getName(), attr.getAliasName()));
+                            queryDef.getName(), attr.aliasName()));
                 }
             }
         }
@@ -82,14 +82,14 @@ public class QueryDefinitionValidator {
      * Validates that there are no duplicate parameter names.
      */
     private static void validateParameterDuplicates(QueryDefinition queryDef) {
-        Map<String, ParamDef> params = queryDef.getParameters();
+        Map<String, ParamDef<?>> params = queryDef.getParameters();
         if (params == null || params.isEmpty()) {
             return;
         }
 
         Set<String> names = new HashSet<>();
 
-        for (ParamDef param : params.values()) {
+        for (ParamDef<?> param : params.values()) {
             if (!names.add(param.name())) {
                 throw new IllegalStateException(String.format(
                         "Query '%s' has duplicate parameter name: '%s'. " +

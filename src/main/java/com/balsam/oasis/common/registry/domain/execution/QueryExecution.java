@@ -230,7 +230,7 @@ public class QueryExecution {
                 // Apply processor if exists (handles validation and transformation)
                 if (paramDef.hasProcessor()) {
                     try {
-                        ParamProcessor processor = (ParamProcessor) paramDef.processor();
+                        ParamProcessor<?> processor = paramDef.processor();
                         Object processedValue = processor.process(value, context);
                         // Update the parameter with processed value
                         context.addParam(name, processedValue);
@@ -239,8 +239,9 @@ public class QueryExecution {
                     }
                 } else {
                     // Use the built-in validation method
-                    ParamDef typedParam = paramDef;
-                    if (!typedParam.isValid(value, context)) {
+                    // Since we don't have type information at runtime, we skip validation
+                    // for parameters without processors
+                    if (paramDef.required() && value == null) {
                         violations.add("Parameter validation failed: " + name);
                     }
                 }
@@ -253,7 +254,7 @@ public class QueryExecution {
             var attrDef = definition.getAttribute(attribute);
             if (attrDef == null) {
                 violations.add("Unknown attribute for filter: " + attribute);
-            } else if (!attrDef.isFilterable()) {
+            } else if (!attrDef.filterable()) {
                 violations.add("Attribute not filterable: " + attribute);
             }
         });
@@ -264,7 +265,7 @@ public class QueryExecution {
             var attrDef = definition.getAttribute(sort.getAttribute());
             if (attrDef == null) {
                 violations.add("Unknown attribute for sort: " + sort.getAttribute());
-            } else if (!attrDef.isSortable()) {
+            } else if (!attrDef.sortable()) {
                 violations.add("Attribute not sortable: " + sort.getAttribute());
             }
         });

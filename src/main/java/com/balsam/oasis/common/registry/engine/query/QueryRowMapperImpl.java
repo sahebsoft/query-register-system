@@ -47,7 +47,7 @@ public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
     @Override
     protected Object calculateAttribute(AttributeDef<?> attr, QueryRow intermediateResult, QueryContext context) {
         // Calculator now expects Row and QueryContext
-        return attr.getCalculator().calculate(intermediateResult, context);
+        return attr.calculator().calculate(intermediateResult, context);
     }
 
     @Override
@@ -68,8 +68,8 @@ public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
         for (Map.Entry<String, AttributeDef<?>> entry : definedAttributes.entrySet()) {
             definedNames.add(entry.getKey().toUpperCase());
             AttributeDef<?> attr = entry.getValue();
-            if (attr.getAliasName() != null) {
-                definedNames.add(attr.getAliasName().toUpperCase());
+            if (attr.aliasName() != null) {
+                definedNames.add(attr.aliasName().toUpperCase());
             }
         }
 

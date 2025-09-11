@@ -81,7 +81,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
             // Skip if attribute not selected
             if (!isAttributeIncluded(attr, attrName, context)) {
-                if (attr.isVirtual()) {
+                if (attr.virtual()) {
                     log.debug("Skipping unselected field: {}", attrName);
                 }
                 continue;
@@ -90,14 +90,14 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
             // Check security
             if (attr.isSecured() && hasSecurityContext(context)) {
                 Object securityContext = getSecurityContext(context);
-                Boolean allowed = attr.getSecurityRule().apply(securityContext);
+                Boolean allowed = attr.securityRule().apply(securityContext);
                 if (!Boolean.TRUE.equals(allowed)) {
                     processedData.put(attrName, null);
                     continue;
                 }
             }
 
-            if (attr.isVirtual()) {
+            if (attr.virtual()) {
                 // Will be calculated after intermediate object creation
                 continue;
             }
@@ -107,8 +107,8 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
 
             // Apply automatic type conversion
             Object convertedValue = rawValue;
-            if (rawValue != null && attr.getType() != null) {
-                convertedValue = convertToType(rawValue, attr.getType());
+            if (rawValue != null && attr.type() != null) {
+                convertedValue = convertToType(rawValue, attr.type());
             }
 
             processedData.put(attrName, convertedValue);
@@ -127,7 +127,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
             String attrName = entry.getKey();
             AttributeDef<?> attr = entry.getValue();
 
-            if (!attr.isVirtual() || !isAttributeIncluded(attr, attrName, context)) {
+            if (!attr.virtual() || !isAttributeIncluded(attr, attrName, context)) {
                 continue;
             }
 
@@ -136,8 +136,8 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
                     Object calculatedValue = calculateAttribute(attr, intermediateResult, context);
 
                     // Ensure type safety
-                    if (calculatedValue != null && attr.getType() != null) {
-                        calculatedValue = convertToType(calculatedValue, attr.getType());
+                    if (calculatedValue != null && attr.type() != null) {
+                        calculatedValue = convertToType(calculatedValue, attr.type());
                     }
 
                     setValueInOutput(intermediateResult, attrName, calculatedValue);
@@ -162,7 +162,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
             try {
                 Object currentValue = getValueFromOutput(intermediateResult, attrName);
                 if (currentValue != null) {
-                    AttributeFormatter formatter = attr.getFormatter();
+                    AttributeFormatter formatter = attr.formatter();
                     String formattedValue = formatter.format(currentValue);
                     setValueInOutput(intermediateResult, attrName, formattedValue);
                     processedData.put(attrName, formattedValue);
@@ -181,7 +181,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
      */
     protected boolean isAttributeIncluded(AttributeDef<?> attr, String attrName, QueryContext context) {
         // If attribute has selected=false, only include if explicitly requested
-        if (!attr.isSelected()) {
+        if (!attr.selected()) {
             return context.getSelectedFields() != null &&
                     context.getSelectedFields().contains(attrName);
         }

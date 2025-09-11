@@ -30,7 +30,7 @@ public class QueryDefinitionBuilder {
     protected String sql;
     protected String description;
     protected final Map<String, AttributeDef<?>> attributes = new LinkedHashMap<>();
-    protected final Map<String, ParamDef> parameters = new LinkedHashMap<>();
+    protected final Map<String, ParamDef<?>> parameters = new LinkedHashMap<>();
     protected final Map<String, CriteriaDef> criteria = new LinkedHashMap<>();
     protected final List<PreProcessor> preProcessors = new ArrayList<>();
     protected final List<RowProcessor> rowProcessors = new ArrayList<>();
@@ -86,13 +86,13 @@ public class QueryDefinitionBuilder {
         Preconditions.checkNotNull(attribute, "Attribute cannot be null");
 
         // Check for duplicate attribute during building
-        if (this.attributes.containsKey(attribute.getName())) {
+        if (this.attributes.containsKey(attribute.name())) {
             throw new IllegalStateException(String.format(
                     "Duplicate attribute definition: Attribute '%s' is already defined in this query",
-                    attribute.getName()));
+                    attribute.name()));
         }
 
-        this.attributes.put(attribute.getName(), attribute);
+        this.attributes.put(attribute.name(), attribute);
         return this;
     }
 

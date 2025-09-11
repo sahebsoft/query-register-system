@@ -40,6 +40,12 @@ public class OracleHRQueryConfig {
                 queryRegistry.register(QueryDefinitionBuilder.builder("dynamic").sql("""
                                 SELECT * from employees
                                                     """)
+                                .parameter(ParamDef.name("asd", String.class).processor((val, ctx) -> "1")
+                                                .defaultValue("123")
+                                                .build())
+                                .attribute(AttributeDef.name("test", String.class).calculated((row, context) -> {
+                                        return "ASd";
+                                }).build())
                                 .dynamic().build());
 
                 // Register all queries defined in this configuration
@@ -55,9 +61,9 @@ public class OracleHRQueryConfig {
                                                 from employees
                                                 where department_id <> 110
                                                                                 """)
-                                .attribute(AttributeDef.name("EMPLOYEE_ID").type(Integer.class)
+                                .attribute(AttributeDef.name("EMPLOYEE_ID", Integer.class)
                                                 .build())
-                                .parameter(ParamDef.name("jobId").type(String.class).required(true).build())
+                                .parameter(ParamDef.name("jobId").required(true).build())
                                 .build());
 
         }
@@ -99,59 +105,50 @@ public class OracleHRQueryConfig {
                                 .description("Oracle HR Schema - Employee information with department and manager details")
 
                                 // Employee attributes
-                                .attribute(AttributeDef.name("employeeId")
+                                .attribute(AttributeDef.name("employeeId", Integer.class)
                                                 .aliasName("employee_id")
                                                 .primaryKey(true)
                                                 .label("Employee ID")
                                                 .labelKey("employee.id.label")
                                                 .width("100px")
                                                 .build())
-                                .attribute(AttributeDef.name("firstName")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("firstName", String.class)
                                                 .aliasName("first_name")
                                                 .label("First Name")
                                                 .labelKey("employee.firstName.label")
                                                 .width("150px")
                                                 .flex("1")
                                                 .build())
-                                .attribute(AttributeDef.name("lastName")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("lastName", String.class)
                                                 .aliasName("last_name")
                                                 .label("Last Name")
                                                 .labelKey("employee.lastName.label")
                                                 .width("150px")
                                                 .flex("1")
                                                 .build())
-                                .attribute(AttributeDef.name("email")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("email", String.class)
                                                 .aliasName("email")
                                                 .build())
-                                .attribute(AttributeDef.name("phoneNumber")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("phoneNumber", String.class)
                                                 .aliasName("phone_number")
                                                 .build())
-                                .attribute(AttributeDef.name("hireDate")
-                                                .type(LocalDate.class)
+                                .attribute(AttributeDef.name("hireDate", LocalDate.class)
                                                 .aliasName("hire_date")
                                                 .build())
                                 // Job information
-                                .attribute(AttributeDef.name("jobId")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("jobId", String.class)
                                                 .aliasName("job_id")
                                                 .build())
-                                .attribute(AttributeDef.name("jobTitle")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("jobTitle", String.class)
                                                 .aliasName("job_title")
                                                 .build())
                                 // Location information
-                                .attribute(AttributeDef.name("city")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("city", String.class)
                                                 .aliasName("city")
                                                 .formatter(value -> value.toLowerCase())
                                                 .build())
                                 // Transient attributes (calculated fields)
-                                .attribute(AttributeDef.name("totalCompensation")
-                                                .type(BigDecimal.class)
+                                .attribute(AttributeDef.name("totalCompensation", BigDecimal.class)
                                                 .calculated((row, context) -> {
                                                         System.out.println("totalCompensation");
                                                         BigDecimal salary = row.getBigDecimal("salary");
@@ -162,39 +159,30 @@ public class OracleHRQueryConfig {
                                                                 return salary;
                                                         return salary.add(salary.multiply(commission));
                                                 })
-                                                .sortProperty("salary") // Sort by salary when sorting by
-                                                                        // totalCompensation
                                                 .build())
-                                .attribute(AttributeDef.name("testVirtual").type(String.class)
+                                .attribute(AttributeDef.name("testVirtual", String.class)
                                                 .calculated((row, context) -> {
                                                         return "Hello World";
                                                 }).build())
-                                .attribute(AttributeDef.name("internalDebugInfo")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("internalDebugInfo", String.class)
                                                 .selected(false) // Hidden by default unless explicitly requested
                                                 .calculated((row, context) -> "Debug: ID=" + row.get("employeeId"))
                                                 .build())
 
                                 // Parameters
                                 .parameter(ParamDef.name("deptId")
-                                                .type(Integer.class)
                                                 .build())
 
                                 // Parameters for IN clause criteria
                                 .parameter(ParamDef.name("departmentIds")
-                                                .type(List.class)
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")
-                                                .type(List.class)
                                                 .build())
                                 .parameter(ParamDef.name("jobIds")
-                                                .type(List.class)
                                                 .build())
                                 .parameter(ParamDef.name("minSalary")
-                                                .type(BigDecimal.class)
                                                 .build())
                                 .parameter(ParamDef.name("hiredAfter")
-                                                .type(LocalDate.class)
                                                 .processor((value, ctx) -> {
                                                         // Use TypeConverter for type safety
                                                         if (value == null)
@@ -204,7 +192,6 @@ public class OracleHRQueryConfig {
                                                 })
                                                 .build())
                                 .parameter(ParamDef.name("hiredAfterDays")
-                                                .type(Long.class)
                                                 .processor((value, ctx) -> {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
@@ -295,59 +282,48 @@ public class OracleHRQueryConfig {
                                                 """)
                                 .description("Department statistics with employee counts and salary information")
 
-                                .attribute(AttributeDef.name("departmentId")
-                                                .type(Integer.class)
+                                .attribute(AttributeDef.name("departmentId", Integer.class)
                                                 .aliasName("department_id")
                                                 .primaryKey(true)
                                                 .build())
-                                .attribute(AttributeDef.name("departmentName")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("departmentName", String.class)
                                                 .aliasName("department_name")
                                                 .build())
-                                .attribute(AttributeDef.name("employeeCount")
-                                                .type(Integer.class)
+                                .attribute(AttributeDef.name("employeeCount", Integer.class)
                                                 .aliasName("employee_count")
                                                 .build())
-                                .attribute(AttributeDef.name("avgSalary")
-                                                .type(BigDecimal.class)
+                                .attribute(AttributeDef.name("avgSalary", BigDecimal.class)
                                                 .aliasName("avg_salary")
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
-                                .attribute(AttributeDef.name("minSalary")
-                                                .type(BigDecimal.class)
+                                .attribute(AttributeDef.name("minSalary", BigDecimal.class)
                                                 .aliasName("min_salary")
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
-                                .attribute(AttributeDef.name("maxSalary")
-                                                .type(BigDecimal.class)
+                                .attribute(AttributeDef.name("maxSalary", BigDecimal.class)
                                                 .aliasName("max_salary")
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
-                                .attribute(AttributeDef.name("totalSalary")
-                                                .type(BigDecimal.class)
+                                .attribute(AttributeDef.name("totalSalary", BigDecimal.class)
                                                 .aliasName("total_salary")
                                                 .formatter(value -> value != null ? String.format("$%.2f", value)
                                                                 : "N/A")
                                                 .build())
-                                .attribute(AttributeDef.name("city")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("city", String.class)
                                                 .aliasName("city")
                                                 .build())
-                                .attribute(AttributeDef.name("stateProvince")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("stateProvince", String.class)
                                                 .aliasName("state_province")
                                                 .build())
-                                .attribute(AttributeDef.name("countryName")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("countryName", String.class)
                                                 .aliasName("country_name")
                                                 .build())
 
                                 // Proof of concept: Fetch all employees in this department
-                                .attribute(AttributeDef.name("departmentEmployees")
-                                                .type(List.class)
+                                .attribute(AttributeDef.name("departmentEmployees", List.class)
                                                 .calculated((row, context) -> {
                                                         System.out.println("Fetching employees for department");
                                                         Integer deptId = row.getRaw("DEPARTMENT_ID", Integer.class);
@@ -389,7 +365,6 @@ public class OracleHRQueryConfig {
                                                 .build())
 
                                 .parameter(ParamDef.name("country")
-                                                .type(String.class)
                                                 .build())
 
                                 .criteria(CriteriaDef.name("countryFilter")

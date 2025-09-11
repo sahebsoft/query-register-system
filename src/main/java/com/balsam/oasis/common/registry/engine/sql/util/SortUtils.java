@@ -57,12 +57,12 @@ public class SortUtils {
      */
     private static String buildSortClause(QueryContext.SortSpec sort, QueryContext context) {
         AttributeDef<?> attr = context.getDefinition().getAttribute(sort.getAttribute());
-        if (attr == null || !attr.isSortable()) {
+        if (attr == null || !attr.sortable()) {
             log.warn("Attribute {} is not sortable or does not exist", sort.getAttribute());
             return null;
         }
 
-        String column = attr.getAliasName() != null ? attr.getAliasName() : attr.getName();
+        String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
         return column + " " + sort.getDirection().name();
     }
 }

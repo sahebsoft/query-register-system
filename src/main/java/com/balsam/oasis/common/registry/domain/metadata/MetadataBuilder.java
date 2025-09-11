@@ -81,7 +81,7 @@ public class MetadataBuilder {
             }
 
             // Skip attributes with selected=false unless explicitly requested
-            if (!attr.isSelected() && (context.getSelectedFields() == null ||
+            if (!attr.selected() && (context.getSelectedFields() == null ||
                     !context.getSelectedFields().contains(attrName))) {
                 continue;
             }
@@ -89,7 +89,7 @@ public class MetadataBuilder {
             // Check security restrictions
             Boolean restricted = null;
             if (attr.isSecured() && context.getSecurityContext() != null) {
-                Boolean allowed = attr.getSecurityRule().apply(context.getSecurityContext());
+                Boolean allowed = attr.securityRule().apply(context.getSecurityContext());
                 if (!Boolean.TRUE.equals(allowed)) {
                     restricted = true;
                 }
@@ -98,29 +98,20 @@ public class MetadataBuilder {
             AttributeMetadata attrMetadata = AttributeMetadata
                     .builder()
                     .name(attrName)
-                    .type(attr.getType() != null ? attr.getType().getSimpleName() : "Object")
-                    .filterable(attr.isFilterable())
-                    .sortable(attr.isSortable())
+                    .type(attr.type() != null ? attr.type().getSimpleName() : "Object")
+                    .filterable(attr.filterable())
+                    .sortable(attr.sortable())
                     .restricted(restricted)
                     // Include UI metadata fields
-                    .label(attr.getLabel())
-                    .labelKey(attr.getLabelKey())
-                    .width(attr.getWidth())
-                    .flex(attr.getFlex())
+                    .label(attr.label())
+                    .labelKey(attr.labelKey())
+                    .width(attr.width())
+                    .flex(attr.flex())
                     // Table context metadata
-                    .headerText(attr.getHeaderText())
-                    .alignment(attr.getAlignment())
-                    .headerStyle(attr.getHeaderStyle())
-                    .visible(attr.isVisible())
-                    // Form context metadata
-                    .placeholder(attr.getPlaceholder())
-                    .helpText(attr.getHelpText())
-                    .inputType(attr.getInputType())
-                    .required(attr.isRequired())
-                    .maxLength(attr.getMaxLength())
-                    .minLength(attr.getMinLength())
-                    .pattern(attr.getPattern())
-                    .validationMsg(attr.getValidationMsg())
+                    .headerText(attr.label())
+                    .alignment(attr.alignment())
+                    .headerStyle(attr.headerStyle())
+                    .visible(attr.visible())
                     .build();
 
             metadata.add(attrMetadata);
@@ -163,9 +154,9 @@ public class MetadataBuilder {
         Map<String, ParameterMetadata> metadata = new HashMap<>();
         QueryDefinition definition = context.getDefinition();
 
-        for (Map.Entry<String, ParamDef> entry : definition.getParameters().entrySet()) {
+        for (Map.Entry<String, ParamDef<?>> entry : definition.getParameters().entrySet()) {
             String paramName = entry.getKey();
-            ParamDef paramDef = entry.getValue();
+            ParamDef<?> paramDef = entry.getValue();
 
             Object value = context.getParam(paramName);
             if (value == null && paramDef.hasDefaultValue()) {

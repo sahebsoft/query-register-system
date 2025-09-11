@@ -7,7 +7,7 @@ import com.balsam.oasis.common.registry.domain.execution.QueryContext;
  * Applied before query execution when no row is available.
  */
 @FunctionalInterface
-public interface ParamProcessor {
+public interface ParamProcessor<T> {
 
     /**
      * Process a parameter value with query context.
@@ -17,5 +17,5 @@ public interface ParamProcessor {
      * @return processed/validated value
      * @throws IllegalArgumentException if validation fails
      */
-    Object process(Object value, QueryContext context);
+    T process(Object value, QueryContext context);
 }

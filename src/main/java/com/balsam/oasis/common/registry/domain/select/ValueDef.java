@@ -38,8 +38,7 @@ public class ValueDef {
      * Convert to AttributeDef with predefined value-specific settings
      */
     public AttributeDef<?> toAttributeDef() {
-        return AttributeDef.name("value")
-                .type(type)
+        return AttributeDef.name("value", type)
                 .aliasName(aliasName)
                 .filterable(true) // Always filterable for ID lookups
                 .sortable(true) // Values typically don't need sorting

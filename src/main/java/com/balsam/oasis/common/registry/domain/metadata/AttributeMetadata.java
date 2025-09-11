@@ -23,17 +23,8 @@ public class AttributeMetadata {
 
     // Table context metadata
     String headerText;
-    String alignment;
     String headerStyle;
+    String alignment;
     Boolean visible;
 
-    // Form context metadata
-    String placeholder;
-    String helpText;
-    String inputType;
-    Boolean required;
-    Integer maxLength;
-    Integer minLength;
-    String pattern;
-    String validationMsg;
 }

@@ -48,13 +48,13 @@ import lombok.Value;
  * @see CriteriaDef
  */
 @Value
-@Builder(access = AccessLevel.PROTECTED)
+@Builder
 public class QueryDefinition {
     // Base fields from BaseDefinition
     String name;
     String description;
     String sql;
-    Map<String, ParamDef> parameters;
+    Map<String, ParamDef<?>> parameters;
     Map<String, CriteriaDef> criteria;
     List<PreProcessor> preProcessors;
     List<RowProcessor> rowProcessors;
@@ -104,7 +104,7 @@ public class QueryDefinition {
         return attributes.get(name);
     }
 
-    public ParamDef getParam(String name) {
+    public ParamDef<?> getParam(String name) {
         return parameters.get(name);
     }
 

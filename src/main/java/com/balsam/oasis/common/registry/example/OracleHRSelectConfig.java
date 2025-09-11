@@ -47,7 +47,6 @@ public class OracleHRSelectConfig {
                                                 .condition(ctx -> ctx.hasParam("departmentId"))
                                                 .build())
                                 .parameter(ParamDef.name("departmentId")
-                                                .type(Integer.class)
                                                 .build())
                                 .postProcessor((queryResult, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
@@ -87,16 +86,13 @@ public class OracleHRSelectConfig {
                                 .labelAttribute("department_name")
 
                                 // Additional attributes
-                                .attribute(AttributeDef.name("city")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("city", String.class)
                                                 .aliasName("city")
                                                 .build())
-                                .attribute(AttributeDef.name("state_province")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("state_province", String.class)
                                                 .aliasName("state_province")
                                                 .build())
-                                .attribute(AttributeDef.name("country_name")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("country_name", String.class)
                                                 .aliasName("country_name")
                                                 .build())
 
@@ -110,7 +106,6 @@ public class OracleHRSelectConfig {
                                                 .build())
 
                                 .parameter(ParamDef.name("locationId")
-                                                .type(Integer.class)
                                                 .build())
 
                                 .build();
@@ -139,12 +134,11 @@ public class OracleHRSelectConfig {
                                 .valueAttribute("job_id", String.class)
                                 .labelAttribute("job_title")
 
-                                .attribute(AttributeDef.name("min_salary")
+                                .attribute(AttributeDef.name("min_salary", BigDecimal.class)
                                                 .type(BigDecimal.class)
                                                 .aliasName("min_salary")
                                                 .build())
-                                .attribute(AttributeDef.name("max_salary")
-                                                .type(BigDecimal.class)
+                                .attribute(AttributeDef.name("max_salary", BigDecimal.class)
                                                 .aliasName("max_salary")
                                                 .build())
 
@@ -176,27 +170,19 @@ public class OracleHRSelectConfig {
                                                 --searchFilter
                                                 """)
                                 .description("Managers only for selection")
-
                                 .valueAttribute("employee_id", Integer.class)
                                 .labelAttribute("full_name")
-
-                                .attribute(AttributeDef.name("email")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("email", String.class)
                                                 .aliasName("email")
                                                 .build())
-                                .attribute(AttributeDef.name("department_name")
-                                                .type(String.class)
+                                .attribute(AttributeDef.name("department_name", String.class)
                                                 .aliasName("department_name")
                                                 .build())
-
                                 .criteria(CriteriaDef.name("searchFilter")
                                                 .sql("AND LOWER(m.first_name || ' ' || m.last_name) LIKE LOWER(:search)")
                                                 .build())
-
                                 .parameter(ParamDef.name("search")
-                                                .type(String.class)
                                                 .build())
-
                                 .defaultPageSize(50)
                                 .build();
 

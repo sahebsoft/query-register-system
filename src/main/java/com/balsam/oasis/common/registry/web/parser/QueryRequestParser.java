@@ -289,7 +289,7 @@ public class QueryRequestParser {
             return null;
         }
         AttributeDef<?> attributeDef = queryDefinition.getAttribute(attributeName);
-        return attributeDef != null ? attributeDef.getType() : null;
+        return attributeDef != null ? attributeDef.type() : null;
     }
 
     private Object parseValue(String value, Class<?> targetType) {

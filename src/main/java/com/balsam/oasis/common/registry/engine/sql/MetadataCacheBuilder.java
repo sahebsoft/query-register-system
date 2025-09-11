@@ -250,12 +250,12 @@ public class MetadataCacheBuilder {
             AttributeDef<?> attr = entry.getValue();
 
             // Skip virtual attributes
-            if (attr.isVirtual()) {
+            if (attr.virtual()) {
                 continue;
             }
 
             // Find column for attribute
-            String columnKey = attr.getAliasName() != null ? attr.getAliasName() : attrName;
+            String columnKey = attr.aliasName() != null ? attr.aliasName() : attrName;
             Integer columnIndex = columnIndexMap.get(columnKey.toUpperCase());
 
             if (columnIndex != null) {
@@ -264,7 +264,7 @@ public class MetadataCacheBuilder {
                 log.trace("Mapped attribute '{}' to column {}", attrName, columnIndex);
             } else {
                 log.warn("No column found for attribute '{}' with alias '{}'",
-                        attrName, attr.getAliasName());
+                        attrName, attr.aliasName());
             }
         }
     }
@@ -276,8 +276,8 @@ public class MetadataCacheBuilder {
         Map<String, Object> params = new HashMap<>();
 
         // Add default/dummy values for all parameters
-        for (Map.Entry<String, ParamDef> entry : definition.getParameters().entrySet()) {
-            ParamDef paramDef = entry.getValue();
+        for (Map.Entry<String, ParamDef<?>> entry : definition.getParameters().entrySet()) {
+            ParamDef<?> paramDef = entry.getValue();
             Object value = paramDef.defaultValue() != null
                     ? paramDef.defaultValue()
                     : SqlTypeMapper.getDummyValue(paramDef.type());

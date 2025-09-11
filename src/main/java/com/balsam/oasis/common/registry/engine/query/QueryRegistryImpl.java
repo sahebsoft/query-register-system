@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -76,8 +75,7 @@ public class QueryRegistryImpl implements QueryRegistry {
                     if (!combinedAttributes.containsKey(attributeName)) {
                         Class<?> javaType = cache.getJavaTypeForColumn(columnName);
                         if (javaType != null) {
-                            AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName)
-                                    .type(javaType)
+                            AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName, javaType)
                                     .aliasName(columnName)
                                     .filterable(true)
                                     .sortable(true)

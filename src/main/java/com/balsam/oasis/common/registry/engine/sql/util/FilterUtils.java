@@ -35,7 +35,7 @@ public class FilterUtils {
 
         for (QueryContext.Filter filter : context.getFilters().values()) {
             AttributeDef<?> attr = context.getDefinition().getAttribute(filter.getAttribute());
-            if (attr == null || !attr.isFilterable()) {
+            if (attr == null || !attr.filterable()) {
                 log.warn("Attribute {} is not filterable or does not exist", filter.getAttribute());
                 continue;
             }
@@ -67,7 +67,7 @@ public class FilterUtils {
      */
     private static String buildFilterCondition(QueryContext.Filter filter, AttributeDef<?> attr,
             Map<String, Object> params, int index) {
-        String column = attr.getAliasName() != null ? attr.getAliasName() : attr.getName();
+        String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
         String paramName = "filter_" + filter.getAttribute() + "_" + index;
 
         switch (filter.getOperator()) {

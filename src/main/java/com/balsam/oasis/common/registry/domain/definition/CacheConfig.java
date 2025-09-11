@@ -37,4 +37,8 @@ public class CacheConfig {
     public boolean hasKeyGenerator() {
         return keyGenerator != null;
     }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
 }

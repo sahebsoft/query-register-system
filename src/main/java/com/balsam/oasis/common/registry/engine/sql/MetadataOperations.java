@@ -51,9 +51,9 @@ public class MetadataOperations {
             MetadataCache cache, Map<String, Object> rawData) throws SQLException {
         
         // First try to get from raw data if available
-        if (rawData != null && attr.getAliasName() != null) {
+        if (rawData != null && attr.aliasName() != null) {
             // Use uppercase for lookup (Oracle standard)
-            String aliasName = attr.getAliasName().toUpperCase();
+            String aliasName = attr.aliasName().toUpperCase();
             if (rawData.containsKey(aliasName)) {
                 return rawData.get(aliasName);
             }
@@ -70,8 +70,8 @@ public class MetadataOperations {
         }
 
         // Fallback to name-based access
-        if (attr.getAliasName() != null) {
-            return SqlTypeExtractor.extractValue(rs, attr.getAliasName());
+        if (attr.aliasName() != null) {
+            return SqlTypeExtractor.extractValue(rs, attr.aliasName());
         }
 
         return null;
@@ -82,11 +82,11 @@ public class MetadataOperations {
      */
     private static Integer resolveColumnIndex(AttributeDef<?> attr, MetadataCache cache) {
         // Try attribute name first
-        Integer columnIndex = cache.getColumnIndexForAttribute(attr.getName());
+        Integer columnIndex = cache.getColumnIndexForAttribute(attr.name());
         
         // Fall back to alias name
-        if (columnIndex == null && attr.getAliasName() != null) {
-            columnIndex = cache.getColumnIndex(attr.getAliasName());
+        if (columnIndex == null && attr.aliasName() != null) {
+            columnIndex = cache.getColumnIndex(attr.aliasName());
         }
         
         return columnIndex;

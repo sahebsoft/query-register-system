@@ -50,8 +50,7 @@ public class LabelDef {
      * Convert to AttributeDef with predefined label-specific settings
      */
     public AttributeDef<?> toAttributeDef() {
-        return AttributeDef.name("label")
-                .type(type)
+        return AttributeDef.name("label", type)
                 .aliasName(aliasName)
                 .filterable(true) // Labels typically used for display
                 .sortable(true) // Labels should be sortable
