@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
+import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 
 import java.util.HashMap;
@@ -31,10 +31,10 @@ public class QueryPrewarmTest {
     private static final Logger log = LoggerFactory.getLogger(QueryPrewarmTest.class);
 
     @Autowired
-    private QueryRegistry queryRegistry;
+    private QueryRegistryImpl queryRegistry;
 
     @Autowired
-    private QueryExecutor queryExecutor;
+    private QueryExecutorImpl queryExecutor;
 
     @Test
     public void prewarmAllQueries() {

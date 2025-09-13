@@ -15,8 +15,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/builder/QueryDefinitionBuilder.java](#src-main-java-com-balsam-oasis-common-registry-builder-querydefinitionbuilder-java)
 - [src/main/java/com/balsam/oasis/common/registry/config/QueryConfiguration.java](#src-main-java-com-balsam-oasis-common-registry-config-queryconfiguration-java)
 - [src/main/java/com/balsam/oasis/common/registry/config/QueryProperties.java](#src-main-java-com-balsam-oasis-common-registry-config-queryproperties-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryExecutor.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryexecutor-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryRegistry.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryregistry-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/Pagination.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-pagination-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryData.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-querydata-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-queryresult-java)
@@ -416,32 +414,6 @@ public class QueryProperties {
         private Duration queryTimeout = Duration.ofSeconds(30);
         private boolean enableSqlLogging = true;
     }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/api/QueryExecutor.java
-
-```java
-public interface QueryExecutor {
-    QueryExecution execute(String queryName);
-    QueryExecution execute(QueryDefinitionBuilder definition);
-    QueryExecution prepare(QueryDefinitionBuilder definition);
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/api/QueryRegistry.java
-
-```java
-public interface QueryRegistry {
-    QueryDefinitionBuilder get(String name);
-    Set<String> getQueryNames();
-    Collection<QueryDefinitionBuilder> getAllQueries();
-    int size();
-    boolean isEmpty();
-    void register(QueryDefinitionBuilder definition);
-    void clear();
 }```
 
 ---
