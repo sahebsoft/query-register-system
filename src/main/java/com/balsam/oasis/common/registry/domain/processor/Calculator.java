@@ -3,22 +3,16 @@ package com.balsam.oasis.common.registry.domain.processor;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
 
-/**
- * Calculator interface for computing transient attribute values.
- * Used with TransientAttributeDef to calculate values based on row data and
- * query context.
- * 
- * @param <T> The type of value this calculator produces
- */
 @FunctionalInterface
-public interface Calculator<T> {
-
-    /**
-     * Calculate a value based on the current row and execution context.
-     * 
-     * @param row     The current row containing data from the query
-     * @param context The execution context (QueryContext, SelectContext, etc.)
-     * @return The calculated value of type T
-     */
+public interface Calculator<T> extends QueryProcessor {
     T calculate(QueryRow row, QueryContext context);
+
+    @Override
+    @SuppressWarnings("unchecked")
+    default Object process(Object input, QueryContext context) {
+        if (!(input instanceof QueryRow)) {
+            throw new IllegalArgumentException("Calculator processor requires QueryRow input");
+        }
+        return calculate((QueryRow) input, context);
+    }
 }

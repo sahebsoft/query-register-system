@@ -3,17 +3,15 @@ package com.balsam.oasis.common.registry.domain.processor;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
-/**
- * Processor executed after query execution
- */
 @FunctionalInterface
-public interface PostProcessor {
-    /**
-     * Process the query result after execution
-     * 
-     * @param result  the query result
-     * @param context the query context
-     * @return the processed result
-     */
+public interface PostProcessor extends QueryProcessor {
     QueryResult process(QueryResult result, QueryContext context);
+
+    @Override
+    default Object process(Object input, QueryContext context) {
+        if (!(input instanceof QueryResult)) {
+            throw new IllegalArgumentException("Post processor requires QueryResult input");
+        }
+        return process((QueryResult) input, context);
+    }
 }

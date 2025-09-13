@@ -1,19 +1,15 @@
 package com.balsam.oasis.common.registry.domain.processor;
 
-/**
- * Functional interface for formatting attribute values to strings
- * Accepts typed value and returns formatted string representation
- * 
- * @param <T> the type of value to format
- */
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
+
 @FunctionalInterface
-public interface AttributeFormatter<T> {
-    /**
-     * Format a value to string representation
-     * 
-     * @param value the value to format (may be null)
-     * @return the formatted string representation
-     */
+public interface AttributeFormatter<T> extends QueryProcessor {
     String format(T value);
 
+    @Override
+    @SuppressWarnings("unchecked")
+    default Object process(Object input, QueryContext context) {
+        if (input == null) return null;
+        return format((T) input);
+    }
 }
