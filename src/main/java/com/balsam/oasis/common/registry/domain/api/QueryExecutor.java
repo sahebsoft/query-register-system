@@ -1,6 +1,6 @@
 package com.balsam.oasis.common.registry.domain.api;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 
@@ -50,7 +50,7 @@ public interface QueryExecutor {
      * @param definition the query definition
      * @return a QueryExecution builder for configuring and executing the query
      */
-    QueryExecution execute(QueryDefinition definition);
+    QueryExecution execute(QueryDefinitionBuilder definition);
 
     /**
      * Prepare a query definition for execution
@@ -58,5 +58,5 @@ public interface QueryExecutor {
      * @param definition the query definition
      * @return a QueryExecution builder for configuring and executing the query
      */
-    QueryExecution prepare(QueryDefinition definition);
+    QueryExecution prepare(QueryDefinitionBuilder definition);
 }

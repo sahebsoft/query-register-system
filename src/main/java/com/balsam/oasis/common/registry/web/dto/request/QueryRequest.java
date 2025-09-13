@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
+import com.balsam.oasis.common.registry.domain.common.Pagination;
 
 /**
  * Parsed query request from HTTP parameters
@@ -18,8 +19,18 @@ public class QueryRequest {
     private Map<String, Object> params;
     private Map<String, QueryContext.Filter> filters;
     private List<QueryContext.SortSpec> sorts;
-    private int start;
-    private int end;
+    private Pagination pagination;
     private String metadataLevel;
     private Set<String> selectedFields;
+    
+    // Helper method to create pagination
+    public static class QueryRequestBuilder {
+        public QueryRequestBuilder pagination(int start, int end) {
+            this.pagination = Pagination.builder()
+                    .start(start)
+                    .end(end)
+                    .build();
+            return this;
+        }
+    }
 }

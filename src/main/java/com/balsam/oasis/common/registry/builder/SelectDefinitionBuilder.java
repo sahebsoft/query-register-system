@@ -8,7 +8,11 @@ import com.balsam.oasis.common.registry.domain.processor.PreProcessor;
 import com.balsam.oasis.common.registry.domain.processor.RowProcessor;
 import com.balsam.oasis.common.registry.domain.select.LabelDef;
 import com.balsam.oasis.common.registry.domain.select.ValueDef;
+import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.google.common.base.Preconditions;
+
+import java.time.Duration;
+import java.util.function.Function;
 
 /**
  * Builder for creating select-type QueryDefinition instances with fluent API.
@@ -18,13 +22,17 @@ import com.google.common.base.Preconditions;
  * Leverages the full Query infrastructure while maintaining the Select API
  * pattern.
  */
-public class SelectDefinitionBuilder extends QueryDefinitionBuilder {
+public class SelectDefinitionBuilder {
+
+    private final QueryDefinitionBuilder.Builder delegateBuilder;
+    private boolean hasValueAttribute = false;
+    private boolean hasLabelAttribute = false;
 
     private SelectDefinitionBuilder(String name) {
-        super(name);
+        this.delegateBuilder = QueryDefinitionBuilder.builder(name);
         // Set select-specific defaults
-        super.defaultPageSize(100);
-        super.paginationEnabled(true);
+        this.delegateBuilder.defaultPageSize(100);
+        this.delegateBuilder.paginationEnabled(true);
     }
 
     /**
@@ -35,112 +43,159 @@ public class SelectDefinitionBuilder extends QueryDefinitionBuilder {
     }
 
     public SelectDefinitionBuilder valueAttribute(ValueDef valueDef) {
-        super.attribute(valueDef.toAttributeDef());
+        this.delegateBuilder.attribute(valueDef.toAttributeDef());
+        this.hasValueAttribute = true;
         return this;
     }
 
     public SelectDefinitionBuilder valueAttribute(String aliasName, Class<?> type) {
-        super.attribute(ValueDef.of(aliasName, type).toAttributeDef());
+        this.delegateBuilder.attribute(ValueDef.of(aliasName, type).toAttributeDef());
+        this.hasValueAttribute = true;
         return this;
     }
 
     public SelectDefinitionBuilder valueAttribute(String aliasName) {
-        super.attribute(ValueDef.of(aliasName, String.class).toAttributeDef());
+        this.delegateBuilder.attribute(ValueDef.of(aliasName, String.class).toAttributeDef());
+        this.hasValueAttribute = true;
         return this;
     }
 
     public SelectDefinitionBuilder labelAttribute(LabelDef labelDef) {
-        super.attribute(labelDef.toAttributeDef());
+        this.delegateBuilder.attribute(labelDef.toAttributeDef());
+        this.hasLabelAttribute = true;
         return this;
     }
 
     public SelectDefinitionBuilder labelAttribute(String aliasName, Class<?> type) {
-        super.attribute(LabelDef.of(aliasName, type).toAttributeDef());
+        this.delegateBuilder.attribute(LabelDef.of(aliasName, type).toAttributeDef());
+        this.hasLabelAttribute = true;
         return this;
     }
 
     public SelectDefinitionBuilder labelAttribute(String aliasName) {
-        super.attribute(LabelDef.of(aliasName).toAttributeDef());
+        this.delegateBuilder.attribute(LabelDef.of(aliasName).toAttributeDef());
+        this.hasLabelAttribute = true;
         return this;
     }
 
-    // Override methods to return SelectDefinitionBuilder for fluent API
+    // Delegating methods that return SelectDefinitionBuilder for fluent API
 
-    @Override
     public SelectDefinitionBuilder sql(String sql) {
-        super.sql(sql);
+        this.delegateBuilder.sql(sql);
         return this;
     }
 
-    @Override
     public SelectDefinitionBuilder description(String description) {
-        super.description(description);
+        this.delegateBuilder.description(description);
         return this;
     }
 
-    @Override
-    public SelectDefinitionBuilder attribute(
-            AttributeDef<?> attribute) {
-        super.attribute(attribute);
+    public SelectDefinitionBuilder attribute(AttributeDef<?> attribute) {
+        this.delegateBuilder.attribute(attribute);
+        // Check if this is a value or label attribute
+        if ("value".equals(attribute.name())) {
+            this.hasValueAttribute = true;
+        } else if ("label".equals(attribute.name())) {
+            this.hasLabelAttribute = true;
+        }
         return this;
     }
 
-    @Override
     public SelectDefinitionBuilder parameter(ParamDef<?> param) {
-        super.parameter(param);
+        this.delegateBuilder.parameter(param);
         return this;
     }
 
-    @Override
     public SelectDefinitionBuilder criteria(CriteriaDef criteria) {
-        super.criteria(criteria);
+        this.delegateBuilder.criteria(criteria);
         return this;
     }
 
-    @Override
-    public SelectDefinitionBuilder preProcessor(
-            PreProcessor processor) {
-        super.preProcessor(processor);
+    public SelectDefinitionBuilder preProcessor(PreProcessor processor) {
+        this.delegateBuilder.preProcessor(processor);
         return this;
     }
 
-    @Override
-    public SelectDefinitionBuilder rowProcessor(
-            RowProcessor processor) {
-        super.rowProcessor(processor);
+    public SelectDefinitionBuilder rowProcessor(RowProcessor processor) {
+        this.delegateBuilder.rowProcessor(processor);
         return this;
     }
 
-    @Override
-    public SelectDefinitionBuilder postProcessor(
-            PostProcessor processor) {
-        super.postProcessor(processor);
+    public SelectDefinitionBuilder postProcessor(PostProcessor processor) {
+        this.delegateBuilder.postProcessor(processor);
         return this;
     }
 
-    @Override
     public SelectDefinitionBuilder defaultPageSize(Integer size) {
-        super.defaultPageSize(size);
+        this.delegateBuilder.defaultPageSize(size);
         return this;
     }
 
-    @Override
     public SelectDefinitionBuilder maxPageSize(Integer size) {
-        super.maxPageSize(size);
+        this.delegateBuilder.maxPageSize(size);
         return this;
     }
 
-    @Override
-    public QueryDefinition build() {
-        // Validate that value and label attributes are defined
-        boolean hasValue = attributes.containsKey("value");
-        boolean hasLabel = attributes.containsKey("label");
+    public SelectDefinitionBuilder paginationEnabled(Boolean enabled) {
+        this.delegateBuilder.paginationEnabled(enabled);
+        return this;
+    }
 
-        Preconditions.checkState(hasValue,
+    public SelectDefinitionBuilder fetchSize(Integer size) {
+        this.delegateBuilder.fetchSize(size);
+        return this;
+    }
+
+    // Cache configuration methods
+    public SelectDefinitionBuilder cache(Boolean enabled) {
+        this.delegateBuilder.cache(enabled);
+        return this;
+    }
+
+    public SelectDefinitionBuilder cacheTTL(Duration ttl) {
+        this.delegateBuilder.cacheTTL(ttl);
+        return this;
+    }
+
+    public SelectDefinitionBuilder cacheKey(Function<Object, String> keyGenerator) {
+        this.delegateBuilder.cacheKey(keyGenerator);
+        return this;
+    }
+
+    // Other configuration methods
+    public SelectDefinitionBuilder auditEnabled(Boolean enabled) {
+        this.delegateBuilder.auditEnabled(enabled);
+        return this;
+    }
+
+    public SelectDefinitionBuilder metricsEnabled(Boolean enabled) {
+        this.delegateBuilder.metricsEnabled(enabled);
+        return this;
+    }
+
+    public SelectDefinitionBuilder queryTimeout(Integer seconds) {
+        this.delegateBuilder.queryTimeout(seconds);
+        return this;
+    }
+
+    // Dynamic attributes configuration
+    public SelectDefinitionBuilder dynamic() {
+        this.delegateBuilder.dynamic();
+        return this;
+    }
+
+    public SelectDefinitionBuilder dynamic(NamingStrategy strategy) {
+        this.delegateBuilder.dynamic(strategy);
+        return this;
+    }
+
+    public QueryDefinitionBuilder build() {
+        // Validate that value and label attributes are defined
+        Preconditions.checkState(hasValueAttribute,
                 "Value attribute must be defined. Use valueAttribute() to set it.");
-        Preconditions.checkState(hasLabel,
+        Preconditions.checkState(hasLabelAttribute,
                 "Label attribute must be defined. Use labelAttribute() to set it.");
 
-        return super.build();
+        return this.delegateBuilder.build();
     }
 }

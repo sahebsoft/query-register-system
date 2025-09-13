@@ -5,10 +5,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
@@ -17,35 +15,38 @@ import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
+import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
 
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Oracle HR Schema query configurations
  * Demonstrates Oracle 11g compatibility with ROWNUM pagination
  */
 @Configuration
+@RequiredArgsConstructor
 public class OracleHRQueryConfig {
 
-        @Autowired
-        private QueryRegistry queryRegistry;
-
-        @Autowired
-        private QueryExecutor queryExecutor;
+        private final QueryRegistry queryRegistry;
+        private final QueryExecutor queryExecutor;
 
         @PostConstruct
         public void registerQueries() {
 
                 queryRegistry.register(QueryDefinitionBuilder.builder("dynamic").sql("""
-                                SELECT * from employees
+                                SELECT * from employees where department_id = :deptId
                                                     """)
-                                .parameter(ParamDef.name("asd", String.class).processor((val, ctx) -> "1")
-                                                .defaultValue("123")
+                                .parameter(ParamDef.name("deptId", Integer.class).processor((val, ctx) -> {
+                                        // If processor returns null, the default value will be used
+                                        return val != null ? (Integer) val : null;
+                                })
+                                                .defaultValue(100)
                                                 .build())
-                                .attribute(AttributeDef.name("test", String.class).calculated((row, context) -> {
-                                        return "ASd";
-                                }).build())
+                                .attribute(AttributeDef.name("fullName", String.class)
+                                                .calculated((row, context) -> String.format("%s %s",
+                                                                row.getString("firstName"), row.getString("lastName")))
+                                                .build())
                                 .dynamic().build());
 
                 // Register all queries defined in this configuration
@@ -68,7 +69,7 @@ public class OracleHRQueryConfig {
 
         }
 
-        private QueryDefinition employeesQuery() {
+        private QueryDefinitionBuilder employeesQuery() {
                 return QueryDefinitionBuilder.builder("employees")
                                 .sql("""
                                                 SELECT
@@ -174,7 +175,8 @@ public class OracleHRQueryConfig {
                                                 .build())
 
                                 // Parameters for IN clause criteria
-                                .parameter(ParamDef.name("departmentIds")
+                                .parameter(ParamDef.name("departmentIds", String.class).required(true)
+                                                .defaultValue("ASD")
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")
                                                 .build())
@@ -187,8 +189,8 @@ public class OracleHRQueryConfig {
                                                         // Use TypeConverter for type safety
                                                         if (value == null)
                                                                 return null;
-                                                        return JavaTypeConverter
-                                                                        .convert(value, LocalDate.class);
+                                                        return TypeConversionUtils
+                                                                        .convertValue(value, LocalDate.class);
                                                 })
                                                 .build())
                                 .parameter(ParamDef.name("hiredAfterDays")
@@ -196,8 +198,8 @@ public class OracleHRQueryConfig {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
                                                                 // Convert Object to Long first
-                                                                Long days = JavaTypeConverter
-                                                                                .convert(value, Long.class);
+                                                                Long days = TypeConversionUtils
+                                                                                .convertValue(value, Long.class);
                                                                 ctx.addParam("hiredAfter",
                                                                                 LocalDate.now().minusDays(days));
                                                                 return days;
@@ -252,7 +254,7 @@ public class OracleHRQueryConfig {
                                 .build();
         }
 
-        private QueryDefinition departmentStatsQuery() {
+        private QueryDefinitionBuilder departmentStatsQuery() {
                 return QueryDefinitionBuilder.builder("departmentStats")
                                 .sql("""
                                                 SELECT

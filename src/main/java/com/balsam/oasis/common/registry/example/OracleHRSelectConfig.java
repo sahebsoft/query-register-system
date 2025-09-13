@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.builder.SelectDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
@@ -29,8 +29,8 @@ public class OracleHRSelectConfig {
          * Employee select with custom search criteria
          */
         @Bean
-        public QueryDefinition employeeSelect() {
-                QueryDefinition select = SelectDefinitionBuilder.builder("employeesLov")
+        public QueryDefinitionBuilder employeeSelect() {
+                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("employeesLov")
                                 .sql("""
                                                 SELECT
                                                     *
@@ -64,8 +64,8 @@ public class OracleHRSelectConfig {
          * Department select without custom search (will auto-wrap with label LIKE)
          */
         @Bean
-        public QueryDefinition departmentSelect() {
-                QueryDefinition select = SelectDefinitionBuilder.builder("departments")
+        public QueryDefinitionBuilder departmentSelect() {
+                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("departments")
                                 .sql("""
                                                 SELECT
                                                     d.department_id,
@@ -118,8 +118,8 @@ public class OracleHRSelectConfig {
          * Job select - simple example
          */
         @Bean
-        public QueryDefinition jobSelect() {
-                QueryDefinition select = SelectDefinitionBuilder.builder("jobs")
+        public QueryDefinitionBuilder jobSelect() {
+                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("jobs")
                                 .sql("""
                                                 SELECT
                                                     job_id,
@@ -155,8 +155,8 @@ public class OracleHRSelectConfig {
          * Manager select - demonstrates reusing employee data
          */
         @Bean
-        public QueryDefinition managerSelect() {
-                QueryDefinition select = SelectDefinitionBuilder.builder("managers")
+        public QueryDefinitionBuilder managerSelect() {
+                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("managers")
                                 .sql("""
                                                 SELECT DISTINCT
                                                     m.employee_id,

@@ -16,10 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
+import com.balsam.oasis.common.registry.domain.validation.BindParameterValidator;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 
@@ -44,59 +45,69 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
 
-    private final ConcurrentMap<String, QueryDefinition> registry = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, QueryDefinitionBuilder> registry = new ConcurrentHashMap<>();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     @Autowired(required = false)
     private MetadataCacheBuilder metadataCacheBuilder;
 
     @Override
-    public void register(QueryDefinition definition) {
+    public void register(QueryDefinitionBuilder definition) {
         validateDefinition(definition);
 
-        // Automatically pre-warm metadata cache for dynamic queries
-        if (definition.isDynamic() && metadataCacheBuilder != null) {
+        MetadataCache cache = null;
+        Map<String, AttributeDef<?>> dynamicAttributes = null;
+
+        // Build metadata cache for ALL queries (not just dynamic ones)
+        if (metadataCacheBuilder != null) {
             try {
-                log.debug("Pre-warming metadata cache for dynamic query: {}", definition.getName());
-                MetadataCache cache = metadataCacheBuilder.buildCache(definition);
-                definition = definition.withMetadataCache(cache);
-                log.info("Successfully pre-warmed metadata cache for query '{}' with {} columns",
-                        definition.getName(), cache.getColumnCount());
+                cache = metadataCacheBuilder.buildCache(definition);
 
-                // Register dynamic attributes from metadata cache
-                Map<String, AttributeDef<?>> combinedAttributes = new LinkedHashMap<>(definition.getAttributes());
-                String[] columnNames = cache.getColumnNames();
-                NamingStrategy strategy = definition.getNamingStrategy();
+                // For dynamic queries, extract dynamic attributes from metadata
+                if (definition.isDynamic()) {
+                    dynamicAttributes = new LinkedHashMap<>();
+                    String[] columnNames = cache.getColumnNames();
+                    NamingStrategy strategy = definition.getNamingStrategy();
+                    Map<String, AttributeDef<?>> existingAttributes = definition.getAttributes();
 
-                for (String columnName : columnNames) {
-                    String attributeName = strategy.convert(columnName);
+                    for (String columnName : columnNames) {
+                        String attributeName = strategy.convert(columnName);
 
-                    // Skip if this attribute is already defined statically
-                    if (!combinedAttributes.containsKey(attributeName)) {
-                        Class<?> javaType = cache.getJavaTypeForColumn(columnName);
-                        if (javaType != null) {
-                            AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName, javaType)
-                                    .aliasName(columnName)
-                                    .selected(true)
-                                    .build();
-                            combinedAttributes.put(attributeName, dynamicAttr);
-                            log.trace("Registered dynamic attribute '{}' for column '{}'", attributeName, columnName);
+                        // Only add if not already defined statically
+                        if (!existingAttributes.containsKey(attributeName)) {
+                            Class<?> javaType = cache.getJavaTypeForColumn(columnName);
+                            if (javaType != null) {
+                                AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName, javaType)
+                                        .aliasName(columnName)
+                                        .build();
+                                dynamicAttributes.put(attributeName, dynamicAttr);
+                                log.trace("Discovered dynamic attribute '{}' for column '{}'", attributeName,
+                                        columnName);
+                            }
                         }
                     }
+
+                    // Dynamic attributes count will be included in final registration log
                 }
-
-                // Create new definition with combined attributes
-                int originalSize = definition.getAttributes().size();
-                definition = definition.withAttributes(combinedAttributes);
-                log.info("Registered {} dynamic attributes for query '{}'",
-                        combinedAttributes.size() - originalSize, definition.getName());
-
             } catch (Exception e) {
-                log.warn(
-                        "Failed to pre-warm metadata cache for query '{}': {}. Dynamic attributes may not work properly.",
+                log.warn("Failed to pre-warm metadata cache for query '{}': {}. " +
+                        "Cache and dynamic attributes may not be available.",
                         definition.getName(), e.getMessage());
                 // Continue with registration even if metadata pre-warming fails
             }
+        }
+
+        // Single definition rebuild with both cache and dynamic attributes
+        if (cache != null || (dynamicAttributes != null && !dynamicAttributes.isEmpty())) {
+            // Combine existing and dynamic attributes if needed
+            Map<String, AttributeDef<?>> finalAttributes = definition.getAttributes();
+            if (dynamicAttributes != null && !dynamicAttributes.isEmpty()) {
+                finalAttributes = new LinkedHashMap<>(definition.getAttributes());
+                finalAttributes.putAll(dynamicAttributes);
+            }
+
+            // Use the optimized method to set both cache and attributes in one step
+            definition = definition.withCacheAndAttributes(cache, finalAttributes);
         }
 
         String name = definition.getName();
@@ -105,9 +116,39 @@ public class QueryRegistryImpl implements QueryRegistry {
             if (registry.putIfAbsent(name, definition) != null) {
                 throw new IllegalStateException("Query already registered: " + name);
             }
-            log.info("Registered query: {} (dynamic: {}, metadata cached: {})",
-                    name, definition.isDynamic(),
-                    definition.getMetadataCache() != null);
+            // Build comprehensive registration message
+            StringBuilder registrationLog = new StringBuilder();
+            registrationLog.append("Registered query '" + name + "': ");
+
+            // Add basic info
+            registrationLog.append("dynamic=").append(definition.isDynamic());
+
+            // Add metadata cache info if available
+            MetadataCache metaCache = definition.getMetadataCache();
+            if (metaCache != null) {
+                registrationLog.append(", columns=").append(metaCache.getColumnCount());
+                registrationLog.append(", attributes=").append(metaCache.getAttributeToColumnIndex().size());
+            }
+
+            // Add dynamic attributes count if applicable
+            if (dynamicAttributes != null && !dynamicAttributes.isEmpty()) {
+                registrationLog.append(", dynamic_attrs=").append(dynamicAttributes.size());
+            }
+
+            // Add parameters info
+            if (definition.hasParams()) {
+                registrationLog.append(", has_params=true");
+
+                // Check for unused parameters
+                Set<String> unusedParams = BindParameterValidator.findUnusedParameters(definition);
+                if (!unusedParams.isEmpty()) {
+                    registrationLog.append(", unused_params=").append(unusedParams);
+                }
+            }
+
+            registrationLog.append(", cached=").append(metaCache != null);
+
+            log.info(registrationLog.toString());
         } finally {
             lock.writeLock().unlock();
         }
@@ -126,7 +167,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
 
     @Override
-    public QueryDefinition get(String name) {
+    public QueryDefinitionBuilder get(String name) {
         if (name == null) {
             return null;
         }
@@ -150,7 +191,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
 
     @Override
-    public Collection<QueryDefinition> getAllQueries() {
+    public Collection<QueryDefinitionBuilder> getAllQueries() {
         lock.readLock().lock();
         try {
             return Collections.unmodifiableCollection(new ArrayList<>(registry.values()));
@@ -185,7 +226,7 @@ public class QueryRegistryImpl implements QueryRegistry {
      * @param definition the definition to validate
      * @throws IllegalArgumentException if the definition is invalid
      */
-    private void validateDefinition(QueryDefinition definition) {
+    private void validateDefinition(QueryDefinitionBuilder definition) {
         if (definition == null) {
             throw new IllegalArgumentException("QueryDefinition cannot be null");
         }

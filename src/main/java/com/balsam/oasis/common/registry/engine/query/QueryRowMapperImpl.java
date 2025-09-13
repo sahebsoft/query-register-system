@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
@@ -13,12 +13,6 @@ import com.balsam.oasis.common.registry.domain.execution.QueryContext;
  * Query-specific implementation of BaseRowMapper that produces Row objects.
  */
 public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
-
-    @Override
-    protected Map<String, AttributeDef<?>> getAttributesToProcess(QueryDefinition definition) {
-        // For Query, process all attributes defined in the definition
-        return definition.getAttributes();
-    }
 
     @Override
     protected QueryRow createIntermediateOutput(Map<String, Object> processedData,
@@ -54,7 +48,7 @@ public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
     protected void addDynamicAttributes(Map<String, Object> processedData,
             Map<String, Object> rawData,
             Map<String, AttributeDef<?>> definedAttributes,
-            QueryDefinition definition) {
+            QueryDefinitionBuilder definition) {
         if (rawData == null || rawData.isEmpty()) {
             return;
         }

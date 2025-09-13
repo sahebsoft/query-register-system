@@ -12,7 +12,9 @@ import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCacheBuilder;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
+import com.balsam.oasis.common.registry.service.QueryService;
 import com.balsam.oasis.common.registry.web.controller.QueryController;
+import com.balsam.oasis.common.registry.web.controller.SelectController;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 
 /**
@@ -55,11 +57,23 @@ public class QueryConfiguration {
     }
 
     @Bean
+    QueryService queryService(QueryExecutor queryExecutor, QueryRegistry queryRegistry) {
+        return new QueryService(queryExecutor, queryRegistry);
+    }
+
+    @Bean
     QueryController queryController(
-            QueryExecutor queryExecutor,
-            QueryRegistry queryRegistry,
+            QueryService queryService,
             QueryRequestParser requestParser,
             QueryResponseBuilder responseBuilder) {
-        return new QueryController(queryExecutor, queryRegistry, requestParser, responseBuilder);
+        return new QueryController(queryService, requestParser, responseBuilder);
+    }
+
+    @Bean
+    SelectController selectController(
+            QueryService queryService,
+            QueryResponseBuilder responseBuilder,
+            QueryRequestParser requestParser) {
+        return new SelectController(queryService, responseBuilder, requestParser);
     }
 }

@@ -127,6 +127,52 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			
+			<!-- PMD Plugin for code analysis and unused code detection -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.21.0</version>
+				<configuration>
+					<linkXRef>false</linkXRef>
+					<rulesets>
+						<ruleset>/category/java/bestpractices.xml</ruleset>
+						<ruleset>/category/java/codestyle.xml/UnusedPrivateField</ruleset>
+						<ruleset>/category/java/codestyle.xml/UnusedPrivateMethod</ruleset>
+						<ruleset>/category/java/codestyle.xml/UnusedLocalVariable</ruleset>
+						<ruleset>/category/java/codestyle.xml/UnusedFormalParameter</ruleset>
+						<ruleset>/category/java/bestpractices.xml/UnusedImports</ruleset>
+					</rulesets>
+					<failOnViolation>false</failOnViolation>
+					<printFailingErrors>true</printFailingErrors>
+				</configuration>
+			</plugin>
+			
+			<!-- SpotBugs Plugin for finding bugs and unused code -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.1.0</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
+					<xmlOutput>true</xmlOutput>
+					<failOnError>false</failOnError>
+				</configuration>
+			</plugin>
+			
+			<!-- Maven Dependency Plugin for analyzing dependencies -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.6.0</version>
+				<configuration>
+					<failOnWarning>false</failOnWarning>
+					<ignoredUnusedDeclaredDependencies>
+						<ignoredUnusedDeclaredDependency>com.oracle.database.jdbc:ojdbc8</ignoredUnusedDeclaredDependency>
+					</ignoredUnusedDeclaredDependencies>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

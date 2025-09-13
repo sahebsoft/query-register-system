@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
@@ -69,7 +69,7 @@ public class MetadataBuilder {
 
     private List<AttributeMetadata> buildAttributesMetadata() {
         List<AttributeMetadata> metadata = new ArrayList<>();
-        QueryDefinition definition = context.getDefinition();
+        QueryDefinitionBuilder definition = context.getDefinition();
 
         for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
             String attrName = entry.getKey();
@@ -150,7 +150,7 @@ public class MetadataBuilder {
 
     private Map<String, ParameterMetadata> buildParametersMetadata() {
         Map<String, ParameterMetadata> metadata = new HashMap<>();
-        QueryDefinition definition = context.getDefinition();
+        QueryDefinitionBuilder definition = context.getDefinition();
 
         for (Map.Entry<String, ParamDef<?>> entry : definition.getParameters().entrySet()) {
             String paramName = entry.getKey();

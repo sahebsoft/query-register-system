@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
-import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeExtractor;
+import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
 
 /**
  * Handles metadata operations and raw data extraction from ResultSet.
@@ -64,14 +64,14 @@ public class MetadataOperations {
             Integer columnIndex = resolveColumnIndex(attr, cache);
             if (columnIndex != null) {
                 Integer sqlType = cache.getColumnType(columnIndex);
-                return SqlTypeExtractor.extractValue(rs, columnIndex, 
+                return TypeConversionUtils.extractValue(rs, columnIndex, 
                     sqlType != null ? sqlType : Types.OTHER);
             }
         }
 
         // Fallback to name-based access
         if (attr.aliasName() != null) {
-            return SqlTypeExtractor.extractValue(rs, attr.aliasName());
+            return TypeConversionUtils.extractValue(rs, attr.aliasName());
         }
 
         return null;
@@ -103,7 +103,7 @@ public class MetadataOperations {
         for (int i = 0; i < columnNames.length; i++) {
             int columnIndex = i + 1; // JDBC uses 1-based indexing
             Integer sqlType = cache.getColumnType(columnIndex);
-            Object value = SqlTypeExtractor.extractValue(rs, columnIndex, 
+            Object value = TypeConversionUtils.extractValue(rs, columnIndex, 
                 sqlType != null ? sqlType : Types.OTHER);
 
             // Store with uppercase keys (Oracle standard)
@@ -130,7 +130,7 @@ public class MetadataOperations {
         for (int i = 1; i <= columnCount; i++) {
             String columnName = metaData.getColumnName(i).toUpperCase();
             String columnLabel = metaData.getColumnLabel(i).toUpperCase();
-            Object value = SqlTypeExtractor.extractValue(rs, i, metaData.getColumnType(i));
+            Object value = TypeConversionUtils.extractValue(rs, i, metaData.getColumnType(i));
 
             rawData.put(columnName, value);
             if (!columnName.equals(columnLabel)) {

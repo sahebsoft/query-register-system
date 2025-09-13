@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -29,7 +29,7 @@ public class QueryDefinitionValidator {
      * @param queryDef the query definition to validate
      * @throws IllegalStateException if duplicates are found
      */
-    public static void validateNoDuplicates(QueryDefinition queryDef) {
+    public static void validateNoDuplicates(QueryDefinitionBuilder queryDef) {
 
         // Check for duplicate attribute names
         validateAttributeDuplicates(queryDef);
@@ -47,7 +47,7 @@ public class QueryDefinitionValidator {
     /**
      * Validates that there are no duplicate attribute names.
      */
-    private static void validateAttributeDuplicates(QueryDefinition queryDef) {
+    private static void validateAttributeDuplicates(QueryDefinitionBuilder queryDef) {
         Map<String, AttributeDef<?>> attributes = queryDef.getAttributes();
         if (attributes == null || attributes.isEmpty()) {
             return;
@@ -81,7 +81,7 @@ public class QueryDefinitionValidator {
     /**
      * Validates that there are no duplicate parameter names.
      */
-    private static void validateParameterDuplicates(QueryDefinition queryDef) {
+    private static void validateParameterDuplicates(QueryDefinitionBuilder queryDef) {
         Map<String, ParamDef<?>> params = queryDef.getParameters();
         if (params == null || params.isEmpty()) {
             return;
@@ -102,7 +102,7 @@ public class QueryDefinitionValidator {
     /**
      * Validates that there are no duplicate criteria names.
      */
-    private static void validateCriteriaDuplicates(QueryDefinition queryDef) {
+    private static void validateCriteriaDuplicates(QueryDefinitionBuilder queryDef) {
         Map<String, CriteriaDef> criteria = queryDef.getCriteria();
         if (criteria == null || criteria.isEmpty()) {
             return;
@@ -135,7 +135,7 @@ public class QueryDefinitionValidator {
      * Validates that there are no naming conflicts between attributes, parameters,
      * and criteria.
      */
-    private static void validateCrossDefinitionNaming(QueryDefinition queryDef) {
+    private static void validateCrossDefinitionNaming(QueryDefinitionBuilder queryDef) {
         Set<String> allNames = new HashSet<>();
 
         // Add all attribute names

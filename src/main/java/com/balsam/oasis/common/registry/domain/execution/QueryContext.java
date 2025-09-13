@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
@@ -25,7 +25,7 @@ import lombok.Data;
 @Builder
 public class QueryContext {
     // Base fields from BaseContext
-    protected QueryDefinition definition;
+    protected QueryDefinitionBuilder definition;
 
     @Builder.Default
     protected Map<String, Object> params = new HashMap<>();
@@ -205,8 +205,8 @@ public class QueryContext {
     }
 
     public boolean isFieldSelected(String fieldName) {
-        return selectedFields == null || selectedFields.isEmpty() || 
-               selectedFields.contains(fieldName);
+        return selectedFields == null || selectedFields.isEmpty() ||
+                selectedFields.contains(fieldName);
     }
 
 }

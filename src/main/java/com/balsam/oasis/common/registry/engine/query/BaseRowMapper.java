@@ -7,15 +7,14 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.RowMapper;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 import com.balsam.oasis.common.registry.engine.sql.MetadataOperations;
-import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
+import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
 
 /**
  * Base row mapper that provides comprehensive attribute processing including
@@ -27,21 +26,15 @@ import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
  * 
  * @param <T> The output type (Row, SelectItem, etc.)
  */
-public abstract class BaseRowMapper<T> implements RowMapper<T> {
+public abstract class BaseRowMapper<T> {
 
     private static final Logger log = LoggerFactory.getLogger(BaseRowMapper.class);
-
-    @Override
-    public T mapRow(ResultSet rs, int rowNum) throws SQLException {
-        // This method is required by RowMapper interface but we need context
-        throw new UnsupportedOperationException("Use mapRow(ResultSet, int, Context) instead");
-    }
 
     /**
      * Map a ResultSet row with full context support.
      */
     public T mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
-        QueryDefinition definition = context.getDefinition();
+        QueryDefinitionBuilder definition = context.getDefinition();
         MetadataCache cache = definition.getMetadataCache();
 
         Map<String, Object> processedData = new HashMap<>();
@@ -204,19 +197,13 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
         }
 
         try {
-            return JavaTypeConverter.convert(value, targetType);
+            return TypeConversionUtils.convertValue(value, targetType);
         } catch (Exception e) {
             log.warn("Failed to convert value {} to type {}: {}",
                     value, targetType.getSimpleName(), e.getMessage());
             return value;
         }
     }
-
-    /**
-     * Get all attributes to process from the definition.
-     * Subclasses can override to customize which attributes are processed.
-     */
-    protected abstract Map<String, AttributeDef<?>> getAttributesToProcess(QueryDefinition definition);
 
     /**
      * Create intermediate output object for use in calculators.
@@ -269,7 +256,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
      * Check if dynamic attributes should be included.
      * Subclasses can override to provide custom logic.
      */
-    protected boolean shouldIncludeDynamicAttributes(QueryDefinition definition) {
+    protected boolean shouldIncludeDynamicAttributes(QueryDefinitionBuilder definition) {
         return definition.isDynamic();
     }
 
@@ -280,7 +267,7 @@ public abstract class BaseRowMapper<T> implements RowMapper<T> {
     protected void addDynamicAttributes(Map<String, Object> processedData,
             Map<String, Object> rawData,
             Map<String, AttributeDef<?>> definedAttributes,
-            QueryDefinition definition) {
+            QueryDefinitionBuilder definition) {
         // Default implementation does nothing
         // Subclasses should override this to add dynamic attributes
     }

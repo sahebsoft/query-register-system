@@ -15,14 +15,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.exception.QueryExecutionException;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
-import com.balsam.oasis.common.registry.engine.sql.util.SqlTypeMapper;
+import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
 
 /**
  * Builds and manages metadata caches for queries.
@@ -47,9 +47,9 @@ public class MetadataCacheBuilder {
     /**
      * Build metadata cache for a query definition.
      */
-    public MetadataCache buildCache(QueryDefinition definition) {
+    public MetadataCache buildCache(QueryDefinitionBuilder definition) {
         String queryName = definition.getName();
-        log.debug("Building metadata cache for query: {}", queryName);
+        // Building metadata cache for query
 
         try {
             // Create a context for metadata query
@@ -60,7 +60,6 @@ public class MetadataCacheBuilder {
             MetadataCache cache = tryPreparedStatementMetadata(sqlResult.getSql(),
                     sqlResult.getParams(), definition);
             if (cache != null && cache.isInitialized()) {
-                log.info("Retrieved metadata using PreparedStatement.getMetaData() for query: {}", queryName);
                 return cache;
             }
 
@@ -70,13 +69,13 @@ public class MetadataCacheBuilder {
                 return cache;
             }
 
-            throw new QueryExecutionException(
-                    "Failed to retrieve metadata for query '" + queryName + "': Both approaches failed");
+            throw new QueryException(queryName, QueryException.ErrorCode.EXECUTION_ERROR,
+                    "Failed to retrieve metadata: Both approaches failed");
 
         } catch (Exception e) {
             log.error("Failed to build metadata cache for query '{}': {}", queryName, e.getMessage(), e);
-            throw new QueryExecutionException(
-                    "Failed to build metadata cache for query '" + queryName + "': " + e.getMessage(), e);
+            throw new QueryException(queryName, QueryException.ErrorCode.EXECUTION_ERROR,
+                    "Failed to build metadata cache: " + e.getMessage(), e);
         }
     }
 
@@ -84,7 +83,7 @@ public class MetadataCacheBuilder {
      * Try to get metadata using PreparedStatement.getMetaData() without executing.
      */
     private MetadataCache tryPreparedStatementMetadata(String sql, Map<String, Object> params,
-            QueryDefinition definition) {
+            QueryDefinitionBuilder definition) {
         try {
             return namedJdbcTemplate.execute(sql, params, (PreparedStatement ps) -> {
                 try {
@@ -122,7 +121,7 @@ public class MetadataCacheBuilder {
 
         for (int i = 1; i <= paramCount; i++) {
             try {
-                SqlTypeMapper.setDummyParameter(ps, i, pmd.getParameterType(i));
+                TypeConversionUtils.setDummyParameter(ps, i, pmd.getParameterType(i));
             } catch (SQLException e) {
                 // Fallback to string if type unknown
                 ps.setString(i, "DUMMY");
@@ -134,7 +133,7 @@ public class MetadataCacheBuilder {
      * Fallback: Get metadata by executing wrapped query with WHERE 1=0.
      */
     private MetadataCache tryExecuteWithWhere10(String sql, Map<String, Object> params,
-            QueryDefinition definition) {
+            QueryDefinitionBuilder definition) {
         try {
             // Wrap to handle all query types
             String wrappedSql = "SELECT * FROM (" + sql + ") WHERE 1=0";
@@ -157,7 +156,7 @@ public class MetadataCacheBuilder {
      * Build cache from ResultSetMetaData.
      */
     private MetadataCache buildCacheFromMetaData(ResultSetMetaData metaData,
-            QueryDefinition definition) throws SQLException {
+            QueryDefinitionBuilder definition) throws SQLException {
         int columnCount = metaData.getColumnCount();
 
         // Initialize collections
@@ -194,8 +193,7 @@ public class MetadataCacheBuilder {
                 .initialized(true)
                 .build();
 
-        log.info("Built metadata cache for '{}': {} columns, {} attributes",
-                definition.getName(), columnCount, attributeToColumnIndex.size());
+        // Metadata cache details will be logged during query registration
 
         return cache;
     }
@@ -211,7 +209,7 @@ public class MetadataCacheBuilder {
         String name = metaData.getColumnName(index);
         String label = metaData.getColumnLabel(index);
         int type = metaData.getColumnType(index);
-        Class<?> javaType = SqlTypeMapper.sqlTypeToJavaClass(type);
+        Class<?> javaType = TypeConversionUtils.getJavaType(type);
 
         // Store in arrays
         columnNames[index - 1] = name;
@@ -240,7 +238,7 @@ public class MetadataCacheBuilder {
     /**
      * Map attributes to their corresponding columns.
      */
-    private void mapAttributesToColumns(QueryDefinition definition,
+    private void mapAttributesToColumns(QueryDefinitionBuilder definition,
             Map<String, Integer> columnIndexMap, Map<Integer, Integer> columnTypeMap,
             Map<String, Integer> attributeToColumnIndex,
             Map<String, Integer> attributeToColumnType) {
@@ -272,7 +270,7 @@ public class MetadataCacheBuilder {
     /**
      * Create a context for metadata-only query.
      */
-    private QueryContext createMetadataContext(QueryDefinition definition) {
+    private QueryContext createMetadataContext(QueryDefinitionBuilder definition) {
         Map<String, Object> params = new HashMap<>();
 
         // Add default/dummy values for all parameters
@@ -280,7 +278,7 @@ public class MetadataCacheBuilder {
             ParamDef<?> paramDef = entry.getValue();
             Object value = paramDef.defaultValue() != null
                     ? paramDef.defaultValue()
-                    : SqlTypeMapper.getDummyValue(paramDef.type());
+                    : TypeConversionUtils.getDummyValue(paramDef.type());
             params.put(entry.getKey(), value);
         }
 

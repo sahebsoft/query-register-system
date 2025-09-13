@@ -18,14 +18,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.util.MultiValueMap;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.engine.sql.util.JavaTypeConverter;
+import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 
 /**
@@ -45,7 +45,7 @@ public class QueryRequestParser {
     }
 
     public QueryRequest parse(MultiValueMap<String, String> allParams, int start, int end, String metadataLevel,
-            QueryDefinition queryDefinition) {
+            QueryDefinitionBuilder queryDefinition) {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();
         List<QueryContext.SortSpec> sorts = new ArrayList<>();
@@ -200,8 +200,7 @@ public class QueryRequestParser {
                 .params(params)
                 .filters(filters)
                 .sorts(sorts)
-                .start(start)
-                .end(end)
+                .pagination(start, end)
                 .metadataLevel(metadataLevel)
                 .selectedFields(selectedFields)
                 .build();
@@ -273,7 +272,7 @@ public class QueryRequestParser {
     /**
      * Get the type of a parameter from the query definition
      */
-    private Class<?> getParamType(QueryDefinition queryDefinition, String paramName) {
+    private Class<?> getParamType(QueryDefinitionBuilder queryDefinition, String paramName) {
         if (queryDefinition == null) {
             return null;
         }
@@ -284,7 +283,7 @@ public class QueryRequestParser {
     /**
      * Get the type of an attribute from the query definition
      */
-    private Class<?> getAttributeType(QueryDefinition queryDefinition, String attributeName) {
+    private Class<?> getAttributeType(QueryDefinitionBuilder queryDefinition, String attributeName) {
         if (queryDefinition == null) {
             return null;
         }
@@ -353,6 +352,6 @@ public class QueryRequestParser {
             return value;
         }
 
-        return JavaTypeConverter.convertString(value, targetType);
+        return TypeConversionUtils.convertValue(value, targetType);
     }
 }

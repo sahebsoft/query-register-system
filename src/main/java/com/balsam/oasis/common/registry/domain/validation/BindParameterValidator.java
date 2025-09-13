@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 
 /**
@@ -25,7 +25,7 @@ public class BindParameterValidator {
      * @param queryDef the query definition to validate
      * @throws IllegalStateException if undefined parameters are found
      */
-    public static void validate(QueryDefinition queryDef) {
+    public static void validate(QueryDefinitionBuilder queryDef) {
         String queryName = queryDef.getName();
 
         // Extract all bind parameters from main SQL
@@ -111,11 +111,56 @@ public class BindParameterValidator {
         unusedParams.removeAll(allBindParams);
         unusedParams.removeAll(systemParams);
 
-        if (!unusedParams.isEmpty()) {
-            System.out.println("WARNING: Query '" + queryName + "' has defined but unused parameters: " + unusedParams);
-        }
+        // Unused parameters will be returned for logging in the caller
+        // Not logged here to allow consolidated logging
     }
 
+    /**
+     * Finds unused parameters in the query definition.
+     * 
+     * @param queryDef the query definition to check
+     * @return set of unused parameter names, empty if none
+     */
+    public static Set<String> findUnusedParameters(QueryDefinitionBuilder queryDef) {
+        Set<String> sqlBindParams = extractBindParameters(queryDef.getSql());
+        
+        // Extract all bind parameters from criteria SQL
+        Set<String> criteriaBindParams = new HashSet<>();
+        if (queryDef.getCriteria() != null) {
+            for (Map.Entry<String, CriteriaDef> entry : queryDef.getCriteria().entrySet()) {
+                CriteriaDef criteria = entry.getValue();
+                if (criteria.sql() != null) {
+                    Set<String> params = extractBindParameters(criteria.sql());
+                    criteriaBindParams.addAll(params);
+                }
+            }
+        }
+        
+        // Combine all bind parameters
+        Set<String> allBindParams = new HashSet<>();
+        allBindParams.addAll(sqlBindParams);
+        allBindParams.addAll(criteriaBindParams);
+        
+        // Get all defined parameters
+        Set<String> definedParams = new HashSet<>();
+        if (queryDef.getParameters() != null) {
+            definedParams.addAll(queryDef.getParameters().keySet());
+        }
+        
+        // Special handling for pagination parameters (these are system-provided)
+        Set<String> systemParams = Set.of(
+                "offset", "limit", // Standard pagination
+                "_start", "_end" // REST API pagination
+        );
+        
+        // Find unused parameters
+        Set<String> unusedParams = new HashSet<>(definedParams);
+        unusedParams.removeAll(allBindParams);
+        unusedParams.removeAll(systemParams);
+        
+        return unusedParams;
+    }
+    
     /**
      * Extracts all bind parameter names from SQL text.
      * 

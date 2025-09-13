@@ -3,7 +3,7 @@ package com.balsam.oasis.common.registry.domain.api;
 import java.util.Collection;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 
 /**
  * Read-only view of registered queries.
@@ -25,7 +25,7 @@ public interface QueryRegistry {
      * @param name the name of the query
      * @return the query definition, or null if not found
      */
-    QueryDefinition get(String name);
+    QueryDefinitionBuilder get(String name);
 
     /**
      * Get all registered query names.
@@ -39,7 +39,7 @@ public interface QueryRegistry {
      * 
      * @return an unmodifiable collection of query definitions
      */
-    Collection<QueryDefinition> getAllQueries();
+    Collection<QueryDefinitionBuilder> getAllQueries();
 
     /**
      * Get the count of registered queries.
@@ -62,7 +62,7 @@ public interface QueryRegistry {
      * @throws IllegalArgumentException if definition is null or invalid
      * @throws IllegalStateException    if a query with the same name already exists
      */
-    void register(QueryDefinition definition);
+    void register(QueryDefinitionBuilder definition);
 
     /**
      * Clear all registered queries.

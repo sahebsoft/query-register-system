@@ -17,19 +17,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
-import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequestBody;
 import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse;
 import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse.QueryErrorResponseBuilder;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
+import com.balsam.oasis.common.registry.service.QueryService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -80,17 +78,14 @@ public class QueryController {
 
     private static final Logger log = LoggerFactory.getLogger(QueryController.class);
 
-    private final QueryExecutor queryExecutor;
-    private final QueryRegistry queryRegistry;
+    private final QueryService queryService;
     private final QueryRequestParser requestParser;
     private final QueryResponseBuilder responseBuilder;
 
-    public QueryController(QueryExecutor queryExecutor,
-            QueryRegistry queryRegistry,
+    public QueryController(QueryService queryService,
             QueryRequestParser requestParser,
             QueryResponseBuilder responseBuilder) {
-        this.queryExecutor = queryExecutor;
-        this.queryRegistry = queryRegistry;
+        this.queryService = queryService;
         this.requestParser = requestParser;
         this.responseBuilder = responseBuilder;
     }
@@ -108,37 +103,21 @@ public class QueryController {
 
         try {
             // Get the query definition for type-aware parsing
-            QueryDefinition queryDefinition = queryRegistry.get(queryName);
+            QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
 
             if (queryDefinition == null) {
                 log.error("Query not found: {}", queryName);
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(
-                                new QueryException("Query not found: " + queryName, "NOT_FOUND", queryName)));
+                                new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName)));
             }
 
             // Parse request parameters with type information
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
-            // Execute as list query
-            QueryExecution execution = queryExecutor.execute(queryName)
-                    .withParams(queryRequest.getParams())
-                    .withFilters(queryRequest.getFilters())
-                    .withSort(queryRequest.getSorts())
-                    .includeMetadata(!"none".equals(_meta));
-
-            // Only apply pagination if enabled for this query
-            if (queryDefinition.isPaginationEnabled()) {
-                execution.withPagination(_start, _end);
-            }
-
-            // Apply field selection if specified
-            if (queryRequest.getSelectedFields() != null && !queryRequest.getSelectedFields().isEmpty()) {
-                execution.selectFields(queryRequest.getSelectedFields());
-            }
-
-            QueryResult result = execution.execute();
+            // Execute query through service
+            QueryResult result = queryService.executeQuery(queryName, queryRequest);
 
             // Build JSON response
             return responseBuilder.build(result, queryName);
@@ -165,22 +144,16 @@ public class QueryController {
         log.info("Executing query with body: {}", queryName);
 
         try {
-            // Get query definition to check pagination settings
-            QueryDefinition queryDef = queryRegistry.get(queryName);
-
-            // Execute query
-            QueryExecution execution = queryExecutor.execute(queryName)
-                    .withParams(body.getParams())
-                    .withFilters(body.getFilters())
-                    .withSort(body.getSorts())
-                    .includeMetadata(body.isIncludeMetadata());
-
-            // Only apply pagination if enabled for this query
-            if (queryDef != null && queryDef.isPaginationEnabled()) {
-                execution.withPagination(body.getStart(), body.getEnd());
-            }
-
-            QueryResult result = execution.execute();
+            // Convert body to QueryRequest
+            QueryRequest queryRequest = QueryRequest.builder()
+                    .params(body.getParams())
+                    .filters(body.getFilters())
+                    .sorts(body.getSorts())
+                    .pagination(body.getStart(), body.getEnd())
+                    .build();
+            
+            // Execute query through service
+            QueryResult result = queryService.executeQuery(queryName, queryRequest);
 
             // Build JSON response
             return responseBuilder.build(result, queryName);
@@ -209,14 +182,14 @@ public class QueryController {
 
         try {
             // Get the query definition
-            QueryDefinition queryDefinition = queryRegistry.get(queryName);
+            QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
 
             if (queryDefinition == null) {
                 log.error("Query not found: {}", queryName);
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(
-                                new QueryException("Query not found: " + queryName, "NOT_FOUND", queryName)));
+                                new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName)));
             }
 
             // Extract key parameters
@@ -227,12 +200,14 @@ public class QueryController {
                 }
             }
 
-            // Execute as single object query
-            QueryResult result = queryExecutor.execute(queryName)
-                    .withParams(params)
-                    .includeMetadata(_meta)
-                    .withPagination(0, 1) // Limit to single result
-                    .execute();
+            // Create request with single result pagination
+            QueryRequest queryRequest = QueryRequest.builder()
+                    .params(params)
+                    .pagination(0, 1) // Limit to single result
+                    .build();
+            
+            // Execute through service
+            QueryResult result = queryService.executeQuery(queryName, queryRequest);
 
             // Build single object response
             return responseBuilder.buildSingle(result, queryName);

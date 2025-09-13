@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
@@ -110,7 +110,7 @@ public class QueryListResponse implements QuerySuccessResponse {
      * Transforms rows into SelectItem objects
      */
     public static QueryListResponse fromSelect(QueryResult queryResult) {
-        QueryDefinition definition = queryResult.getContext().getDefinition();
+        QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
         // Validate that we have the required "value" and "label" attributes
         if (!definition.getAttributes().containsKey("value") ||
                 !definition.getAttributes().containsKey("label")) {

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
@@ -61,11 +61,11 @@ import com.balsam.oasis.common.registry.engine.query.QueryRow;
  */
 public class QueryExecution {
 
-    private final QueryDefinition definition;
+    private final QueryDefinitionBuilder definition;
     private final QueryContext context;
     private final QueryExecutorImpl executor;
 
-    public QueryExecution(QueryDefinition definition, QueryExecutorImpl executor) {
+    public QueryExecution(QueryDefinitionBuilder definition, QueryExecutorImpl executor) {
         this.definition = definition;
         this.executor = executor;
         this.context = QueryContext.builder()
@@ -218,8 +218,13 @@ public class QueryExecution {
                     try {
                         ParamProcessor<?> processor = paramDef.processor();
                         Object processedValue = processor.process(value, context);
-                        // Update the parameter with processed value
-                        context.addParam(name, processedValue);
+                        // If processor returns null and there's a default value, use the default
+                        if (processedValue == null && paramDef.hasDefaultValue()) {
+                            context.addParam(name, paramDef.defaultValue());
+                        } else {
+                            // Update the parameter with processed value
+                            context.addParam(name, processedValue);
+                        }
                     } catch (Exception e) {
                         violations.add("Parameter validation/processing failed for " + name + ": " + e.getMessage());
                     }

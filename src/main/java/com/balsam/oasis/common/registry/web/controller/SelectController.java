@@ -13,18 +13,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.balsam.oasis.common.registry.builder.QueryDefinition;
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
+import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse;
 import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse.QueryErrorResponseBuilder;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
+import com.balsam.oasis.common.registry.service.QueryService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,17 +41,14 @@ public class SelectController {
 
     private static final Logger log = LoggerFactory.getLogger(SelectController.class);
 
-    private final QueryExecutor queryExecutor;
-    private final QueryRegistry queryRegistry;
+    private final QueryService queryService;
     private final QueryResponseBuilder responseBuilder;
     private final QueryRequestParser requestParser;
 
-    public SelectController(QueryExecutor queryExecutor,
-            QueryRegistry queryRegistry,
+    public SelectController(QueryService queryService,
             QueryResponseBuilder responseBuilder,
             QueryRequestParser requestParser) {
-        this.queryExecutor = queryExecutor;
-        this.queryRegistry = queryRegistry;
+        this.queryService = queryService;
         this.responseBuilder = responseBuilder;
         this.requestParser = requestParser;
     }
@@ -72,28 +68,28 @@ public class SelectController {
 
         try {
             // Get the query definition
-            QueryDefinition queryDefinition = queryRegistry.get(selectName);
+            QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(selectName);
 
             if (queryDefinition == null) {
                 log.error("Select query not found: {}", selectName);
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(new QueryException(
-                                "Select query not found: " + selectName, "NOT_FOUND", selectName)));
+                                selectName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Select query not found: " + selectName)));
             }
 
-            // Parse request parameters with type information (including special select
-            // params)
+            // Parse request parameters with type information
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, "none", queryDefinition);
 
-            // Create execution using QueryExecution
-            QueryExecution execution = queryExecutor.execute(queryDefinition);
-
-            // Handle ID fetching (for default values) - convert to IN filter on value
-            // attribute
+            // Handle ID fetching (for default values) - add IN filter on value attribute
             if (id != null && !id.isEmpty()) {
                 log.debug("Fetching by IDs: {}", id);
-                execution.withFilter("value", FilterOp.IN, id);
+                queryRequest.getFilters().put("value", 
+                    QueryContext.Filter.builder()
+                        .attribute("value")
+                        .operator(FilterOp.IN)
+                        .values(id.stream().map(s -> (Object) s).toList())
+                        .build());
             }
             // Handle search
             else if (search != null && !search.isEmpty()) {
@@ -106,27 +102,20 @@ public class SelectController {
 
                 if (hasSearchParam || hasSearchCriteria) {
                     // Use search parameter if query supports it
-                    execution.withParam("search", "%" + search + "%");
+                    queryRequest.getParams().put("search", "%" + search + "%");
                 } else {
                     // Fallback to filtering on label column with case insensitive LIKE
-                    // (case insensitivity is now handled by QuerySqlBuilder using UPPER functions)
-                    execution.withFilter("label", FilterOp.LIKE, "%" + search + "%");
+                    queryRequest.getFilters().put("label", 
+                        QueryContext.Filter.builder()
+                            .attribute("label")
+                            .operator(FilterOp.LIKE)
+                            .value("%" + search + "%")
+                            .build());
                 }
             }
 
-            // Apply parsed parameters, filters, and sorting
-            execution.withParams(queryRequest.getParams())
-                    .withFilters(queryRequest.getFilters())
-                    .withSort(queryRequest.getSorts())
-                    .includeMetadata(true);
-
-            // Only apply pagination if enabled for this query
-            if (queryDefinition.isPaginationEnabled()) {
-                execution.withPagination(_start, _end);
-            }
-
-            // Execute and build select response
-            QueryResult queryResult = execution.execute();
+            // Execute through service and build select response
+            QueryResult queryResult = queryService.executeQuery(selectName, queryRequest);
             return responseBuilder.buildSelectResponse(queryResult);
 
         } catch (QueryException e) {
