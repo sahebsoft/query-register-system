@@ -19,7 +19,7 @@ import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
-import com.balsam.oasis.common.registry.domain.metadata.MetadataBuilder;
+import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -236,7 +236,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private QueryResult addMetadata(QueryContext context, QueryResult result) {
-        var metadataBuilder = new MetadataBuilder(context, result);
+        var metadataBuilder = new QueryMetadata.MetadataBuilder(context, result);
         var metadata = metadataBuilder.build();
 
         return result.toBuilder()

@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.AppliedCriteria;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
@@ -35,8 +34,6 @@ public class QueryContext {
     @Builder.Default
     protected Map<String, Object> metadata = new HashMap<>();
 
-    @Builder.Default
-    protected List<AppliedCriteria> appliedCriteria = new ArrayList<>();
 
     protected Long startTime;
     protected Long endTime;
@@ -128,12 +125,6 @@ public class QueryContext {
                 .build());
     }
 
-    public void recordAppliedCriteria(String name, String sql) {
-        addAppliedCriteria(AppliedCriteria.builder()
-                .name(name)
-                .sql(sql)
-                .build());
-    }
 
     public <T> T getParam(String name, Class<T> type) {
         Object value = getParam(name);
@@ -184,9 +175,6 @@ public class QueryContext {
         return params.containsKey(name) && params.get(name) != null;
     }
 
-    public void addAppliedCriteria(AppliedCriteria criteria) {
-        appliedCriteria.add(criteria);
-    }
 
     public void addMetadata(String key, Object value) {
         metadata.put(key, value);

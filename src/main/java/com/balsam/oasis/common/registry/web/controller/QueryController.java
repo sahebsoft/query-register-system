@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequestBody;
@@ -264,11 +263,6 @@ public class QueryController {
         if (e instanceof QueryException qe) {
             builder.code(qe.getErrorCode())
                     .queryName(qe.getQueryName());
-
-            if (qe instanceof QueryValidationException queryValidationException) {
-                builder.details(Map.of("violations",
-                        queryValidationException.getViolations()));
-            }
         } else {
             builder.code("INTERNAL_ERROR");
         }

@@ -175,7 +175,7 @@ public class OracleHRQueryConfig {
                                                 .build())
 
                                 // Parameters for IN clause criteria
-                                .parameter(ParamDef.name("departmentIds", String.class).required(true)
+                                .parameter(ParamDef.name("departmentIds", String.class)
                                                 .defaultValue("ASD")
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")

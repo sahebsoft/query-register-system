@@ -23,7 +23,7 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
-import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
@@ -152,8 +152,9 @@ public class QueryRequestParser {
                         }
                     } catch (IllegalArgumentException e) {
                         // Invalid operator - throw validation error instead of silently converting
-                        throw new QueryValidationException("Query '" + queryDefinition.getName() +
-                                "': Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
+                        throw new QueryException(queryDefinition.getName(),
+                                QueryException.ErrorCode.VALIDATION_ERROR,
+                                "Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
                     }
                 } else {
                     // Simple filter: filter.attribute=value (potentially multiple values)

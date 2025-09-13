@@ -18,7 +18,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/config/QueryProperties.java](#src-main-java-com-balsam-oasis-common-registry-config-queryproperties-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryExecutor.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryexecutor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryRegistry.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryregistry-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/common/AppliedCriteria.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-appliedcriteria-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/NamingStrategy.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-namingstrategy-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/Pagination.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-pagination-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-queryresult-java)
@@ -31,17 +30,9 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/SortDir.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-sortdir-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/ValidationRule.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-validationrule-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/exception/QueryException.java](#src-main-java-com-balsam-oasis-common-registry-domain-exception-queryexception-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/exception/QueryValidationException.java](#src-main-java-com-balsam-oasis-common-registry-domain-exception-queryvalidationexception-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/execution/QueryContext.java](#src-main-java-com-balsam-oasis-common-registry-domain-execution-querycontext-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/execution/QueryExecution.java](#src-main-java-com-balsam-oasis-common-registry-domain-execution-queryexecution-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/AttributeMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-attributemetadata-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/FilterMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-filtermetadata-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/MetadataBuilder.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-metadatabuilder-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/PaginationMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-paginationmetadata-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/ParameterMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-parametermetadata-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/PerformanceMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-performancemetadata-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/metadata/QueryMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-querymetadata-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/metadata/SortMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-sortmetadata-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/AttributeFormatter.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-attributeformatter-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/Calculator.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-calculator-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/ParamProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-paramprocessor-java)
@@ -647,19 +638,6 @@ public interface QueryRegistry {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/common/AppliedCriteria.java
-
-```java
-@Data
-@Builder
-public class AppliedCriteria {
-    private String name;
-    private String sql;
-    private Map<String, Object> params;
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/domain/common/NamingStrategy.java
 
 ```java
@@ -1177,31 +1155,6 @@ public class QueryException extends RuntimeException {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/exception/QueryValidationException.java
-
-```java
-public class QueryValidationException extends QueryException {
-    private final List<String> violations;
-    public QueryValidationException(String message) {
-        super(message);
-        this.violations = ImmutableList.of();
-    }
-    public QueryValidationException(String queryName, List<String> violations) {
-        super(queryName, "VALIDATION_ERROR",
-                String.format("Validation failed: %s", String.join(", ", violations)));
-        this.violations = ImmutableList.copyOf(violations);
-    }
-    public QueryValidationException(String queryName, String message) {
-        super(queryName, "VALIDATION_ERROR", message);
-        this.violations = ImmutableList.of(message);
-    }
-    public List<String> getViolations() {
-        return violations;
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/domain/execution/QueryContext.java
 
 ```java
@@ -1214,8 +1167,6 @@ public class QueryContext {
     protected Pagination pagination;
     @Builder.Default
     protected Map<String, Object> metadata = new HashMap<>();
-    @Builder.Default
-    protected List<AppliedCriteria> appliedCriteria = new ArrayList<>();
     protected Long startTime;
     protected Long endTime;
     @Builder.Default
@@ -1286,12 +1237,6 @@ public class QueryContext {
                 .direction(direction)
                 .build());
     }
-    public void recordAppliedCriteria(String name, String sql) {
-        addAppliedCriteria(AppliedCriteria.builder()
-                .name(name)
-                .sql(sql)
-                .build());
-    }
     public <T> T getParam(String name, Class<T> type) {
         Object value = getParam(name);
         if (value == null) {
@@ -1328,9 +1273,6 @@ public class QueryContext {
     }
     public boolean hasParam(String name) {
         return params.containsKey(name) && params.get(name) != null;
-    }
-    public void addAppliedCriteria(AppliedCriteria criteria) {
-        appliedCriteria.add(criteria);
     }
     public void addMetadata(String key, Object value) {
         metadata.put(key, value);
@@ -1511,7 +1453,9 @@ public class QueryExecution {
             }
         }
         if (!violations.isEmpty()) {
-            throw new QueryValidationException(definition.getName(), violations);
+            throw new QueryException(definition.getName(),
+                    QueryException.ErrorCode.VALIDATION_ERROR,
+                    "Validation failed: " + String.join(", ", violations));
         }
         return this;
     }
@@ -1539,7 +1483,8 @@ public class QueryExecution {
             return null;
         }
         if (result.getRows().size() > 1) {
-            throw new QueryValidationException(definition.getName(),
+            throw new QueryException(definition.getName(),
+                    QueryException.ErrorCode.VALIDATION_ERROR,
                     String.format("FindByKey query returned %d results, expected 1", result.getRows().size()));
         }
         return result.getRows().get(0);
@@ -1555,266 +1500,120 @@ public class QueryExecution {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/AttributeMetadata.java
-
-```java
-@Value
-@Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class AttributeMetadata {
-    String name;
-    String type;
-    Boolean restricted;
-    String label; 
-    String labelKey; 
-    String width; 
-    String flex; 
-    String headerText;
-    String headerStyle;
-    String alignment;
-    Boolean visible;
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/FilterMetadata.java
-
-```java
-@Value
-@Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class FilterMetadata {
-    String attribute;
-    String operator;
-    Object value;
-    Object value2;
-    List<Object> values;
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/MetadataBuilder.java
-
-```java
-public class MetadataBuilder {
-    private final QueryContext context;
-    private final QueryResult result;
-    public MetadataBuilder(QueryContext context, QueryResult result) {
-        this.context = context;
-        this.result = result;
-    }
-    public QueryMetadata build() {
-        return QueryMetadata.builder()
-                .pagination(buildPaginationMetadata())
-                .attributes(buildAttributesMetadata())
-                .appliedCriteria(context.getAppliedCriteria())
-                .appliedFilters(buildAppliedFilters())
-                .appliedSort(buildAppliedSort())
-                .parameters(buildParametersMetadata())
-                .performance(buildPerformanceMetadata())
-                .build();
-    }
-    private PaginationMetadata buildPaginationMetadata() {
-        if (!context.hasPagination()) {
-            return null;
-        }
-        Pagination pagination = context.getPagination();
-        Integer totalCount = context.getTotalCount();
-        int total = (totalCount != null) ? totalCount : result.getRows().size();
-        int pageSize = pagination.getPageSize();
-        int pageCount = (total + pageSize - 1) / pageSize;
-        int currentPage = pagination.getStart() / pageSize + 1;
-        boolean hasNext = pagination.getEnd() < total;
-        boolean hasPrevious = pagination.getStart() > 0;
-        return PaginationMetadata.builder()
-                .start(pagination.getStart())
-                .end(pagination.getEnd())
-                .total(total)
-                .hasNext(hasNext)
-                .hasPrevious(hasPrevious)
-                .pageSize(pageSize)
-                .pageCount(pageCount)
-                .currentPage(currentPage)
-                .build();
-    }
-    private List<AttributeMetadata> buildAttributesMetadata() {
-        List<AttributeMetadata> metadata = new ArrayList<>();
-        QueryDefinitionBuilder definition = context.getDefinition();
-        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            if (!context.isFieldSelected(attrName)) {
-                continue;
-            }
-            if (!attr.selected() && (context.getSelectedFields() == null ||
-                    !context.getSelectedFields().contains(attrName))) {
-                continue;
-            }
-            Boolean restricted = null;
-            if (attr.isSecured() && context.getSecurityContext() != null) {
-                Boolean allowed = attr.securityRule().apply(context.getSecurityContext());
-                if (!Boolean.TRUE.equals(allowed)) {
-                    restricted = true;
-                }
-            }
-            AttributeMetadata attrMetadata = AttributeMetadata
-                    .builder()
-                    .name(attrName)
-                    .type(attr.type() != null ? attr.type().getSimpleName() : "Object")
-                    .restricted(restricted)
-                    .label(attr.label())
-                    .labelKey(attr.labelKey())
-                    .width(attr.width())
-                    .flex(attr.flex())
-                    .headerText(attr.label())
-                    .alignment(attr.alignment())
-                    .headerStyle(attr.headerStyle())
-                    .visible(attr.visible())
-                    .build();
-            metadata.add(attrMetadata);
-        }
-        return metadata;
-    }
-    private Map<String, FilterMetadata> buildAppliedFilters() {
-        Map<String, FilterMetadata> filters = new HashMap<>();
-        for (Map.Entry<String, QueryContext.Filter> entry : context.getFilters().entrySet()) {
-            QueryContext.Filter filter = entry.getValue();
-            FilterMetadata filterMetadata = FilterMetadata.builder()
-                    .attribute(filter.getAttribute())
-                    .operator(filter.getOperator().name())
-                    .value(filter.getValue())
-                    .value2(filter.getValue2())
-                    .values(filter.getValues())
-                    .build();
-            filters.put(entry.getKey(), filterMetadata);
-        }
-        return filters;
-    }
-    private List<SortMetadata> buildAppliedSort() {
-        return context.getSorts().stream()
-                .map(sort -> SortMetadata.builder()
-                        .field(sort.getAttribute())
-                        .direction(sort.getDirection().name())
-                        .priority(context.getSorts().indexOf(sort))
-                        .build())
-                .collect(Collectors.toList());
-    }
-    private Map<String, ParameterMetadata> buildParametersMetadata() {
-        Map<String, ParameterMetadata> metadata = new HashMap<>();
-        QueryDefinitionBuilder definition = context.getDefinition();
-        for (Map.Entry<String, ParamDef<?>> entry : definition.getParameters().entrySet()) {
-            String paramName = entry.getKey();
-            ParamDef<?> paramDef = entry.getValue();
-            Object value = context.getParam(paramName);
-            if (value == null && paramDef.hasDefaultValue()) {
-                value = paramDef.defaultValue();
-            }
-            ParameterMetadata paramMetadata = ParameterMetadata
-                    .builder()
-                    .name(paramName)
-                    .value(value)
-                    .type(paramDef.type() != null ? paramDef.type().getSimpleName() : "Object")
-                    .required(paramDef.required())
-                    .build();
-            metadata.put(paramName, paramMetadata);
-        }
-        return metadata;
-    }
-    private PerformanceMetadata buildPerformanceMetadata() {
-        Map<String, Object> additionalMetrics = new HashMap<>();
-        additionalMetrics.put("queryName", context.getDefinition().getName());
-        if (context.getCacheKey() != null) {
-            additionalMetrics.put("cacheKey", context.getCacheKey());
-        }
-        return PerformanceMetadata.builder()
-                .executionTimeMs(context.getExecutionTime())
-                .rowsFetched(result.size())
-                .totalRowsScanned(result.size()) 
-                .cacheHit(false) 
-                .queryPlan("INDEX_SCAN") 
-                .additionalMetrics(additionalMetrics)
-                .build();
-    }
-}
-```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/PaginationMetadata.java
-
-```java
-@Value
-@Builder
-public class PaginationMetadata {
-    int start;
-    int end;
-    int total;
-    Boolean hasNext;
-    Boolean hasPrevious;
-    int pageSize;
-    int pageCount;
-    int currentPage;
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/ParameterMetadata.java
-
-```java
-@Value
-@Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class ParameterMetadata {
-    String name;
-    Object value;
-    String type;
-    boolean required;
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/PerformanceMetadata.java
-
-```java
-@Value
-@Builder
-public class PerformanceMetadata {
-    long executionTimeMs;
-    int rowsFetched;
-    int totalRowsScanned;
-    boolean cacheHit;
-    String queryPlan;
-    Map<String, Object> additionalMetrics;
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/domain/metadata/QueryMetadata.java
 
 ```java
 @Value
 @Builder
 public class QueryMetadata {
-    PaginationMetadata pagination;
-    List<AttributeMetadata> attributes;
-    List<AppliedCriteria> appliedCriteria;
-    Map<String, FilterMetadata> appliedFilters;
-    List<SortMetadata> appliedSort;
-    Map<String, ParameterMetadata> parameters;
-    PerformanceMetadata performance;
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/metadata/SortMetadata.java
-
-```java
-@Value
-@Builder
-public class SortMetadata {
-    String field;
-    String direction;
-    int priority;
+    PaginationInfo pagination;
+    List<AttributeInfo> attributes;
+    Long executionTimeMs;
+    @Value
+    @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class PaginationInfo {
+        int start;
+        int end;
+        int total;
+        Boolean hasNext;
+        Boolean hasPrevious;
+        int pageSize;
+        int pageCount;
+        int currentPage;
+    }
+    @Value
+    @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class AttributeInfo {
+        String name;
+        String type;
+        Boolean restricted;
+        String label;
+        String labelKey;
+        String width;
+        String flex;
+        String headerText;
+        String headerStyle;
+        String alignment;
+        Boolean visible;
+    }
+    public static class MetadataBuilder {
+        private final QueryContext context;
+        private final QueryResult result;
+        public MetadataBuilder(QueryContext context, QueryResult result) {
+            this.context = context;
+            this.result = result;
+        }
+        public QueryMetadata build() {
+            return QueryMetadata.builder()
+                    .pagination(buildPaginationInfo())
+                    .attributes(buildAttributesInfo())
+                    .executionTimeMs(context.getExecutionTime())
+                    .build();
+        }
+        private PaginationInfo buildPaginationInfo() {
+            if (!context.hasPagination()) {
+                return null;
+            }
+            Pagination pagination = context.getPagination();
+            Integer totalCount = context.getTotalCount();
+            int total = (totalCount != null) ? totalCount : result.getRows().size();
+            int pageSize = pagination.getPageSize();
+            int pageCount = (total + pageSize - 1) / pageSize;
+            int currentPage = pagination.getStart() / pageSize + 1;
+            boolean hasNext = pagination.getEnd() < total;
+            boolean hasPrevious = pagination.getStart() > 0;
+            return PaginationInfo.builder()
+                    .start(pagination.getStart())
+                    .end(pagination.getEnd())
+                    .total(total)
+                    .hasNext(hasNext)
+                    .hasPrevious(hasPrevious)
+                    .pageSize(pageSize)
+                    .pageCount(pageCount)
+                    .currentPage(currentPage)
+                    .build();
+        }
+        private List<AttributeInfo> buildAttributesInfo() {
+            List<AttributeInfo> metadata = new ArrayList<>();
+            QueryDefinitionBuilder definition = context.getDefinition();
+            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                String attrName = entry.getKey();
+                AttributeDef<?> attr = entry.getValue();
+                if (!context.isFieldSelected(attrName)) {
+                    continue;
+                }
+                if (!attr.selected() && (context.getSelectedFields() == null ||
+                        !context.getSelectedFields().contains(attrName))) {
+                    continue;
+                }
+                Boolean restricted = null;
+                if (attr.isSecured() && context.getSecurityContext() != null) {
+                    Boolean allowed = attr.securityRule().apply(context.getSecurityContext());
+                    if (!Boolean.TRUE.equals(allowed)) {
+                        restricted = true;
+                    }
+                }
+                AttributeInfo attrInfo = AttributeInfo
+                        .builder()
+                        .name(attrName)
+                        .type(attr.type() != null ? attr.type().getSimpleName() : "Object")
+                        .restricted(restricted)
+                        .label(attr.label())
+                        .labelKey(attr.labelKey())
+                        .width(attr.width())
+                        .flex(attr.flex())
+                        .headerText(attr.label())
+                        .alignment(attr.alignment())
+                        .headerStyle(attr.headerStyle())
+                        .visible(attr.visible())
+                        .build();
+                metadata.add(attrInfo);
+            }
+            return metadata;
+        }
+    }
 }```
 
 ---
@@ -2490,7 +2289,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         return processedResult;
     }
     private QueryResult addMetadata(QueryContext context, QueryResult result) {
-        var metadataBuilder = new MetadataBuilder(context, result);
+        var metadataBuilder = new QueryMetadata.MetadataBuilder(context, result);
         var metadata = metadataBuilder.build();
         return result.toBuilder()
                 .metadata(metadata)
@@ -3974,7 +3773,7 @@ public class OracleHRQueryConfig {
                                                 .build())
                                 .parameter(ParamDef.name("deptId")
                                                 .build())
-                                .parameter(ParamDef.name("departmentIds", String.class).required(true)
+                                .parameter(ParamDef.name("departmentIds", String.class)
                                                 .defaultValue("ASD")
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")
@@ -4371,11 +4170,13 @@ public class QueryService {
             request.getFilters().forEach((key, filter) -> {
                 var attr = queryDefinition.getAttribute(filter.getAttribute());
                 if (attr == null) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Unknown attribute for filter: " + filter.getAttribute());
                 }
                 if (!attr.filterable()) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Attribute '" + filter.getAttribute() + "' is not filterable");
                 }
             });
@@ -4384,11 +4185,13 @@ public class QueryService {
             request.getSorts().forEach(sort -> {
                 var attr = queryDefinition.getAttribute(sort.getAttribute());
                 if (attr == null) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Unknown attribute for sort: " + sort.getAttribute());
                 }
                 if (!attr.sortable()) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Attribute '" + sort.getAttribute() + "' is not sortable");
                 }
             });
@@ -4575,10 +4378,6 @@ public class QueryController {
         if (e instanceof QueryException qe) {
             builder.code(qe.getErrorCode())
                     .queryName(qe.getQueryName());
-            if (qe instanceof QueryValidationException queryValidationException) {
-                builder.details(Map.of("violations",
-                        queryValidationException.getViolations()));
-            }
         } else {
             builder.code("INTERNAL_ERROR");
         }
@@ -4983,8 +4782,9 @@ public class QueryRequestParser {
                                     .build());
                         }
                     } catch (IllegalArgumentException e) {
-                        throw new QueryValidationException("Query '" + queryDefinition.getName() +
-                                "': Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
+                        throw new QueryException(queryDefinition.getName(),
+                                QueryException.ErrorCode.VALIDATION_ERROR,
+                                "Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
                     }
                 } else {
                     Class<?> attrType = getAttributeType(queryDefinition, attribute);

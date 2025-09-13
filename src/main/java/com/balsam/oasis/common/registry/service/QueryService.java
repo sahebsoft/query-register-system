@@ -13,7 +13,6 @@ import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 
@@ -166,11 +165,13 @@ public class QueryService {
             request.getFilters().forEach((key, filter) -> {
                 var attr = queryDefinition.getAttribute(filter.getAttribute());
                 if (attr == null) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Unknown attribute for filter: " + filter.getAttribute());
                 }
                 if (!attr.filterable()) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Attribute '" + filter.getAttribute() + "' is not filterable");
                 }
             });
@@ -181,11 +182,13 @@ public class QueryService {
             request.getSorts().forEach(sort -> {
                 var attr = queryDefinition.getAttribute(sort.getAttribute());
                 if (attr == null) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Unknown attribute for sort: " + sort.getAttribute());
                 }
                 if (!attr.sortable()) {
-                    throw new QueryValidationException(
+                    throw new QueryException(queryDefinition.getName(),
+                            QueryException.ErrorCode.VALIDATION_ERROR,
                             "Attribute '" + sort.getAttribute() + "' is not sortable");
                 }
             });

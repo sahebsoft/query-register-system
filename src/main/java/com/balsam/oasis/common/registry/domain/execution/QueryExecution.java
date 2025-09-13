@@ -11,7 +11,7 @@ import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
-import com.balsam.oasis.common.registry.domain.exception.QueryValidationException;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.processor.ParamProcessor;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
@@ -271,7 +271,9 @@ public class QueryExecution {
         }
 
         if (!violations.isEmpty()) {
-            throw new QueryValidationException(definition.getName(), violations);
+            throw new QueryException(definition.getName(),
+                    QueryException.ErrorCode.VALIDATION_ERROR,
+                    "Validation failed: " + String.join(", ", violations));
         }
 
         return this;
@@ -319,7 +321,8 @@ public class QueryExecution {
         }
 
         if (result.getRows().size() > 1) {
-            throw new QueryValidationException(definition.getName(),
+            throw new QueryException(definition.getName(),
+                    QueryException.ErrorCode.VALIDATION_ERROR,
                     String.format("FindByKey query returned %d results, expected 1", result.getRows().size()));
         }
 
