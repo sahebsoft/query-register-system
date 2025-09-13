@@ -15,6 +15,7 @@ import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
+import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 
 /**
  * Shared service for executing queries and selects.
@@ -152,7 +153,37 @@ public class QueryService {
         // TODO: Add list() method to QueryRegistry interface
         return List.of();
     }
-    
+
+    /**
+     * Execute a query as a select/LOV query.
+     * This method is used by SelectController to execute queries in select mode.
+     *
+     * @param queryName The name of the registered query
+     * @param request The parsed query request containing parameters, filters, etc.
+     * @return QueryResult containing the execution results formatted for select
+     * @throws QueryException if query not found or not configured for select mode
+     */
+    public QueryResult executeAsSelect(String queryName, QueryRequest request) {
+        log.info("Executing query as select: {} with params: {}", queryName, request.getParams());
+
+        // Get the query definition
+        QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
+
+        if (queryDefinition == null) {
+            throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
+                    "Query not found: " + queryName);
+        }
+
+        // Check if query has value and label attributes defined
+        if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
+            throw new QueryException(queryName, QueryException.ErrorCode.DEFINITION_ERROR,
+                    "Query must define value and label attributes for select mode. Use asSelect() or valueAttribute()/labelAttribute() when building the query.");
+        }
+
+        // Execute as normal query
+        return executeQuery(queryName, request);
+    }
+
     /**
      * Validate the request against the query definition.
      */

@@ -103,12 +103,8 @@ public class QueryMetadata {
                 String attrName = entry.getKey();
                 AttributeDef<?> attr = entry.getValue();
 
-                if (!context.isFieldSelected(attrName)) {
-                    continue;
-                }
-
-                if (!attr.selected() && (context.getSelectedFields() == null ||
-                        !context.getSelectedFields().contains(attrName))) {
+                // Skip non-selected attributes
+                if (!attr.selected()) {
                     continue;
                 }
 

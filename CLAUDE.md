@@ -13,12 +13,10 @@ This document contains all Java source files from the project.
 
 - [src/main/java/com/balsam/oasis/common/registry/QueryRegistrationApplication.java](#src-main-java-com-balsam-oasis-common-registry-queryregistrationapplication-java)
 - [src/main/java/com/balsam/oasis/common/registry/builder/QueryDefinitionBuilder.java](#src-main-java-com-balsam-oasis-common-registry-builder-querydefinitionbuilder-java)
-- [src/main/java/com/balsam/oasis/common/registry/builder/SelectDefinitionBuilder.java](#src-main-java-com-balsam-oasis-common-registry-builder-selectdefinitionbuilder-java)
 - [src/main/java/com/balsam/oasis/common/registry/config/QueryConfiguration.java](#src-main-java-com-balsam-oasis-common-registry-config-queryconfiguration-java)
 - [src/main/java/com/balsam/oasis/common/registry/config/QueryProperties.java](#src-main-java-com-balsam-oasis-common-registry-config-queryproperties-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryExecutor.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryexecutor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryRegistry.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryregistry-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/common/NamingStrategy.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-namingstrategy-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/Pagination.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-pagination-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-queryresult-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/SqlResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-sqlresult-java)
@@ -28,7 +26,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/FilterOp.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-filterop-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/ParamDef.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-paramdef-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/SortDir.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-sortdir-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/definition/ValidationRule.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-validationrule-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/exception/QueryException.java](#src-main-java-com-balsam-oasis-common-registry-domain-exception-queryexception-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/execution/QueryContext.java](#src-main-java-com-balsam-oasis-common-registry-domain-execution-querycontext-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/execution/QueryExecution.java](#src-main-java-com-balsam-oasis-common-registry-domain-execution-queryexecution-java)
@@ -39,35 +36,24 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PostProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-postprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PreProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-preprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/RowProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-rowprocessor-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/select/LabelDef.java](#src-main-java-com-balsam-oasis-common-registry-domain-select-labeldef-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/select/SelectItem.java](#src-main-java-com-balsam-oasis-common-registry-domain-select-selectitem-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/select/ValueDef.java](#src-main-java-com-balsam-oasis-common-registry-domain-select-valuedef-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/validation/BindParameterValidator.java](#src-main-java-com-balsam-oasis-common-registry-domain-validation-bindparametervalidator-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/validation/QueryDefinitionValidator.java](#src-main-java-com-balsam-oasis-common-registry-domain-validation-querydefinitionvalidator-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryexecutorimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRegistryImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryregistryimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRow.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryrow-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRowMapperImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryrowmapperimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QuerySqlBuilder.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-querysqlbuilder-java)
-- [src/main/java/com/balsam/oasis/common/registry/engine/sql/DatabaseDialect.java](#src-main-java-com-balsam-oasis-common-registry-engine-sql-databasedialect-java)
-- [src/main/java/com/balsam/oasis/common/registry/engine/sql/MetadataCache.java](#src-main-java-com-balsam-oasis-common-registry-engine-sql-metadatacache-java)
-- [src/main/java/com/balsam/oasis/common/registry/engine/sql/MetadataCacheBuilder.java](#src-main-java-com-balsam-oasis-common-registry-engine-sql-metadatacachebuilder-java)
-- [src/main/java/com/balsam/oasis/common/registry/engine/sql/MetadataOperations.java](#src-main-java-com-balsam-oasis-common-registry-engine-sql-metadataoperations-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/sql/util/SqlBuilderUtils.java](#src-main-java-com-balsam-oasis-common-registry-engine-sql-util-sqlbuilderutils-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/sql/util/TypeConversionUtils.java](#src-main-java-com-balsam-oasis-common-registry-engine-sql-util-typeconversionutils-java)
 - [src/main/java/com/balsam/oasis/common/registry/example/OracleHRQueryConfig.java](#src-main-java-com-balsam-oasis-common-registry-example-oraclehrqueryconfig-java)
-- [src/main/java/com/balsam/oasis/common/registry/example/OracleHRSelectConfig.java](#src-main-java-com-balsam-oasis-common-registry-example-oraclehrselectconfig-java)
 - [src/main/java/com/balsam/oasis/common/registry/service/QueryService.java](#src-main-java-com-balsam-oasis-common-registry-service-queryservice-java)
+- [src/main/java/com/balsam/oasis/common/registry/util/QueryUtils.java](#src-main-java-com-balsam-oasis-common-registry-util-queryutils-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/builder/QueryResponseBuilder.java](#src-main-java-com-balsam-oasis-common-registry-web-builder-queryresponsebuilder-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/controller/QueryController.java](#src-main-java-com-balsam-oasis-common-registry-web-controller-querycontroller-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/controller/SelectController.java](#src-main-java-com-balsam-oasis-common-registry-web-controller-selectcontroller-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/request/QueryRequest.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-request-queryrequest-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/request/QueryRequestBody.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-request-queryrequestbody-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryErrorResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-queryerrorresponse-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryListResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-querylistresponse-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QuerySingleResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-querysingleresponse-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QuerySuccessResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-querysuccessresponse-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/formatter/ColumnNameTransformer.java](#src-main-java-com-balsam-oasis-common-registry-web-formatter-columnnametransformer-java)
+- [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-queryresponse-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/formatter/ResponseFormatter.java](#src-main-java-com-balsam-oasis-common-registry-web-formatter-responseformatter-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/parser/QueryRequestParser.java](#src-main-java-com-balsam-oasis-common-registry-web-parser-queryrequestparser-java)
 
@@ -108,11 +94,20 @@ public class QueryDefinitionBuilder {
     private final Map<String, AttributeDef<?>> attributes;
     private final boolean paginationEnabled;
     private final Integer fetchSize;
-    private transient MetadataCache metadataCache;
-    private final boolean dynamic;
-    private final NamingStrategy namingStrategy;
+    private final String valueAttribute;
+    private final String labelAttribute;
+    private final boolean selectMode;
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
+    }
+    public boolean isSelectMode() {
+        return selectMode;
+    }
+    public boolean hasLabelAttribute() {
+        return labelAttribute != null;
+    }
+    public boolean hasValueAttribute() {
+        return valueAttribute != null;
     }
     public AttributeDef<?> getAttribute(String name) {
         return attributes.get(name);
@@ -138,53 +133,6 @@ public class QueryDefinitionBuilder {
     public boolean hasPostProcessors() {
         return postProcessors != null && !postProcessors.isEmpty();
     }
-    public QueryDefinitionBuilder withMetadataCache(MetadataCache cache) {
-        return new QueryDefinitionBuilder(
-                this.name,
-                this.description,
-                this.sql,
-                this.parameters,
-                this.criteria,
-                this.preProcessors,
-                this.rowProcessors,
-                this.postProcessors,
-                this.cacheConfig,
-                this.defaultPageSize,
-                this.maxPageSize,
-                this.auditEnabled,
-                this.metricsEnabled,
-                this.queryTimeout,
-                this.attributes,
-                this.paginationEnabled,
-                this.fetchSize,
-                cache,
-                this.dynamic,
-                this.namingStrategy);
-    }
-    public QueryDefinitionBuilder withCacheAndAttributes(MetadataCache cache,
-            Map<String, AttributeDef<?>> newAttributes) {
-        return new QueryDefinitionBuilder(
-                this.name,
-                this.description,
-                this.sql,
-                this.parameters,
-                this.criteria,
-                this.preProcessors,
-                this.rowProcessors,
-                this.postProcessors,
-                this.cacheConfig,
-                this.defaultPageSize,
-                this.maxPageSize,
-                this.auditEnabled,
-                this.metricsEnabled,
-                this.queryTimeout,
-                newAttributes != null ? newAttributes : this.attributes,
-                this.paginationEnabled,
-                this.fetchSize,
-                cache,
-                this.dynamic,
-                this.namingStrategy);
-    }
     public static Builder builder(String name) {
         return new Builder(name);
     }
@@ -208,8 +156,9 @@ public class QueryDefinitionBuilder {
         protected Boolean auditEnabled = true;
         protected Boolean metricsEnabled = true;
         protected Integer queryTimeout;
-        protected Boolean dynamic = false;
-        protected NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
+        protected String valueAttribute;
+        protected String labelAttribute;
+        protected Boolean selectMode = false;
         protected Builder(String name) {
             Preconditions.checkNotNull(name, "Query name cannot be null");
             Preconditions.checkArgument(!name.trim().isEmpty(), "Query name cannot be empty");
@@ -317,15 +266,20 @@ public class QueryDefinitionBuilder {
             this.queryTimeout = seconds;
             return this;
         }
-        public Builder dynamic() {
-            this.dynamic = true;
-            this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
+        public Builder asSelect(String valueAttribute, String labelAttribute) {
+            Preconditions.checkNotNull(valueAttribute, "Value attribute cannot be null");
+            Preconditions.checkNotNull(labelAttribute, "Label attribute cannot be null");
+            this.selectMode = true;
+            this.valueAttribute = valueAttribute;
+            this.labelAttribute = labelAttribute;
             return this;
         }
-        public Builder dynamic(NamingStrategy strategy) {
-            Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
-            this.dynamic = true;
-            this.dynamicAttributeNamingStrategy = strategy;
+        public Builder valueAttribute(String attribute) {
+            this.valueAttribute = attribute;
+            return this;
+        }
+        public Builder labelAttribute(String attribute) {
+            this.labelAttribute = attribute;
             return this;
         }
         public QueryDefinitionBuilder build() {
@@ -356,9 +310,9 @@ public class QueryDefinitionBuilder {
                     ImmutableMap.copyOf(attributes),
                     paginationEnabled,
                     fetchSize,
-                    null, 
-                    dynamic,
-                    dynamicAttributeNamingStrategy);
+                    valueAttribute,
+                    labelAttribute,
+                    selectMode);
             BindParameterValidator.validate(queryDef);
             return queryDef;
         }
@@ -393,147 +347,6 @@ public class QueryDefinitionBuilder {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/builder/SelectDefinitionBuilder.java
-
-```java
-public class SelectDefinitionBuilder {
-    private final QueryDefinitionBuilder.Builder delegateBuilder;
-    private boolean hasValueAttribute = false;
-    private boolean hasLabelAttribute = false;
-    private SelectDefinitionBuilder(String name) {
-        this.delegateBuilder = QueryDefinitionBuilder.builder(name);
-        this.delegateBuilder.defaultPageSize(100);
-        this.delegateBuilder.paginationEnabled(true);
-    }
-    public static SelectDefinitionBuilder builder(String name) {
-        return new SelectDefinitionBuilder(name);
-    }
-    public SelectDefinitionBuilder valueAttribute(ValueDef valueDef) {
-        this.delegateBuilder.attribute(valueDef.toAttributeDef());
-        this.hasValueAttribute = true;
-        return this;
-    }
-    public SelectDefinitionBuilder valueAttribute(String aliasName, Class<?> type) {
-        this.delegateBuilder.attribute(ValueDef.of(aliasName, type).toAttributeDef());
-        this.hasValueAttribute = true;
-        return this;
-    }
-    public SelectDefinitionBuilder valueAttribute(String aliasName) {
-        this.delegateBuilder.attribute(ValueDef.of(aliasName, String.class).toAttributeDef());
-        this.hasValueAttribute = true;
-        return this;
-    }
-    public SelectDefinitionBuilder labelAttribute(LabelDef labelDef) {
-        this.delegateBuilder.attribute(labelDef.toAttributeDef());
-        this.hasLabelAttribute = true;
-        return this;
-    }
-    public SelectDefinitionBuilder labelAttribute(String aliasName, Class<?> type) {
-        this.delegateBuilder.attribute(LabelDef.of(aliasName, type).toAttributeDef());
-        this.hasLabelAttribute = true;
-        return this;
-    }
-    public SelectDefinitionBuilder labelAttribute(String aliasName) {
-        this.delegateBuilder.attribute(LabelDef.of(aliasName).toAttributeDef());
-        this.hasLabelAttribute = true;
-        return this;
-    }
-    public SelectDefinitionBuilder sql(String sql) {
-        this.delegateBuilder.sql(sql);
-        return this;
-    }
-    public SelectDefinitionBuilder description(String description) {
-        this.delegateBuilder.description(description);
-        return this;
-    }
-    public SelectDefinitionBuilder attribute(AttributeDef<?> attribute) {
-        this.delegateBuilder.attribute(attribute);
-        if ("value".equals(attribute.name())) {
-            this.hasValueAttribute = true;
-        } else if ("label".equals(attribute.name())) {
-            this.hasLabelAttribute = true;
-        }
-        return this;
-    }
-    public SelectDefinitionBuilder parameter(ParamDef<?> param) {
-        this.delegateBuilder.parameter(param);
-        return this;
-    }
-    public SelectDefinitionBuilder criteria(CriteriaDef criteria) {
-        this.delegateBuilder.criteria(criteria);
-        return this;
-    }
-    public SelectDefinitionBuilder preProcessor(PreProcessor processor) {
-        this.delegateBuilder.preProcessor(processor);
-        return this;
-    }
-    public SelectDefinitionBuilder rowProcessor(RowProcessor processor) {
-        this.delegateBuilder.rowProcessor(processor);
-        return this;
-    }
-    public SelectDefinitionBuilder postProcessor(PostProcessor processor) {
-        this.delegateBuilder.postProcessor(processor);
-        return this;
-    }
-    public SelectDefinitionBuilder defaultPageSize(Integer size) {
-        this.delegateBuilder.defaultPageSize(size);
-        return this;
-    }
-    public SelectDefinitionBuilder maxPageSize(Integer size) {
-        this.delegateBuilder.maxPageSize(size);
-        return this;
-    }
-    public SelectDefinitionBuilder paginationEnabled(Boolean enabled) {
-        this.delegateBuilder.paginationEnabled(enabled);
-        return this;
-    }
-    public SelectDefinitionBuilder fetchSize(Integer size) {
-        this.delegateBuilder.fetchSize(size);
-        return this;
-    }
-    public SelectDefinitionBuilder cache(Boolean enabled) {
-        this.delegateBuilder.cache(enabled);
-        return this;
-    }
-    public SelectDefinitionBuilder cacheTTL(Duration ttl) {
-        this.delegateBuilder.cacheTTL(ttl);
-        return this;
-    }
-    public SelectDefinitionBuilder cacheKey(Function<Object, String> keyGenerator) {
-        this.delegateBuilder.cacheKey(keyGenerator);
-        return this;
-    }
-    public SelectDefinitionBuilder auditEnabled(Boolean enabled) {
-        this.delegateBuilder.auditEnabled(enabled);
-        return this;
-    }
-    public SelectDefinitionBuilder metricsEnabled(Boolean enabled) {
-        this.delegateBuilder.metricsEnabled(enabled);
-        return this;
-    }
-    public SelectDefinitionBuilder queryTimeout(Integer seconds) {
-        this.delegateBuilder.queryTimeout(seconds);
-        return this;
-    }
-    public SelectDefinitionBuilder dynamic() {
-        this.delegateBuilder.dynamic();
-        return this;
-    }
-    public SelectDefinitionBuilder dynamic(NamingStrategy strategy) {
-        this.delegateBuilder.dynamic(strategy);
-        return this;
-    }
-    public QueryDefinitionBuilder build() {
-        Preconditions.checkState(hasValueAttribute,
-                "Value attribute must be defined. Use valueAttribute() to set it.");
-        Preconditions.checkState(hasLabelAttribute,
-                "Label attribute must be defined. Use labelAttribute() to set it.");
-        return this.delegateBuilder.build();
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/config/QueryConfiguration.java
 
 ```java
@@ -541,8 +354,8 @@ public class SelectDefinitionBuilder {
 @EnableConfigurationProperties(QueryProperties.class)
 public class QueryConfiguration {
     @Bean
-    QuerySqlBuilder sqlBuilder(QueryProperties properties) {
-        return new QuerySqlBuilder(properties.getDatabaseDialect());
+    QuerySqlBuilder sqlBuilder() {
+        return new QuerySqlBuilder();
     }
     @Bean
     QueryRegistry queryRegistry() {
@@ -561,10 +374,6 @@ public class QueryConfiguration {
     @Bean
     QueryResponseBuilder queryResponseBuilder() {
         return new QueryResponseBuilder();
-    }
-    @Bean
-    MetadataCacheBuilder metadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
-        return new MetadataCacheBuilder(jdbcTemplate, sqlBuilder);
     }
     @Bean
     QueryService queryService(QueryExecutor queryExecutor, QueryRegistry queryRegistry) {
@@ -594,7 +403,6 @@ public class QueryConfiguration {
 @Data
 @ConfigurationProperties(prefix = "query.registration")
 public class QueryProperties {
-    private String databaseDialect = "ORACLE_11G";
     private RestProperties rest = new RestProperties();
     private JdbcProperties jdbc = new JdbcProperties();
     @Data
@@ -639,32 +447,6 @@ public interface QueryRegistry {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/common/NamingStrategy.java
-
-```java
-public enum NamingStrategy {
-    AS_IS, 
-    CAMEL, 
-    PASCAL, 
-    LOWER, 
-    UPPER; 
-    public String convert(String columnName) {
-        if (columnName == null || columnName.isEmpty()) {
-            return columnName;
-        }
-        return switch (this) {
-            case AS_IS -> columnName;
-            case CAMEL -> CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, columnName);
-            case PASCAL -> CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, columnName);
-            case LOWER -> columnName.toLowerCase();
-            case UPPER -> columnName.toUpperCase();
-        };
-    }
-}
-```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/domain/common/Pagination.java
 
 ```java
@@ -698,15 +480,8 @@ public class QueryResult {
     @Builder.Default
     List<QueryRow> rows = ImmutableList.of();
     QueryMetadata metadata;
-    @Builder.Default
-    Map<String, Object> summary = ImmutableMap.of();
     QueryContext context;
     Long executionTimeMs;
-    @Builder.Default
-    boolean success = true;
-    @Builder.Default
-    Integer count = 0;
-    String errorMessage;
     public boolean isEmpty() {
         return rows == null || rows.isEmpty();
     }
@@ -717,13 +492,10 @@ public class QueryResult {
         if (metadata != null && metadata.getPagination() != null) {
             return metadata.getPagination().getTotal();
         }
-        return count != null ? count : size();
+        return size();
     }
     public boolean hasMetadata() {
         return metadata != null;
-    }
-    public boolean hasErrors() {
-        return !success || errorMessage != null;
     }
     public QueryRow getFirstRow() {
         if (!isEmpty()) {
@@ -738,6 +510,9 @@ public class QueryResult {
                     .collect(ImmutableList.toImmutableList());
         }
         return ImmutableList.of();
+    }
+    public boolean isSuccess() {
+        return true; 
     }
 }```
 
@@ -863,16 +638,7 @@ public class CacheConfig {
     boolean enabled = false;
     @Builder.Default
     Duration ttl = Duration.ofMinutes(5);
-    @Builder.Default
-    Duration refreshAfter = Duration.ofMinutes(3);
-    @Builder.Default
-    int maxEntries = 1000;
     Function<Object, String> keyGenerator;
-    @Builder.Default
-    boolean cacheNullValues = false;
-    @Builder.Default
-    boolean cacheEmptyResults = false;
-    String cacheName;
     public boolean hasKeyGenerator() {
         return keyGenerator != null;
     }
@@ -1044,24 +810,6 @@ public enum SortDir {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/definition/ValidationRule.java
-
-```java
-@Value
-@Builder(toBuilder = true)
-public class ValidationRule {
-    String name;
-    Predicate<Object> rule;
-    String errorMessage;
-    @Builder.Default
-    boolean critical = true; 
-    public boolean isCritical() {
-        return critical;
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/domain/exception/QueryException.java
 
 ```java
@@ -1166,26 +914,16 @@ public class QueryContext {
     @Builder.Default
     protected Map<String, Object> params = new HashMap<>();
     protected Pagination pagination;
-    @Builder.Default
-    protected Map<String, Object> metadata = new HashMap<>();
     protected Long startTime;
     protected Long endTime;
     @Builder.Default
     protected boolean includeMetadata = true;
-    @Builder.Default
-    protected boolean auditEnabled = true;
-    @Builder.Default
-    protected boolean cacheEnabled = true;
-    protected String cacheKey;
     protected Integer totalCount;
     @Builder.Default
     private Map<String, Filter> filters = new LinkedHashMap<>();
     @Builder.Default
     private List<SortSpec> sorts = new ArrayList<>();
     private Object securityContext;
-    @Builder.Default
-    private Map<String, Object> attributes = new HashMap<>();
-    private Set<String> selectedFields; 
     @Data
     @Builder
     public static class Filter {
@@ -1238,21 +976,14 @@ public class QueryContext {
                 .direction(direction)
                 .build());
     }
-    public <T> T getParam(String name, Class<T> type) {
-        Object value = getParam(name);
-        if (value == null) {
-            return null;
-        }
-        return type.cast(value);
+    public Object getParam(String name) {
+        return params.get(name);
     }
-    public Object getAttribute(String name) {
-        return attributes.get(name);
+    public boolean hasParam(String name) {
+        return params.containsKey(name) && params.get(name) != null;
     }
-    public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
-    }
-    public boolean hasFilter(String attribute) {
-        return filters.containsKey(attribute);
+    public boolean hasPagination() {
+        return pagination != null;
     }
     public boolean hasSorts() {
         return sorts != null && !sorts.isEmpty();
@@ -1265,31 +996,6 @@ public class QueryContext {
     }
     public long getExecutionTime() {
         return (startTime != null && endTime != null) ? endTime - startTime : 0;
-    }
-    public void setParam(String name, Object value) {
-        params.put(name, value);
-    }
-    public Object getParam(String name) {
-        return params.get(name);
-    }
-    public boolean hasParam(String name) {
-        return params.containsKey(name) && params.get(name) != null;
-    }
-    public void addMetadata(String key, Object value) {
-        metadata.put(key, value);
-    }
-    public boolean hasPagination() {
-        return pagination != null;
-    }
-    public void selectFields(String... fields) {
-        this.selectedFields = new HashSet<>(Arrays.asList(fields));
-    }
-    public void selectFields(Set<String> fields) {
-        this.selectedFields = fields != null ? new HashSet<>(fields) : null;
-    }
-    public boolean isFieldSelected(String fieldName) {
-        return selectedFields == null || selectedFields.isEmpty() ||
-                selectedFields.contains(fieldName);
     }
 }```
 
@@ -1382,18 +1088,6 @@ public class QueryExecution {
     }
     public QueryExecution includeMetadata(boolean include) {
         context.setIncludeMetadata(include);
-        return this;
-    }
-    public QueryExecution withCaching(boolean enabled) {
-        context.setCacheEnabled(enabled);
-        return this;
-    }
-    public QueryExecution select(String... fields) {
-        context.selectFields(fields);
-        return this;
-    }
-    public QueryExecution selectFields(Set<String> fields) {
-        context.selectFields(fields);
         return this;
     }
     public QueryExecution validate() {
@@ -1582,11 +1276,7 @@ public class QueryMetadata {
             for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
                 String attrName = entry.getKey();
                 AttributeDef<?> attr = entry.getValue();
-                if (!context.isFieldSelected(attrName)) {
-                    continue;
-                }
-                if (!attr.selected() && (context.getSelectedFields() == null ||
-                        !context.getSelectedFields().contains(attrName))) {
+                if (!attr.selected()) {
                     continue;
                 }
                 Boolean restricted = null;
@@ -1680,42 +1370,6 @@ public interface RowProcessor {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/select/LabelDef.java
-
-```java
-public class LabelDef {
-    private final String aliasName;
-    private final Class<?> type;
-    private LabelDef(String aliasName, Class<?> type) {
-        this.aliasName = aliasName;
-        this.type = type;
-    }
-    public static LabelDef of(String aliasName, Class<?> type) {
-        Preconditions.checkNotNull(aliasName, "Alias name cannot be null");
-        Preconditions.checkArgument(!aliasName.trim().isEmpty(), "Alias name cannot be empty");
-        Preconditions.checkNotNull(type, "Type cannot be null");
-        return new LabelDef(aliasName, type);
-    }
-    public static LabelDef of(String aliasName) {
-        return of(aliasName, String.class);
-    }
-    public AttributeDef<?> toAttributeDef() {
-        return AttributeDef.name("label", type)
-                .aliasName(aliasName)
-                .primaryKey(false) 
-                .description("Label field for select component")
-                .build();
-    }
-    public String getAliasName() {
-        return aliasName;
-    }
-    public Class<?> getType() {
-        return type;
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/domain/select/SelectItem.java
 
 ```java
@@ -1727,49 +1381,11 @@ public class LabelDef {
 public class SelectItem {
     private String value;
     private String label;
-    private Map<String, Object> additions;
     public static SelectItem of(String value, String label) {
         return SelectItem.builder()
                 .value(value)
                 .label(label)
                 .build();
-    }
-    public static SelectItem of(String value, String label, Map<String, Object> additions) {
-        return SelectItem.builder()
-                .value(value)
-                .label(label)
-                .additions(additions)
-                .build();
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/select/ValueDef.java
-
-```java
-public class ValueDef {
-    private final String aliasName;
-    private final Class<?> type;
-    private ValueDef(String aliasName, Class<?> type) {
-        this.aliasName = aliasName;
-        this.type = type;
-    }
-    public static ValueDef of(String aliasName, Class<?> type) {
-        return new ValueDef(aliasName, type);
-    }
-    public AttributeDef<?> toAttributeDef() {
-        return AttributeDef.name("value", type)
-                .aliasName(aliasName)
-                .primaryKey(true) 
-                .description("Value field for select component")
-                .build();
-    }
-    public String getAliasName() {
-        return aliasName;
-    }
-    public Class<?> getType() {
-        return type;
     }
 }```
 
@@ -1887,117 +1503,6 @@ public class BindParameterValidator {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/domain/validation/QueryDefinitionValidator.java
-
-```java
-public class QueryDefinitionValidator {
-    private QueryDefinitionValidator() {
-    }
-    public static void validateNoDuplicates(QueryDefinitionBuilder queryDef) {
-        validateAttributeDuplicates(queryDef);
-        validateParameterDuplicates(queryDef);
-        validateCriteriaDuplicates(queryDef);
-        validateCrossDefinitionNaming(queryDef);
-    }
-    private static void validateAttributeDuplicates(QueryDefinitionBuilder queryDef) {
-        Map<String, AttributeDef<?>> attributes = queryDef.getAttributes();
-        if (attributes == null || attributes.isEmpty()) {
-            return;
-        }
-        Set<String> names = new HashSet<>();
-        Set<String> aliasNames = new HashSet<>();
-        for (AttributeDef<?> attr : attributes.values()) {
-            if (!names.add(attr.name())) {
-                throw new IllegalStateException(String.format(
-                        "Query '%s' has duplicate attribute name: '%s'. " +
-                                "Each attribute must have a unique name.",
-                        queryDef.getName(), attr.name()));
-            }
-            if (!attr.virtual() && attr.aliasName() != null) {
-                String aliasName = attr.aliasName().toUpperCase(); 
-                if (!aliasNames.add(aliasName)) {
-                    throw new IllegalStateException(String.format(
-                            "Query '%s' has duplicate attribute alias/column name: '%s'. " +
-                                    "Multiple attributes are mapped to the same database column.",
-                            queryDef.getName(), attr.aliasName()));
-                }
-            }
-        }
-    }
-    private static void validateParameterDuplicates(QueryDefinitionBuilder queryDef) {
-        Map<String, ParamDef<?>> params = queryDef.getParameters();
-        if (params == null || params.isEmpty()) {
-            return;
-        }
-        Set<String> names = new HashSet<>();
-        for (ParamDef<?> param : params.values()) {
-            if (!names.add(param.name())) {
-                throw new IllegalStateException(String.format(
-                        "Query '%s' has duplicate parameter name: '%s'. " +
-                                "Each parameter must have a unique name.",
-                        queryDef.getName(), param.name()));
-            }
-        }
-    }
-    private static void validateCriteriaDuplicates(QueryDefinitionBuilder queryDef) {
-        Map<String, CriteriaDef> criteria = queryDef.getCriteria();
-        if (criteria == null || criteria.isEmpty()) {
-            return;
-        }
-        Set<String> names = new HashSet<>();
-        Set<String> placeholders = new HashSet<>();
-        for (CriteriaDef criterion : criteria.values()) {
-            if (!names.add(criterion.name())) {
-                throw new IllegalStateException(String.format(
-                        "Query '%s' has duplicate criteria name: '%s'. " +
-                                "Each criteria must have a unique name.",
-                        queryDef.getName(), criterion.name()));
-            }
-            String placeholder = "--" + criterion.name();
-            if (!placeholders.add(placeholder)) {
-                throw new IllegalStateException(String.format(
-                        "Query '%s' has duplicate criteria placeholder: '%s'. " +
-                                "This should not happen if names are unique.",
-                        queryDef.getName(), placeholder));
-            }
-        }
-    }
-    private static void validateCrossDefinitionNaming(QueryDefinitionBuilder queryDef) {
-        Set<String> allNames = new HashSet<>();
-        if (queryDef.getAttributes() != null) {
-            for (String attrName : queryDef.getAttributes().keySet()) {
-                if (!allNames.add(attrName)) {
-                    throw new IllegalStateException(String.format(
-                            "Query '%s' has naming conflict: '%s' is used in multiple definitions.",
-                            queryDef.getName(), attrName));
-                }
-            }
-        }
-        if (queryDef.getParameters() != null) {
-            for (String paramName : queryDef.getParameters().keySet()) {
-                if (!allNames.add(paramName)) {
-                    throw new IllegalStateException(String.format(
-                            "Query '%s' has naming conflict: " +
-                                    "parameter '%s' has the same name as an attribute.",
-                            queryDef.getName(), paramName));
-                }
-            }
-        }
-        if (queryDef.getCriteria() != null) {
-            for (String criteriaName : queryDef.getCriteria().keySet()) {
-                if (!allNames.add(criteriaName)) {
-                    throw new IllegalStateException(String.format(
-                            "Query '%s' has naming conflict: " +
-                                    "criteria '%s' has the same name as an attribute or parameter.",
-                            queryDef.getName(), criteriaName));
-                }
-            }
-        }
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java
 
 ```java
@@ -2050,7 +1555,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             QueryResult result = QueryResult.builder()
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
-                    .count(rows.size()) 
                     .build();
             result = runPostProcessors(context, result);
             if (context.isIncludeMetadata()) {
@@ -2059,7 +1563,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             context.endExecution();
             return result.toBuilder()
                     .executionTimeMs(context.getExecutionTime())
-                    .success(true)
                     .build();
         } catch (Exception e) {
             context.endExecution();
@@ -2168,50 +1671,9 @@ public class QueryRegistryImpl implements QueryRegistry {
     private static final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
     private final ConcurrentMap<String, QueryDefinitionBuilder> registry = new ConcurrentHashMap<>();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    @Autowired(required = false)
-    private MetadataCacheBuilder metadataCacheBuilder;
     @Override
     public void register(QueryDefinitionBuilder definition) {
         validateDefinition(definition);
-        MetadataCache cache = null;
-        Map<String, AttributeDef<?>> dynamicAttributes = null;
-        if (metadataCacheBuilder != null) {
-            try {
-                cache = metadataCacheBuilder.buildCache(definition);
-                if (definition.isDynamic()) {
-                    dynamicAttributes = new LinkedHashMap<>();
-                    String[] columnNames = cache.getColumnNames();
-                    NamingStrategy strategy = definition.getNamingStrategy();
-                    Map<String, AttributeDef<?>> existingAttributes = definition.getAttributes();
-                    for (String columnName : columnNames) {
-                        String attributeName = strategy.convert(columnName);
-                        if (!existingAttributes.containsKey(attributeName)) {
-                            Class<?> javaType = cache.getJavaTypeForColumn(columnName);
-                            if (javaType != null) {
-                                AttributeDef<?> dynamicAttr = AttributeDef.name(attributeName, javaType)
-                                        .aliasName(columnName)
-                                        .build();
-                                dynamicAttributes.put(attributeName, dynamicAttr);
-                                log.trace("Discovered dynamic attribute '{}' for column '{}'", attributeName,
-                                        columnName);
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("Failed to pre-warm metadata cache for query '{}': {}. " +
-                        "Cache and dynamic attributes may not be available.",
-                        definition.getName(), e.getMessage());
-            }
-        }
-        if (cache != null || (dynamicAttributes != null && !dynamicAttributes.isEmpty())) {
-            Map<String, AttributeDef<?>> finalAttributes = definition.getAttributes();
-            if (dynamicAttributes != null && !dynamicAttributes.isEmpty()) {
-                finalAttributes = new LinkedHashMap<>(definition.getAttributes());
-                finalAttributes.putAll(dynamicAttributes);
-            }
-            definition = definition.withCacheAndAttributes(cache, finalAttributes);
-        }
         String name = definition.getName();
         lock.writeLock().lock();
         try {
@@ -2220,15 +1682,7 @@ public class QueryRegistryImpl implements QueryRegistry {
             }
             StringBuilder registrationLog = new StringBuilder();
             registrationLog.append("Registered query '" + name + "': ");
-            registrationLog.append("dynamic=").append(definition.isDynamic());
-            MetadataCache metaCache = definition.getMetadataCache();
-            if (metaCache != null) {
-                registrationLog.append(", columns=").append(metaCache.getColumnCount());
-                registrationLog.append(", attributes=").append(metaCache.getAttributeToColumnIndex().size());
-            }
-            if (dynamicAttributes != null && !dynamicAttributes.isEmpty()) {
-                registrationLog.append(", dynamic_attrs=").append(dynamicAttributes.size());
-            }
+            registrationLog.append("attributes=").append(definition.getAttributes().size());
             if (definition.hasParams()) {
                 registrationLog.append(", has_params=true");
                 Set<String> unusedParams = BindParameterValidator.findUnusedParameters(definition);
@@ -2236,7 +1690,6 @@ public class QueryRegistryImpl implements QueryRegistry {
                     registrationLog.append(", unused_params=").append(unusedParams);
                 }
             }
-            registrationLog.append(", cached=").append(metaCache != null);
             log.info(registrationLog.toString());
         } finally {
             lock.writeLock().unlock();
@@ -2389,8 +1842,7 @@ public class QueryRow {
 public class QueryRowMapperImpl {
     public QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
         QueryDefinitionBuilder definition = context.getDefinition();
-        MetadataCache cache = definition.getMetadataCache();
-        Map<String, Object> rawData = MetadataOperations.extractRawData(rs, cache);
+        Map<String, Object> rawData = extractRawData(rs);
         QueryRow row = QueryRow.create(rawData, rawData, context);
         if (definition.hasAttributes()) {
             for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
@@ -2408,6 +1860,21 @@ public class QueryRowMapperImpl {
         }
         return row;
     }
+    private Map<String, Object> extractRawData(ResultSet rs) throws SQLException {
+        Map<String, Object> rawData = new HashMap<>();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnName(i).toUpperCase();
+            String columnLabel = metaData.getColumnLabel(i).toUpperCase();
+            Object value = rs.getObject(i);
+            rawData.put(columnName, value);
+            if (!columnName.equals(columnLabel)) {
+                rawData.put(columnLabel, value);
+            }
+        }
+        return rawData;
+    }
 }```
 
 ---
@@ -2417,13 +1884,8 @@ public class QueryRowMapperImpl {
 ```java
 public class QuerySqlBuilder {
     private static final Logger log = LoggerFactory.getLogger(QuerySqlBuilder.class);
-    protected final DatabaseDialect dialect;
-    public QuerySqlBuilder(String dialectName) {
-        this.dialect = dialectName != null ? DatabaseDialect.fromString(dialectName) : DatabaseDialect.ORACLE_11G;
-        log.info("SqlBuilder initialized with database dialect: {}", dialect);
-    }
     public QuerySqlBuilder() {
-        this(DatabaseDialect.ORACLE_11G.name());
+        log.info("SqlBuilder initialized for Oracle 11g");
     }
     public SqlResult build(QueryContext context) {
         QueryDefinitionBuilder definition = context.getDefinition();
@@ -2433,7 +1895,7 @@ public class QuerySqlBuilder {
         sql = SqlBuilderUtils.applyFilters(sql, context, bindParams);
         sql = SqlBuilderUtils.applySorting(sql, context);
         if (context.hasPagination() && context.getDefinition().isPaginationEnabled()) {
-            sql = SqlBuilderUtils.applyPagination(sql, context, dialect);
+            sql = SqlBuilderUtils.applyPagination(sql, context);
         }
         sql = SqlBuilderUtils.cleanPlaceholders(sql);
         return new SqlResult(sql, bindParams);
@@ -2446,413 +1908,6 @@ public class QuerySqlBuilder {
         sql = SqlBuilderUtils.applyFilters(sql, context, bindParams);
         sql = SqlBuilderUtils.cleanPlaceholders(sql);
         return SqlBuilderUtils.wrapForCount(sql);
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/engine/sql/DatabaseDialect.java
-
-```java
-public enum DatabaseDialect {
-    ORACLE_11G("Oracle 11g"),
-    ORACLE_12C("Oracle 12c"),
-    ORACLE_19C("Oracle 19c"),
-    ORACLE_21C("Oracle 21c"),
-    MYSQL("MySQL"),
-    MARIADB("MariaDB"),
-    POSTGRESQL("PostgreSQL"),
-    SQLSERVER("SQL Server"),
-    H2("H2"),
-    HSQLDB("HSQLDB");
-    private final String displayName;
-    DatabaseDialect(String displayName) {
-        this.displayName = displayName;
-    }
-    public String getDisplayName() {
-        return displayName;
-    }
-    public static DatabaseDialect fromString(String dialect) {
-        if (dialect == null) {
-            return ORACLE_11G;
-        }
-        String upperDialect = dialect.toUpperCase().replace("-", "_").replace(" ", "_");
-        try {
-            return valueOf(upperDialect);
-        } catch (IllegalArgumentException e) {
-            if (upperDialect.contains("ORACLE")) {
-                if (upperDialect.contains("12")) return ORACLE_12C;
-                if (upperDialect.contains("19")) return ORACLE_19C;
-                if (upperDialect.contains("21")) return ORACLE_21C;
-                return ORACLE_11G;
-            }
-            if (upperDialect.contains("MYSQL")) return MYSQL;
-            if (upperDialect.contains("MARIA")) return MARIADB;
-            if (upperDialect.contains("POSTGRES")) return POSTGRESQL;
-            if (upperDialect.contains("SQL") && upperDialect.contains("SERVER")) return SQLSERVER;
-            if (upperDialect.contains("H2")) return H2;
-            if (upperDialect.contains("HSQL")) return HSQLDB;
-            return ORACLE_11G; 
-        }
-    }
-    public boolean isOracle() {
-        return this == ORACLE_11G || this == ORACLE_12C || this == ORACLE_19C || this == ORACLE_21C;
-    }
-    public boolean supportsOffsetFetch() {
-        return this == ORACLE_12C || this == ORACLE_19C || this == ORACLE_21C || 
-               this == POSTGRESQL || this == SQLSERVER;
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/engine/sql/MetadataCache.java
-
-```java
-@Getter
-@Builder(toBuilder = true)
-public class MetadataCache {
-    private final Map<String, Integer> columnIndexMap;
-    private final Map<Integer, Integer> columnTypeMap;
-    private final String[] columnNames;
-    private final String[] columnLabels;
-    private final Map<String, Integer> attributeToColumnIndex;
-    private final Map<String, Integer> attributeToColumnType;
-    private final Map<String, Class<?>> columnJavaTypes;
-    private final int columnCount;
-    private final String queryName;
-    private final long createdAt;
-    private volatile boolean initialized;
-    @Value
-    public static class ColumnMetadata {
-        int index; 
-        String name; 
-        String label; 
-        int sqlType; 
-        String typeName; 
-        int precision; 
-        int scale; 
-    }
-    public Integer getColumnIndexForAttribute(String attributeName) {
-        return attributeToColumnIndex.get(attributeName);
-    }
-    public Integer getColumnTypeForAttribute(String attributeName) {
-        return attributeToColumnType.get(attributeName);
-    }
-    public Integer getColumnIndex(String columnName) {
-        if (columnName == null)
-            return null;
-        return columnIndexMap.get(columnName.toUpperCase());
-    }
-    public Class<?> getJavaTypeForColumn(String columnName) {
-        if (columnName == null || columnJavaTypes == null) {
-            return null;
-        }
-        return columnJavaTypes.get(columnName.toUpperCase());
-    }
-    public Integer getColumnType(int columnIndex) {
-        return columnTypeMap.get(columnIndex);
-    }
-    public String getColumnName(int columnIndex) {
-        if (columnIndex < 1 || columnIndex > columnCount) {
-            return null;
-        }
-        return columnNames[columnIndex - 1];
-    }
-    public String getColumnLabel(int columnIndex) {
-        if (columnIndex < 1 || columnIndex > columnCount) {
-            return null;
-        }
-        return columnLabels[columnIndex - 1];
-    }
-    public boolean hasColumn(String columnName) {
-        return getColumnIndex(columnName) != null;
-    }
-    public boolean isValidForColumnCount(int resultSetColumnCount) {
-        return this.columnCount == resultSetColumnCount;
-    }
-    public long getAgeMs() {
-        return System.currentTimeMillis() - createdAt;
-    }
-    public static MetadataCache empty(String queryName) {
-        return MetadataCache.builder()
-                .queryName(queryName)
-                .columnIndexMap(Collections.emptyMap())
-                .columnTypeMap(Collections.emptyMap())
-                .columnNames(new String[0])
-                .columnLabels(new String[0])
-                .attributeToColumnIndex(Collections.emptyMap())
-                .attributeToColumnType(Collections.emptyMap())
-                .columnCount(0)
-                .createdAt(System.currentTimeMillis())
-                .initialized(false)
-                .build();
-    }
-    public void markInitialized() {
-        this.initialized = true;
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/engine/sql/MetadataCacheBuilder.java
-
-```java
-public class MetadataCacheBuilder {
-    private static final Logger log = LoggerFactory.getLogger(MetadataCacheBuilder.class);
-    private final NamedParameterJdbcTemplate namedJdbcTemplate;
-    private final QuerySqlBuilder sqlBuilder;
-    public MetadataCacheBuilder(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder) {
-        this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-        this.sqlBuilder = sqlBuilder;
-    }
-    public MetadataCache buildCache(QueryDefinitionBuilder definition) {
-        String queryName = definition.getName();
-        try {
-            QueryContext metadataContext = createMetadataContext(definition);
-            SqlResult sqlResult = sqlBuilder.build(metadataContext);
-            MetadataCache cache = tryPreparedStatementMetadata(sqlResult.getSql(),
-                    sqlResult.getParams(), definition);
-            if (cache != null && cache.isInitialized()) {
-                return cache;
-            }
-            cache = tryExecuteWithWhere10(sqlResult.getSql(), sqlResult.getParams(), definition);
-            if (cache != null && cache.isInitialized()) {
-                log.info("Retrieved metadata using wrapped WHERE 1=0 for query: {}", queryName);
-                return cache;
-            }
-            throw new QueryException(queryName, QueryException.ErrorCode.EXECUTION_ERROR,
-                    "Failed to retrieve metadata: Both approaches failed");
-        } catch (Exception e) {
-            log.error("Failed to build metadata cache for query '{}': {}", queryName, e.getMessage(), e);
-            throw new QueryException(queryName, QueryException.ErrorCode.EXECUTION_ERROR,
-                    "Failed to build metadata cache: " + e.getMessage(), e);
-        }
-    }
-    private MetadataCache tryPreparedStatementMetadata(String sql, Map<String, Object> params,
-            QueryDefinitionBuilder definition) {
-        try {
-            return namedJdbcTemplate.execute(sql, params, (PreparedStatement ps) -> {
-                try {
-                    ResultSetMetaData metaData = ps.getMetaData();
-                    if (metaData != null) {
-                        log.trace("Got metadata without parameters");
-                        return buildCacheFromMetaData(metaData, definition);
-                    }
-                    setDummyParameters(ps);
-                    metaData = ps.getMetaData();
-                    if (metaData != null) {
-                        log.trace("Got metadata with dummy parameters");
-                        return buildCacheFromMetaData(metaData, definition);
-                    }
-                } catch (Exception e) {
-                    log.trace("PreparedStatement.getMetaData() approach failed: {}", e.getMessage());
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            log.trace("PreparedStatement approach failed: {}", e.getMessage());
-            return null;
-        }
-    }
-    private void setDummyParameters(PreparedStatement ps) throws SQLException {
-        ParameterMetaData pmd = ps.getParameterMetaData();
-        int paramCount = pmd.getParameterCount();
-        for (int i = 1; i <= paramCount; i++) {
-            try {
-                TypeConversionUtils.setDummyParameter(ps, i, pmd.getParameterType(i));
-            } catch (SQLException e) {
-                ps.setString(i, "DUMMY");
-            }
-        }
-    }
-    private MetadataCache tryExecuteWithWhere10(String sql, Map<String, Object> params,
-            QueryDefinitionBuilder definition) {
-        try {
-            String wrappedSql = "SELECT * FROM (" + sql + ") WHERE 1=0";
-            return namedJdbcTemplate.execute(wrappedSql, params, (PreparedStatement ps) -> {
-                try (ResultSet rs = ps.executeQuery()) {
-                    return buildCacheFromMetaData(rs.getMetaData(), definition);
-                } catch (Exception e) {
-                    log.trace("WHERE 1=0 approach failed: {}", e.getMessage());
-                    return null;
-                }
-            });
-        } catch (Exception e) {
-            log.trace("WHERE 1=0 approach failed: {}", e.getMessage());
-            return null;
-        }
-    }
-    private MetadataCache buildCacheFromMetaData(ResultSetMetaData metaData,
-            QueryDefinitionBuilder definition) throws SQLException {
-        int columnCount = metaData.getColumnCount();
-        Map<String, Integer> columnIndexMap = new ConcurrentHashMap<>();
-        Map<Integer, Integer> columnTypeMap = new ConcurrentHashMap<>();
-        Map<String, Class<?>> columnJavaTypes = new ConcurrentHashMap<>();
-        String[] columnNames = new String[columnCount];
-        String[] columnLabels = new String[columnCount];
-        for (int i = 1; i <= columnCount; i++) {
-            processColumn(i, metaData, columnIndexMap, columnTypeMap,
-                    columnJavaTypes, columnNames, columnLabels);
-        }
-        Map<String, Integer> attributeToColumnIndex = new ConcurrentHashMap<>();
-        Map<String, Integer> attributeToColumnType = new ConcurrentHashMap<>();
-        mapAttributesToColumns(definition, columnIndexMap, columnTypeMap,
-                attributeToColumnIndex, attributeToColumnType);
-        MetadataCache cache = MetadataCache.builder()
-                .queryName(definition.getName())
-                .columnIndexMap(columnIndexMap)
-                .columnTypeMap(columnTypeMap)
-                .columnJavaTypes(columnJavaTypes)
-                .columnNames(columnNames)
-                .columnLabels(columnLabels)
-                .attributeToColumnIndex(attributeToColumnIndex)
-                .attributeToColumnType(attributeToColumnType)
-                .columnCount(columnCount)
-                .createdAt(System.currentTimeMillis())
-                .initialized(true)
-                .build();
-        return cache;
-    }
-    private void processColumn(int index, ResultSetMetaData metaData,
-            Map<String, Integer> columnIndexMap, Map<Integer, Integer> columnTypeMap,
-            Map<String, Class<?>> columnJavaTypes, String[] columnNames,
-            String[] columnLabels) throws SQLException {
-        String name = metaData.getColumnName(index);
-        String label = metaData.getColumnLabel(index);
-        int type = metaData.getColumnType(index);
-        Class<?> javaType = TypeConversionUtils.getJavaType(type);
-        columnNames[index - 1] = name;
-        columnLabels[index - 1] = label;
-        String upperName = name.toUpperCase();
-        String upperLabel = label.toUpperCase();
-        columnIndexMap.put(upperName, index);
-        if (!upperName.equals(upperLabel)) {
-            columnIndexMap.put(upperLabel, index);
-        }
-        columnTypeMap.put(index, type);
-        columnJavaTypes.put(upperName, javaType);
-        if (!upperName.equals(upperLabel)) {
-            columnJavaTypes.put(upperLabel, javaType);
-        }
-        log.trace("Column {}: name='{}', label='{}', type={}, javaType={}",
-                index, name, label, type, javaType.getSimpleName());
-    }
-    private void mapAttributesToColumns(QueryDefinitionBuilder definition,
-            Map<String, Integer> columnIndexMap, Map<Integer, Integer> columnTypeMap,
-            Map<String, Integer> attributeToColumnIndex,
-            Map<String, Integer> attributeToColumnType) {
-        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            if (attr.virtual()) {
-                continue;
-            }
-            String columnKey = attr.aliasName() != null ? attr.aliasName() : attrName;
-            Integer columnIndex = columnIndexMap.get(columnKey.toUpperCase());
-            if (columnIndex != null) {
-                attributeToColumnIndex.put(attrName, columnIndex);
-                attributeToColumnType.put(attrName, columnTypeMap.get(columnIndex));
-                log.trace("Mapped attribute '{}' to column {}", attrName, columnIndex);
-            } else {
-                log.warn("No column found for attribute '{}' with alias '{}'",
-                        attrName, attr.aliasName());
-            }
-        }
-    }
-    private QueryContext createMetadataContext(QueryDefinitionBuilder definition) {
-        Map<String, Object> params = new HashMap<>();
-        for (Map.Entry<String, ParamDef<?>> entry : definition.getParameters().entrySet()) {
-            ParamDef<?> paramDef = entry.getValue();
-            Object value = paramDef.defaultValue() != null
-                    ? paramDef.defaultValue()
-                    : TypeConversionUtils.getDummyValue(paramDef.type());
-            params.put(entry.getKey(), value);
-        }
-        return QueryContext.builder()
-                .definition(definition)
-                .params(params)
-                .filters(new HashMap<>())
-                .sorts(new ArrayList<>())
-                .build();
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/engine/sql/MetadataOperations.java
-
-```java
-public class MetadataOperations {
-    public static Map<String, Object> extractRawData(ResultSet rs, MetadataCache cache) throws SQLException {
-        Map<String, Object> rawData = new HashMap<>();
-        if (cache != null && cache.isInitialized()) {
-            extractWithCache(rs, cache, rawData);
-        } else {
-            extractWithMetadata(rs, rawData);
-        }
-        return rawData;
-    }
-    public static Object extractAttributeValue(ResultSet rs, AttributeDef<?> attr,
-            MetadataCache cache, Map<String, Object> rawData) throws SQLException {
-        if (rawData != null && attr.aliasName() != null) {
-            String aliasName = attr.aliasName().toUpperCase();
-            if (rawData.containsKey(aliasName)) {
-                return rawData.get(aliasName);
-            }
-        }
-        if (cache != null && cache.isInitialized()) {
-            Integer columnIndex = resolveColumnIndex(attr, cache);
-            if (columnIndex != null) {
-                Integer sqlType = cache.getColumnType(columnIndex);
-                return TypeConversionUtils.extractValue(rs, columnIndex, 
-                    sqlType != null ? sqlType : Types.OTHER);
-            }
-        }
-        if (attr.aliasName() != null) {
-            return TypeConversionUtils.extractValue(rs, attr.aliasName());
-        }
-        return null;
-    }
-    private static Integer resolveColumnIndex(AttributeDef<?> attr, MetadataCache cache) {
-        Integer columnIndex = cache.getColumnIndexForAttribute(attr.name());
-        if (columnIndex == null && attr.aliasName() != null) {
-            columnIndex = cache.getColumnIndex(attr.aliasName());
-        }
-        return columnIndex;
-    }
-    private static void extractWithCache(ResultSet rs, MetadataCache cache, 
-            Map<String, Object> rawData) throws SQLException {
-        String[] columnNames = cache.getColumnNames();
-        String[] columnLabels = cache.getColumnLabels();
-        for (int i = 0; i < columnNames.length; i++) {
-            int columnIndex = i + 1; 
-            Integer sqlType = cache.getColumnType(columnIndex);
-            Object value = TypeConversionUtils.extractValue(rs, columnIndex, 
-                sqlType != null ? sqlType : Types.OTHER);
-            String columnName = columnNames[i].toUpperCase();
-            rawData.put(columnName, value);
-            if (columnLabels != null && i < columnLabels.length) {
-                String label = columnLabels[i].toUpperCase();
-                if (!columnName.equals(label)) {
-                    rawData.put(label, value);
-                }
-            }
-        }
-    }
-    private static void extractWithMetadata(ResultSet rs, 
-            Map<String, Object> rawData) throws SQLException {
-        ResultSetMetaData metaData = rs.getMetaData();
-        int columnCount = metaData.getColumnCount();
-        for (int i = 1; i <= columnCount; i++) {
-            String columnName = metaData.getColumnName(i).toUpperCase();
-            String columnLabel = metaData.getColumnLabel(i).toUpperCase();
-            Object value = TypeConversionUtils.extractValue(rs, i, metaData.getColumnType(i));
-            rawData.put(columnName, value);
-            if (!columnName.equals(columnLabel)) {
-                rawData.put(columnLabel, value);
-            }
-        }
     }
 }```
 
@@ -2999,29 +2054,13 @@ public class SqlBuilderUtils {
             Map<String, Object> params) {
         return criteria.sql();
     }
-    public static String applyPagination(String sql, QueryContext context, DatabaseDialect dialect) {
+    public static String applyPagination(String sql, QueryContext context) {
         if (context.getPagination() == null) {
             return sql;
         }
         int offset = context.getPagination().getOffset();
         Integer limit = context.getPagination().getLimit();
-        switch (dialect) {
-            case ORACLE_11G:
-                return applyOracle11gPagination(sql, offset, limit);
-            case ORACLE_12C:
-            case ORACLE_19C:
-            case ORACLE_21C:
-                return applyOracle12cPagination(sql, offset, limit);
-            case MYSQL:
-            case MARIADB:
-                return applyMySqlPagination(sql, offset, limit);
-            case POSTGRESQL:
-                return applyPostgresPagination(sql, offset, limit);
-            case SQLSERVER:
-                return applySqlServerPagination(sql, offset, limit);
-            default:
-                return applyStandardPagination(sql, offset, limit);
-        }
+        return applyOracle11gPagination(sql, offset, limit);
     }
     private static String applyOracle11gPagination(String sql, int offset, Integer limit) {
         if (limit == null) {
@@ -3034,48 +2073,6 @@ public class SqlBuilderUtils {
         paginated.append(") query_ WHERE ROWNUM <= ").append(offset + limit);
         paginated.append(") WHERE rnum_ > ").append(offset);
         return paginated.toString();
-    }
-    private static String applyOracle12cPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        paginated.append(" OFFSET ").append(offset).append(" ROWS");
-        if (limit != null) {
-            paginated.append(" FETCH NEXT ").append(limit).append(" ROWS ONLY");
-        }
-        return paginated.toString();
-    }
-    private static String applyMySqlPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        if (limit != null) {
-            paginated.append(" LIMIT ").append(limit);
-            if (offset > 0) {
-                paginated.append(" OFFSET ").append(offset);
-            }
-        }
-        return paginated.toString();
-    }
-    private static String applyPostgresPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        if (limit != null) {
-            paginated.append(" LIMIT ").append(limit);
-        }
-        if (offset > 0) {
-            paginated.append(" OFFSET ").append(offset);
-        }
-        return paginated.toString();
-    }
-    private static String applySqlServerPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        if (!sql.toUpperCase().contains("ORDER BY")) {
-            paginated.append(" ORDER BY 1");
-        }
-        paginated.append(" OFFSET ").append(offset).append(" ROWS");
-        if (limit != null) {
-            paginated.append(" FETCH NEXT ").append(limit).append(" ROWS ONLY");
-        }
-        return paginated.toString();
-    }
-    private static String applyStandardPagination(String sql, int offset, Integer limit) {
-        return applyOracle12cPagination(sql, offset, limit);
     }
 }```
 
@@ -3419,25 +2416,28 @@ public class OracleHRQueryConfig {
         @PostConstruct
         public void registerQueries() {
                 queryRegistry.register(QueryDefinitionBuilder.builder("dynamic").sql("""
-                                SELECT * from employees where department_id = :deptId
+                                SELECT * from employees
                                                     """)
-                                .parameter(ParamDef.name("deptId", Integer.class).processor((val, ctx) -> {
-                                        return val != null ? (Integer) val : null;
-                                })
-                                                .defaultValue(100)
+                                .parameter(ParamDef.name("deptId", Integer.class)
                                                 .build())
+                                .attribute(AttributeDef.name("asdasd").aliasName("XX").build())
                                 .attribute(AttributeDef.name("fullName", String.class)
                                                 .calculated((row, context) -> String.format("%s %s",
-                                                                row.getString("firstName"), row.getString("lastName")))
+                                                                row.getString("FIRST_NAME"),
+                                                                row.getString("LAST_NAME")))
                                                 .build())
-                                .dynamic().build());
+                                .rowProcessor((row, context) -> {
+                                        row.set("DEPT_NAME", "zzz");
+                                        return row;
+                                })
+                                .build());
                 queryRegistry.register(employeesQuery());
                 queryRegistry.register(departmentStatsQuery());
                 queryRegistry.register(QueryDefinitionBuilder.builder("testUnion").sql(
                                 """
                                                 select employee_id,email
                                                 from employees
-                                                where department_id <> 100 and job_id = :jobId
+                                                where department_id <> 100
                                                 union
                                                 select employee_id,email
                                                 from employees
@@ -3445,8 +2445,12 @@ public class OracleHRQueryConfig {
                                                                                 """)
                                 .attribute(AttributeDef.name("EMPLOYEE_ID", Integer.class)
                                                 .build())
-                                .parameter(ParamDef.name("jobId").required(true).build())
+                                .parameter(ParamDef.name("jobId").required(false).build())
                                 .build());
+                queryRegistry.register(employeesSelectQuery());
+                queryRegistry.register(departmentsSelectQuery());
+                queryRegistry.register(jobsSelectQuery());
+                queryRegistry.register(managersSelectQuery());
         }
         private QueryDefinitionBuilder employeesQuery() {
                 return QueryDefinitionBuilder.builder("employees")
@@ -3541,12 +2545,11 @@ public class OracleHRQueryConfig {
                                                 }).build())
                                 .attribute(AttributeDef.name("internalDebugInfo", String.class)
                                                 .selected(false) 
-                                                .calculated((row, context) -> "Debug: ID=" + row.get("employeeId"))
+                                                .calculated((row, context) -> "Debug: ID=" + row.get("EMPLOYEE_ID"))
                                                 .build())
                                 .parameter(ParamDef.name("deptId")
                                                 .build())
                                 .parameter(ParamDef.name("departmentIds", String.class)
-                                                .defaultValue("ASD")
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")
                                                 .build())
@@ -3608,10 +2611,8 @@ public class OracleHRQueryConfig {
                                 })
                                 .postProcessor((queryResult, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult.toBuilder()
-                                                        .summary(Map.of("TEST", "Summary")).build();
+                                        return queryResult;
                                 })
-                                .dynamic(NamingStrategy.CAMEL)
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
                                 .cache(true)
@@ -3699,12 +2700,10 @@ public class OracleHRQueryConfig {
                                                                 QueryResult result = queryExecutor.execute("employees")
                                                                                 .withParam("departmentIds",
                                                                                                 List.of(deptId))
-                                                                                .select("employeeId", "firstName")
                                                                                 .withPagination(0, 100)
                                                                                 .execute();
                                                                 System.out.println("Found " + result.getRows().size()
-                                                                                + " employees for dept " + deptId
-                                                                                + " (using select for performance)");
+                                                                                + " employees for dept " + deptId);
                                                                 return result.getData();
                                                         } catch (Exception e) {
                                                                 System.err.println(
@@ -3724,52 +2723,52 @@ public class OracleHRQueryConfig {
                                 .maxPageSize(100)
                                 .build();
         }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/example/OracleHRSelectConfig.java
-
-```java
-@Configuration
-public class OracleHRSelectConfig {
-        private final QueryRegistry queryRegistry;
-        public OracleHRSelectConfig(QueryRegistry queryRegistry) {
-                this.queryRegistry = queryRegistry;
-        }
-        @Bean
-        public QueryDefinitionBuilder employeeSelect() {
-                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("employeesLov")
+        private QueryDefinitionBuilder employeesSelectQuery() {
+                return QueryDefinitionBuilder.builder("employeesLov")
                                 .sql("""
                                                 SELECT
-                                                    *
+                                                    e.employee_id,
+                                                    e.first_name || ' ' || e.last_name as full_name,
+                                                    e.email,
+                                                    d.department_name
                                                 FROM employees e
                                                 LEFT JOIN departments d ON e.department_id = d.department_id
                                                 WHERE 1=1
                                                 --departmentFilter
+                                                --searchFilter
                                                 """)
                                 .description("Employee select for dropdowns with search and department filtering")
-                                .valueAttribute("EMPLOYEE_ID", Integer.class)
-                                .labelAttribute("FIRST_NAME")
+                                .asSelect("employee_id", "full_name")
+                                .attribute(AttributeDef.name("employee_id", Integer.class)
+                                                .aliasName("employee_id")
+                                                .build())
+                                .attribute(AttributeDef.name("full_name", String.class)
+                                                .aliasName("full_name")
+                                                .build())
+                                .attribute(AttributeDef.name("email", String.class)
+                                                .aliasName("email")
+                                                .build())
+                                .attribute(AttributeDef.name("department_name", String.class)
+                                                .aliasName("department_name")
+                                                .build())
                                 .criteria(CriteriaDef.name("departmentFilter")
                                                 .sql("AND d.department_id = :departmentId")
                                                 .condition(ctx -> ctx.hasParam("departmentId"))
                                                 .build())
+                                .criteria(CriteriaDef.name("searchFilter")
+                                                .sql("AND LOWER(e.first_name || ' ' || e.last_name) LIKE LOWER(:search)")
+                                                .condition(ctx -> ctx.hasParam("search"))
+                                                .build())
                                 .parameter(ParamDef.name("departmentId")
                                                 .build())
-                                .postProcessor((queryResult, context) -> {
-                                        System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult;
-                                })
-                                .paginationEnabled(false)
-                                .dynamic()
+                                .parameter(ParamDef.name("search")
+                                                .build())
+                                .paginationEnabled(true)
+                                .defaultPageSize(100)
                                 .build();
-                queryRegistry.register(select);
-                return select;
         }
-        @Bean
-        public QueryDefinitionBuilder departmentSelect() {
-                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("departments")
+        private QueryDefinitionBuilder departmentsSelectQuery() {
+                return QueryDefinitionBuilder.builder("departments")
                                 .sql("""
                                                 SELECT
                                                     d.department_id,
@@ -3784,8 +2783,13 @@ public class OracleHRSelectConfig {
                                                 --locationFilter
                                                 """)
                                 .description("Department select with location information")
-                                .valueAttribute("department_id", Integer.class)
-                                .labelAttribute("department_name")
+                                .asSelect("department_id", "department_name")
+                                .attribute(AttributeDef.name("department_id", Integer.class)
+                                                .aliasName("department_id")
+                                                .build())
+                                .attribute(AttributeDef.name("department_name", String.class)
+                                                .aliasName("department_name")
+                                                .build())
                                 .attribute(AttributeDef.name("city", String.class)
                                                 .aliasName("city")
                                                 .build())
@@ -3802,12 +2806,9 @@ public class OracleHRSelectConfig {
                                 .parameter(ParamDef.name("locationId")
                                                 .build())
                                 .build();
-                queryRegistry.register(select);
-                return select;
         }
-        @Bean
-        public QueryDefinitionBuilder jobSelect() {
-                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("jobs")
+        private QueryDefinitionBuilder jobsSelectQuery() {
+                return QueryDefinitionBuilder.builder("jobs")
                                 .sql("""
                                                 SELECT
                                                     job_id,
@@ -3818,22 +2819,23 @@ public class OracleHRSelectConfig {
                                                 ORDER BY job_title
                                                 """)
                                 .description("Job titles for dropdowns")
-                                .valueAttribute("job_id", String.class)
-                                .labelAttribute("job_title")
+                                .asSelect("job_id", "job_title")
+                                .attribute(AttributeDef.name("job_id", String.class)
+                                                .aliasName("job_id")
+                                                .build())
+                                .attribute(AttributeDef.name("job_title", String.class)
+                                                .aliasName("job_title")
+                                                .build())
                                 .attribute(AttributeDef.name("min_salary", BigDecimal.class)
-                                                .type(BigDecimal.class)
                                                 .aliasName("min_salary")
                                                 .build())
                                 .attribute(AttributeDef.name("max_salary", BigDecimal.class)
                                                 .aliasName("max_salary")
                                                 .build())
                                 .build();
-                queryRegistry.register(select);
-                return select;
         }
-        @Bean
-        public QueryDefinitionBuilder managerSelect() {
-                QueryDefinitionBuilder select = SelectDefinitionBuilder.builder("managers")
+        private QueryDefinitionBuilder managersSelectQuery() {
+                return QueryDefinitionBuilder.builder("managers")
                                 .sql("""
                                                 SELECT DISTINCT
                                                     m.employee_id,
@@ -3847,8 +2849,13 @@ public class OracleHRSelectConfig {
                                                 --searchFilter
                                                 """)
                                 .description("Managers only for selection")
-                                .valueAttribute("employee_id", Integer.class)
-                                .labelAttribute("full_name")
+                                .asSelect("employee_id", "full_name")
+                                .attribute(AttributeDef.name("employee_id", Integer.class)
+                                                .aliasName("employee_id")
+                                                .build())
+                                .attribute(AttributeDef.name("full_name", String.class)
+                                                .aliasName("full_name")
+                                                .build())
                                 .attribute(AttributeDef.name("email", String.class)
                                                 .aliasName("email")
                                                 .build())
@@ -3857,13 +2864,12 @@ public class OracleHRSelectConfig {
                                                 .build())
                                 .criteria(CriteriaDef.name("searchFilter")
                                                 .sql("AND LOWER(m.first_name || ' ' || m.last_name) LIKE LOWER(:search)")
+                                                .condition(ctx -> ctx.hasParam("search"))
                                                 .build())
                                 .parameter(ParamDef.name("search")
                                                 .build())
                                 .defaultPageSize(50)
                                 .build();
-                queryRegistry.register(select);
-                return select;
         }
 }```
 
@@ -3937,6 +2943,19 @@ public class QueryService {
     public List<String> getRegisteredQueryNames() {
         return List.of();
     }
+    public QueryResult executeAsSelect(String queryName, QueryRequest request) {
+        log.info("Executing query as select: {} with params: {}", queryName, request.getParams());
+        QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
+        if (queryDefinition == null) {
+            throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
+                    "Query not found: " + queryName);
+        }
+        if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
+            throw new QueryException(queryName, QueryException.ErrorCode.DEFINITION_ERROR,
+                    "Query must define value and label attributes for select mode. Use asSelect() or valueAttribute()/labelAttribute() when building the query.");
+        }
+        return executeQuery(queryName, request);
+    }
     private void validateRequest(QueryDefinitionBuilder queryDefinition, QueryRequest request) {
         if (request.getFilters() != null) {
             request.getFilters().forEach((key, filter) -> {
@@ -3973,31 +2992,516 @@ public class QueryService {
 
 ---
 
+## src/main/java/com/balsam/oasis/common/registry/util/QueryUtils.java
+
+```java
+public class QueryUtils {
+    private static final Logger log = LoggerFactory.getLogger(QueryUtils.class);
+    private static final Pattern BIND_PARAM_PATTERN = Pattern.compile(":(\\w+)");
+    private static final Pattern NAMED_PARAM_PATTERN = Pattern.compile(":([a-zA-Z_][a-zA-Z0-9_]*)");
+    private static final Map<Integer, Class<?>> SQL_TYPE_MAP = new HashMap<>();
+    private static final Map<String, Class<?>> TYPE_NAME_MAP = new HashMap<>();
+    static {
+        initializeTypeMappings();
+    }
+    public static String replacePlaceholder(String sql, String placeholder, String replacement) {
+        return sql.replace("--" + placeholder, replacement != null ? replacement : "");
+    }
+    public static String cleanPlaceholders(String sql) {
+        return sql.replaceAll("--\\w+", "");
+    }
+    public static String wrapForCount(String sql) {
+        return "SELECT COUNT(*) FROM (" + sql + ") count_query";
+    }
+    public static Map<String, Object> extractBindParams(String sql, Map<String, Object> allParams) {
+        Map<String, Object> bindParams = new HashMap<>();
+        Matcher matcher = BIND_PARAM_PATTERN.matcher(sql);
+        while (matcher.find()) {
+            String paramName = matcher.group(1);
+            if (allParams.containsKey(paramName)) {
+                bindParams.put(paramName, allParams.get(paramName));
+            }
+        }
+        return bindParams;
+    }
+    public static boolean hasBindParameter(String sql, String paramName) {
+        Pattern pattern = Pattern.compile(":" + Pattern.quote(paramName) + "\\b");
+        return pattern.matcher(sql).find();
+    }
+    public static String applyFilters(String sql, QueryContext context, Map<String, Object> params) {
+        if (context.getFilters() == null || context.getFilters().isEmpty()) {
+            return sql;
+        }
+        StringBuilder filterClause = new StringBuilder();
+        int paramIndex = 0;
+        for (Filter filter : context.getFilters().values()) {
+            AttributeDef<?> attr = context.getDefinition().getAttribute(filter.getAttribute());
+            if (attr == null || !attr.filterable()) {
+                log.warn("Attribute {} is not filterable or does not exist", filter.getAttribute());
+                continue;
+            }
+            if (filterClause.length() > 0) {
+                filterClause.append(" AND ");
+            }
+            String condition = buildFilterCondition(filter, attr, params, paramIndex++);
+            filterClause.append(condition);
+        }
+        if (filterClause.length() > 0) {
+            sql = "SELECT * FROM (" + sql + ") WHERE " + filterClause.toString();
+        }
+        return sql;
+    }
+    private static String buildFilterCondition(Filter filter, AttributeDef<?> attr,
+            Map<String, Object> params, int index) {
+        String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
+        String paramName = "filter_" + filter.getAttribute() + "_" + index;
+        switch (filter.getOperator()) {
+            case EQUALS:
+                params.put(paramName, filter.getValue());
+                return column + " = :" + paramName;
+            case NOT_EQUALS:
+                params.put(paramName, filter.getValue());
+                return column + " != :" + paramName;
+            case LIKE:
+                params.put(paramName, filter.getValue());
+                return "UPPER(" + column + ") LIKE UPPER(:" + paramName + ")";
+            case NOT_LIKE:
+                params.put(paramName, filter.getValue());
+                return "UPPER(" + column + ") NOT LIKE UPPER(:" + paramName + ")";
+            case IN:
+                params.put(paramName, filter.getValues() != null ? filter.getValues() : filter.getValue());
+                return column + " IN (:" + paramName + ")";
+            case NOT_IN:
+                params.put(paramName, filter.getValues() != null ? filter.getValues() : filter.getValue());
+                return column + " NOT IN (:" + paramName + ")";
+            case GREATER_THAN:
+                params.put(paramName, filter.getValue());
+                return column + " > :" + paramName;
+            case GREATER_THAN_OR_EQUAL:
+                params.put(paramName, filter.getValue());
+                return column + " >= :" + paramName;
+            case LESS_THAN:
+                params.put(paramName, filter.getValue());
+                return column + " < :" + paramName;
+            case LESS_THAN_OR_EQUAL:
+                params.put(paramName, filter.getValue());
+                return column + " <= :" + paramName;
+            case BETWEEN:
+                params.put(paramName + "_1", filter.getValue());
+                params.put(paramName + "_2", filter.getValue2());
+                return column + " BETWEEN :" + paramName + "_1 AND :" + paramName + "_2";
+            case IS_NULL:
+                return column + " IS NULL";
+            case IS_NOT_NULL:
+                return column + " IS NOT NULL";
+            default:
+                throw new QueryException(QueryException.ErrorCode.PARAMETER_ERROR,
+                    "Unsupported filter operator: " + filter.getOperator());
+        }
+    }
+    public static String applySorting(String sql, QueryContext context) {
+        if (context.getSorts() == null || context.getSorts().isEmpty()) {
+            return sql;
+        }
+        String orderByClause = context.getSorts().stream()
+            .map(sort -> {
+                AttributeDef<?> attr = context.getDefinition().getAttribute(sort.getAttribute());
+                if (attr == null || !attr.sortable()) {
+                    log.warn("Attribute {} is not sortable or does not exist", sort.getAttribute());
+                    return null;
+                }
+                String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
+                return column + " " + sort.getDirection().name();
+            })
+            .filter(s -> s != null)
+            .collect(Collectors.joining(", "));
+        if (!orderByClause.isEmpty()) {
+            sql = replacePlaceholder(sql, "orderBy", "ORDER BY " + orderByClause);
+        }
+        return sql;
+    }
+    public static String applyCriteria(String sql, QueryContext context, Map<String, Object> params) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        if (definition.getCriteria() == null || definition.getCriteria().isEmpty()) {
+            return sql;
+        }
+        for (Map.Entry<String, CriteriaDef> entry : definition.getCriteria().entrySet()) {
+            CriteriaDef criteria = entry.getValue();
+            if (criteria.condition() == null || criteria.condition().test(context)) {
+                String placeholder = entry.getKey();
+                String sqlFragment = criteria.sql();
+                sql = replacePlaceholder(sql, placeholder, sqlFragment);
+            }
+        }
+        return sql;
+    }
+    public static String applyPagination(String sql, QueryContext context) {
+        if (context.getPagination() == null) {
+            return sql;
+        }
+        int offset = context.getPagination().getOffset();
+        Integer limit = context.getPagination().getLimit();
+        return applyOracle11gPagination(sql, offset, limit);
+    }
+    private static String applyOracle11gPagination(String sql, int offset, Integer limit) {
+        if (limit == null) {
+            return sql;
+        }
+        StringBuilder paginated = new StringBuilder();
+        paginated.append("SELECT * FROM (");
+        paginated.append("SELECT query_.*, ROWNUM rnum_ FROM (");
+        paginated.append(sql);
+        paginated.append(") query_ WHERE ROWNUM <= ").append(offset + limit);
+        paginated.append(") WHERE rnum_ > ").append(offset);
+        return paginated.toString();
+    }
+    private static void initializeTypeMappings() {
+        SQL_TYPE_MAP.put(Types.TINYINT, Byte.class);
+        SQL_TYPE_MAP.put(Types.SMALLINT, Short.class);
+        SQL_TYPE_MAP.put(Types.INTEGER, Integer.class);
+        SQL_TYPE_MAP.put(Types.BIGINT, Long.class);
+        SQL_TYPE_MAP.put(Types.FLOAT, Float.class);
+        SQL_TYPE_MAP.put(Types.REAL, Float.class);
+        SQL_TYPE_MAP.put(Types.DOUBLE, Double.class);
+        SQL_TYPE_MAP.put(Types.NUMERIC, BigDecimal.class);
+        SQL_TYPE_MAP.put(Types.DECIMAL, BigDecimal.class);
+        SQL_TYPE_MAP.put(Types.CHAR, String.class);
+        SQL_TYPE_MAP.put(Types.VARCHAR, String.class);
+        SQL_TYPE_MAP.put(Types.LONGVARCHAR, String.class);
+        SQL_TYPE_MAP.put(Types.NCHAR, String.class);
+        SQL_TYPE_MAP.put(Types.NVARCHAR, String.class);
+        SQL_TYPE_MAP.put(Types.LONGNVARCHAR, String.class);
+        SQL_TYPE_MAP.put(Types.CLOB, String.class);
+        SQL_TYPE_MAP.put(Types.NCLOB, String.class);
+        SQL_TYPE_MAP.put(Types.DATE, Date.class);
+        SQL_TYPE_MAP.put(Types.TIME, Time.class);
+        SQL_TYPE_MAP.put(Types.TIMESTAMP, Timestamp.class);
+        SQL_TYPE_MAP.put(Types.TIME_WITH_TIMEZONE, Time.class);
+        SQL_TYPE_MAP.put(Types.TIMESTAMP_WITH_TIMEZONE, Timestamp.class);
+        SQL_TYPE_MAP.put(Types.BOOLEAN, Boolean.class);
+        SQL_TYPE_MAP.put(Types.BIT, Boolean.class);
+        SQL_TYPE_MAP.put(Types.BINARY, byte[].class);
+        SQL_TYPE_MAP.put(Types.VARBINARY, byte[].class);
+        SQL_TYPE_MAP.put(Types.LONGVARBINARY, byte[].class);
+        SQL_TYPE_MAP.put(Types.BLOB, byte[].class);
+        TYPE_NAME_MAP.put("NUMBER", BigDecimal.class);
+        TYPE_NAME_MAP.put("VARCHAR2", String.class);
+        TYPE_NAME_MAP.put("CHAR", String.class);
+        TYPE_NAME_MAP.put("DATE", Timestamp.class);
+        TYPE_NAME_MAP.put("TIMESTAMP", Timestamp.class);
+        TYPE_NAME_MAP.put("CLOB", String.class);
+        TYPE_NAME_MAP.put("BLOB", byte[].class);
+    }
+    public static Class<?> getJavaType(int sqlType) {
+        Class<?> javaType = SQL_TYPE_MAP.get(sqlType);
+        if (javaType == null) {
+            log.warn("Unknown SQL type: {}, defaulting to Object", sqlType);
+            return Object.class;
+        }
+        return javaType;
+    }
+    public static Class<?> getJavaType(String typeName) {
+        if (typeName == null) {
+            return Object.class;
+        }
+        String upperTypeName = typeName.toUpperCase();
+        Class<?> javaType = TYPE_NAME_MAP.get(upperTypeName);
+        if (javaType == null) {
+            try {
+                JDBCType jdbcType = JDBCType.valueOf(upperTypeName);
+                javaType = getJavaType(jdbcType.getVendorTypeNumber());
+            } catch (IllegalArgumentException e) {
+                log.warn("Unknown type name: {}, defaulting to Object", typeName);
+                return Object.class;
+            }
+        }
+        return javaType;
+    }
+    @SuppressWarnings("unchecked")
+    public static <T> T convertValue(Object value, Class<T> targetType) {
+        if (value == null) {
+            return null;
+        }
+        if (targetType.isAssignableFrom(value.getClass())) {
+            return (T) value;
+        }
+        if (targetType == String.class) {
+            return (T) value.toString();
+        }
+        if (Number.class.isAssignableFrom(targetType)) {
+            return convertToNumber(value, targetType);
+        }
+        if (targetType == Boolean.class || targetType == boolean.class) {
+            return (T) convertToBoolean(value);
+        }
+        if (Date.class.isAssignableFrom(targetType)) {
+            return convertToDate(value, targetType);
+        }
+        if (LocalDate.class.isAssignableFrom(targetType)) {
+            return (T) convertToLocalDate(value);
+        }
+        if (LocalDateTime.class.isAssignableFrom(targetType)) {
+            return (T) convertToLocalDateTime(value);
+        }
+        if (LocalTime.class.isAssignableFrom(targetType)) {
+            return (T) convertToLocalTime(value);
+        }
+        try {
+            return targetType.cast(value);
+        } catch (ClassCastException e) {
+            log.warn("Cannot convert {} to {}", value.getClass(), targetType);
+            return null;
+        }
+    }
+    @SuppressWarnings("unchecked")
+    private static <T> T convertToNumber(Object value, Class<T> targetType) {
+        Number number;
+        if (value instanceof Number) {
+            number = (Number) value;
+        } else if (value instanceof String) {
+            try {
+                number = new BigDecimal(value.toString());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        } else {
+            return null;
+        }
+        if (targetType == Byte.class || targetType == byte.class) {
+            return (T) Byte.valueOf(number.byteValue());
+        } else if (targetType == Short.class || targetType == short.class) {
+            return (T) Short.valueOf(number.shortValue());
+        } else if (targetType == Integer.class || targetType == int.class) {
+            return (T) Integer.valueOf(number.intValue());
+        } else if (targetType == Long.class || targetType == long.class) {
+            return (T) Long.valueOf(number.longValue());
+        } else if (targetType == Float.class || targetType == float.class) {
+            return (T) Float.valueOf(number.floatValue());
+        } else if (targetType == Double.class || targetType == double.class) {
+            return (T) Double.valueOf(number.doubleValue());
+        } else if (targetType == BigDecimal.class) {
+            if (value instanceof BigDecimal) {
+                return (T) value;
+            }
+            return (T) new BigDecimal(number.toString());
+        }
+        return null;
+    }
+    private static Boolean convertToBoolean(Object value) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else if (value instanceof Number) {
+            return ((Number) value).intValue() != 0;
+        } else if (value instanceof String) {
+            String str = value.toString().toLowerCase();
+            return "true".equals(str) || "yes".equals(str) || "y".equals(str) || "1".equals(str);
+        }
+        return false;
+    }
+    @SuppressWarnings("unchecked")
+    private static <T> T convertToDate(Object value, Class<T> targetType) {
+        if (value == null) {
+            return null;
+        }
+        long millis;
+        if (value instanceof java.util.Date) {
+            millis = ((java.util.Date) value).getTime();
+        } else if (value instanceof Number) {
+            millis = ((Number) value).longValue();
+        } else if (value instanceof String) {
+            try {
+                millis = Timestamp.valueOf(value.toString()).getTime();
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        } else {
+            return null;
+        }
+        if (targetType == Date.class) {
+            return (T) new Date(millis);
+        } else if (targetType == Time.class) {
+            return (T) new Time(millis);
+        } else if (targetType == Timestamp.class) {
+            return (T) new Timestamp(millis);
+        } else if (targetType == java.util.Date.class) {
+            return (T) new java.util.Date(millis);
+        }
+        return null;
+    }
+    private static LocalDate convertToLocalDate(Object value) {
+        if (value instanceof LocalDate) {
+            return (LocalDate) value;
+        } else if (value instanceof Date) {
+            return ((Date) value).toLocalDate();
+        } else if (value instanceof Timestamp) {
+            return ((Timestamp) value).toLocalDateTime().toLocalDate();
+        } else if (value instanceof String) {
+            return LocalDate.parse(value.toString());
+        }
+        return null;
+    }
+    private static LocalDateTime convertToLocalDateTime(Object value) {
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        } else if (value instanceof Timestamp) {
+            return ((Timestamp) value).toLocalDateTime();
+        } else if (value instanceof Date) {
+            return new Timestamp(((Date) value).getTime()).toLocalDateTime();
+        } else if (value instanceof String) {
+            return LocalDateTime.parse(value.toString());
+        }
+        return null;
+    }
+    private static LocalTime convertToLocalTime(Object value) {
+        if (value instanceof LocalTime) {
+            return (LocalTime) value;
+        } else if (value instanceof Time) {
+            return ((Time) value).toLocalTime();
+        } else if (value instanceof Timestamp) {
+            return ((Timestamp) value).toLocalDateTime().toLocalTime();
+        } else if (value instanceof String) {
+            return LocalTime.parse(value.toString());
+        }
+        return null;
+    }
+    public static Class<?> extractJavaType(ResultSetMetaData metaData, int columnIndex) throws SQLException {
+        int sqlType = metaData.getColumnType(columnIndex);
+        String typeName = metaData.getColumnTypeName(columnIndex);
+        Class<?> javaType = getJavaType(typeName);
+        if (javaType != Object.class) {
+            return javaType;
+        }
+        return getJavaType(sqlType);
+    }
+    public static Object getResultSetValue(ResultSet rs, int columnIndex, Class<?> targetType) throws SQLException {
+        Object value = rs.getObject(columnIndex);
+        if (value == null || rs.wasNull()) {
+            return null;
+        }
+        if (targetType != null && targetType != Object.class) {
+            return convertValue(value, targetType);
+        }
+        return value;
+    }
+    public static void validateQuery(QueryDefinitionBuilder queryDef) {
+        String queryName = queryDef.getName();
+        Set<String> sqlBindParams = extractBindParameters(queryDef.getSql());
+        Set<String> criteriaBindParams = new HashSet<>();
+        if (queryDef.getCriteria() != null) {
+            for (Map.Entry<String, CriteriaDef> entry : queryDef.getCriteria().entrySet()) {
+                CriteriaDef criteria = entry.getValue();
+                if (criteria.sql() != null) {
+                    Set<String> params = extractBindParameters(criteria.sql());
+                    criteriaBindParams.addAll(params);
+                }
+            }
+        }
+        Set<String> allBindParams = new HashSet<>();
+        allBindParams.addAll(sqlBindParams);
+        allBindParams.addAll(criteriaBindParams);
+        Set<String> definedParams = new HashSet<>();
+        if (queryDef.getParameters() != null) {
+            definedParams.addAll(queryDef.getParameters().keySet());
+        }
+        Set<String> systemParams = Set.of("offset", "limit", "_start", "_end");
+        Set<String> undefinedParams = new HashSet<>(allBindParams);
+        undefinedParams.removeAll(definedParams);
+        undefinedParams.removeAll(systemParams);
+        Set<String> filterGeneratedParams = new HashSet<>();
+        if (queryDef.getAttributes() != null) {
+            for (String attrName : queryDef.getAttributes().keySet()) {
+                filterGeneratedParams.add(attrName);
+                filterGeneratedParams.add(attrName + "_eq");
+                filterGeneratedParams.add(attrName + "_ne");
+                filterGeneratedParams.add(attrName + "_gt");
+                filterGeneratedParams.add(attrName + "_gte");
+                filterGeneratedParams.add(attrName + "_lt");
+                filterGeneratedParams.add(attrName + "_lte");
+                filterGeneratedParams.add(attrName + "_like");
+                filterGeneratedParams.add(attrName + "_in");
+                filterGeneratedParams.add(attrName + "_between_1");
+                filterGeneratedParams.add(attrName + "_between_2");
+                filterGeneratedParams.add(attrName + "_null");
+                filterGeneratedParams.add(attrName + "_notnull");
+            }
+        }
+        undefinedParams.removeAll(filterGeneratedParams);
+        if (!undefinedParams.isEmpty()) {
+            String errorMsg = String.format("""
+                    Query '%s' uses undefined bind parameters: %s
+                    Defined parameters: %s
+                    Used in SQL: %s
+                    Used in criteria: %s
+                    Make sure all :paramName references have corresponding ParamDef definitions.""",
+                    queryName, undefinedParams, definedParams, sqlBindParams, criteriaBindParams);
+            throw new IllegalStateException(errorMsg);
+        }
+    }
+    public static Set<String> findUnusedParameters(QueryDefinitionBuilder queryDef) {
+        Set<String> sqlBindParams = extractBindParameters(queryDef.getSql());
+        Set<String> criteriaBindParams = new HashSet<>();
+        if (queryDef.getCriteria() != null) {
+            for (Map.Entry<String, CriteriaDef> entry : queryDef.getCriteria().entrySet()) {
+                CriteriaDef criteria = entry.getValue();
+                if (criteria.sql() != null) {
+                    Set<String> params = extractBindParameters(criteria.sql());
+                    criteriaBindParams.addAll(params);
+                }
+            }
+        }
+        Set<String> allBindParams = new HashSet<>();
+        allBindParams.addAll(sqlBindParams);
+        allBindParams.addAll(criteriaBindParams);
+        Set<String> definedParams = new HashSet<>();
+        if (queryDef.getParameters() != null) {
+            definedParams.addAll(queryDef.getParameters().keySet());
+        }
+        Set<String> systemParams = Set.of("offset", "limit", "_start", "_end");
+        Set<String> unusedParams = new HashSet<>(definedParams);
+        unusedParams.removeAll(allBindParams);
+        unusedParams.removeAll(systemParams);
+        return unusedParams;
+    }
+    public static Set<String> extractBindParameters(String sql) {
+        Set<String> params = new HashSet<>();
+        if (sql == null || sql.isEmpty()) {
+            return params;
+        }
+        Matcher matcher = NAMED_PARAM_PATTERN.matcher(sql);
+        while (matcher.find()) {
+            params.add(matcher.group(1));
+        }
+        return params;
+    }
+}```
+
+---
+
 ## src/main/java/com/balsam/oasis/common/registry/web/builder/QueryResponseBuilder.java
 
 ```java
 @Slf4j
 public class QueryResponseBuilder {
     private final ResponseFormatter formatter = new ResponseFormatter();
-    public ResponseEntity<?> build(QueryResult result, String queryName) {
-        QueryListResponse response = buildFormattedResponse(result);
+    public ResponseEntity<QueryResponse> build(QueryResult result, String queryName) {
+        QueryResponse response = buildFormattedResponse(result);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    public ResponseEntity<QuerySingleResponse> buildSingle(QueryResult result, String queryName) {
-        QuerySingleResponse response = buildFormattedSingleResponse(result);
+    public ResponseEntity<QueryResponse> buildSingle(QueryResult result, String queryName) {
+        QueryResponse response = buildFormattedSingleResponse(result);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    public ResponseEntity<?> buildSelectResponse(QueryResult queryResult) {
-        QueryListResponse response = buildFormattedSelectResponse(queryResult);
+    public ResponseEntity<QueryResponse> buildSelectResponse(QueryResult queryResult) {
+        QueryResponse response = buildFormattedSelectResponse(queryResult);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    private QueryListResponse buildFormattedResponse(QueryResult result) {
+    private QueryResponse buildFormattedResponse(QueryResult result) {
         Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
         QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
         List<?> formattedData;
@@ -4006,14 +3510,14 @@ public class QueryResponseBuilder {
         } else {
             formattedData = result.getData();
         }
-        return QueryListResponse.builder()
+        return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
                 .count(result.getCount())
                 .success(result.isSuccess())
                 .build();
     }
-    private QuerySingleResponse buildFormattedSingleResponse(QueryResult result) {
+    private QueryResponse buildFormattedSingleResponse(QueryResult result) {
         if (result == null || result.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
@@ -4025,36 +3529,27 @@ public class QueryResponseBuilder {
         } else {
             formattedData = result.getRows().get(0).toMap();
         }
-        return QuerySingleResponse.builder()
+        return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
                 .success(result.isSuccess())
                 .build();
     }
-    private QueryListResponse buildFormattedSelectResponse(QueryResult queryResult) {
+    private QueryResponse buildFormattedSelectResponse(QueryResult queryResult) {
         QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
-        if (!definition.getAttributes().containsKey("value") ||
-                !definition.getAttributes().containsKey("label")) {
-            throw new QueryException("Select query must have 'value' and 'label' attributes",
+        String valueAttr = definition.getValueAttribute();
+        String labelAttr = definition.getLabelAttribute();
+        if (valueAttr == null || labelAttr == null) {
+            throw new QueryException("Select query must have value and label attributes defined",
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
         Object securityContext = queryResult.getContext() != null ? queryResult.getContext().getSecurityContext() : null;
         List<SelectItem> selectItems = new ArrayList<>();
         for (QueryRow row : queryResult.getRows()) {
             Map<String, Object> formattedRow = formatter.formatRow(row, definition, securityContext);
-            String value = String.valueOf(formattedRow.get("value"));
-            String label = String.valueOf(formattedRow.get("label"));
-            Map<String, Object> additions = null;
-            List<String> additionAttrNames = definition.getAttributes().keySet().stream()
-                    .filter(name -> !"value".equals(name) && !"label".equals(name))
-                    .toList();
-            if (!additionAttrNames.isEmpty()) {
-                additions = new HashMap<>();
-                for (String attrName : additionAttrNames) {
-                    additions.put(attrName, formattedRow.get(attrName));
-                }
-            }
-            selectItems.add(SelectItem.of(value, label, additions));
+            String value = String.valueOf(formattedRow.get(valueAttr));
+            String label = String.valueOf(formattedRow.get(labelAttr));
+            selectItems.add(SelectItem.of(value, label));
         }
         QueryMetadata selectMetadata = null;
         if (queryResult.hasMetadata() && queryResult.getMetadata().getPagination() != null) {
@@ -4062,9 +3557,12 @@ public class QueryResponseBuilder {
                     .pagination(queryResult.getMetadata().getPagination())
                     .build();
         }
-        return selectMetadata != null
-                ? QueryListResponse.success(selectItems, selectMetadata, queryResult.getCount())
-                : QueryListResponse.success(selectItems, queryResult.getCount());
+        return QueryResponse.builder()
+                .data(selectItems)
+                .metadata(selectMetadata)
+                .count(queryResult.getCount())
+                .success(true)
+                .build();
     }
 }```
 
@@ -4214,17 +3712,13 @@ public class QueryController {
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
-    private QueryErrorResponse buildErrorResponse(Exception e) {
-        QueryErrorResponseBuilder builder = QueryErrorResponse.builder()
-                .message(e.getMessage())
-                .timestamp(System.currentTimeMillis());
+    private QueryResponse buildErrorResponse(Exception e) {
+        String errorCode = "INTERNAL_ERROR";
+        String errorMessage = e.getMessage();
         if (e instanceof QueryException qe) {
-            builder.code(qe.getErrorCode())
-                    .queryName(qe.getQueryName());
-        } else {
-            builder.code("INTERNAL_ERROR");
+            errorCode = qe.getErrorCode();
         }
-        return builder.build();
+        return QueryResponse.error(errorCode, errorMessage);
     }
 }```
 
@@ -4269,11 +3763,16 @@ public class SelectController {
                                 selectName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Select query not found: " + selectName)));
             }
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, "none", queryDefinition);
+            if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
+                log.warn("Query {} not configured for select mode, using default attributes", selectName);
+            }
+            String valueAttr = queryDefinition.getValueAttribute() != null ? queryDefinition.getValueAttribute() : "value";
+            String labelAttr = queryDefinition.getLabelAttribute() != null ? queryDefinition.getLabelAttribute() : "label";
             if (id != null && !id.isEmpty()) {
                 log.debug("Fetching by IDs: {}", id);
-                queryRequest.getFilters().put("value", 
+                queryRequest.getFilters().put(valueAttr,
                     QueryContext.Filter.builder()
-                        .attribute("value")
+                        .attribute(valueAttr)
                         .operator(FilterOp.IN)
                         .values(id.stream().map(s -> (Object) s).toList())
                         .build());
@@ -4286,15 +3785,15 @@ public class SelectController {
                 if (hasSearchParam || hasSearchCriteria) {
                     queryRequest.getParams().put("search", "%" + search + "%");
                 } else {
-                    queryRequest.getFilters().put("label", 
+                    queryRequest.getFilters().put(labelAttr,
                         QueryContext.Filter.builder()
-                            .attribute("label")
+                            .attribute(labelAttr)
                             .operator(FilterOp.LIKE)
                             .value("%" + search + "%")
                             .build());
                 }
             }
-            QueryResult queryResult = queryService.executeQuery(selectName, queryRequest);
+            QueryResult queryResult = queryService.executeAsSelect(selectName, queryRequest);
             return responseBuilder.buildSelectResponse(queryResult);
         } catch (QueryException e) {
             log.error("Select execution failed: {}", e.getMessage());
@@ -4321,17 +3820,13 @@ public class SelectController {
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
-    private QueryErrorResponse buildErrorResponse(Exception e) {
-        QueryErrorResponseBuilder builder = QueryErrorResponse.builder()
-                .message(e.getMessage())
-                .timestamp(System.currentTimeMillis());
+    private QueryResponse buildErrorResponse(Exception e) {
+        String errorCode = "INTERNAL_ERROR";
+        String errorMessage = e.getMessage();
         if (e instanceof QueryException qe) {
-            builder.code(qe.getErrorCode())
-                    .queryName(qe.getQueryName());
-        } else {
-            builder.code("INTERNAL_ERROR");
+            errorCode = qe.getErrorCode();
         }
-        return builder.build();
+        return QueryResponse.error(errorCode, errorMessage);
     }
 }```
 
@@ -4377,25 +3872,7 @@ public class QueryRequestBody {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryErrorResponse.java
-
-```java
-@Data
-@Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class QueryErrorResponse {
-    @Builder.Default
-    private boolean success = false;
-    private String code;
-    private String message;
-    private String queryName;
-    private Map<String, Object> details;
-    private long timestamp;
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryListResponse.java
+## src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryResponse.java
 
 ```java
 @Data
@@ -4403,160 +3880,44 @@ public class QueryErrorResponse {
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class QueryListResponse implements QuerySuccessResponse {
-    private List<?> data;
-    private Object metadata;
-    private Integer count;
-    @Builder.Default
-    private boolean success = true;
-    public static QueryListResponse success(List<?> data, QueryMetadata metadata, Integer count) {
-        return QueryListResponse.builder()
-                .data(data)
-                .metadata(metadata)
-                .count(count)
-                .success(true)
-                .build();
-    }
-    public static QueryListResponse success(List<?> data, Integer count) {
-        return QueryListResponse.builder()
-                .data(data)
-                .count(count)
-                .success(true)
-                .build();
-    }
-    public static QueryListResponse from(QueryResult queryResult) {
-        return QueryListResponse.builder()
-                .data(queryResult.getData())
-                .metadata(queryResult.getMetadata())
-                .count(queryResult.getCount())
-                .success(queryResult.isSuccess())
-                .build();
-    }
-    public static QueryListResponse success(List<?> data, Object metadata) {
-        return QueryListResponse.builder()
-                .data(data)
-                .metadata(metadata)
-                .count(data != null ? data.size() : 0)
-                .success(true)
-                .build();
-    }
-    public static QueryListResponse success(List<?> data) {
-        return QueryListResponse.builder()
-                .data(data)
-                .count(data != null ? data.size() : 0)
-                .success(true)
-                .build();
-    }
-    public static QueryListResponse fromSelect(QueryResult queryResult) {
-        QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
-        if (!definition.getAttributes().containsKey("value") ||
-                !definition.getAttributes().containsKey("label")) {
-            throw new QueryException("Select query must have 'value' and 'label' attributes",
-                    "INVALID_SELECT_DEFINITION", definition.getName());
-        }
-        List<SelectItem> selectItems = new ArrayList<>();
-        for (QueryRow row : queryResult.getRows()) {
-            String value = String.valueOf(row.get("value"));
-            String label = String.valueOf(row.get("label"));
-            Map<String, Object> additions = null;
-            List<String> additionAttrNames = definition.getAttributes().keySet().stream()
-                    .filter(name -> !"value".equals(name) && !"label".equals(name))
-                    .toList();
-            if (!additionAttrNames.isEmpty()) {
-                additions = new HashMap<>();
-                for (String attrName : additionAttrNames) {
-                    additions.put(attrName, row.get(attrName));
-                }
-            }
-            selectItems.add(SelectItem.of(value, label, additions));
-        }
-        QueryMetadata selectMetadata = null;
-        if (queryResult.hasMetadata() && queryResult.getMetadata().getPagination() != null) {
-            selectMetadata = QueryMetadata.builder()
-                    .pagination(queryResult.getMetadata().getPagination())
-                    .build();
-        }
-        return selectMetadata != null
-                ? QueryListResponse.success(selectItems, selectMetadata, queryResult.getCount())
-                : QueryListResponse.success(selectItems, queryResult.getCount());
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/dto/response/QuerySingleResponse.java
-
-```java
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class QuerySingleResponse implements QuerySuccessResponse {
+public class QueryResponse {
     private Object data;
+    private Integer count;
     private QueryMetadata metadata;
     @Builder.Default
     private boolean success = true;
-    public static QuerySingleResponse success(Object data) {
-        return QuerySingleResponse.builder()
-                .data(data)
-                .success(true)
-                .build();
-    }
-    public static QuerySingleResponse success(Object data, QueryMetadata metadata) {
-        return QuerySingleResponse.builder()
+    private String errorCode;
+    private String errorMessage;
+    private long timestamp;
+    public static QueryResponse success(List<?> data, QueryMetadata metadata, Integer count) {
+        return QueryResponse.builder()
                 .data(data)
                 .metadata(metadata)
+                .count(count)
                 .success(true)
                 .build();
     }
-    public static QuerySingleResponse from(QueryResult queryResult) {
-        if (queryResult == null || queryResult.getRows().isEmpty()) {
-            throw new QueryException("No data found", "NOT_FOUND", (String) null);
-        }
-        Object data = queryResult.getRows().get(0).toMap();
-        return QuerySingleResponse.builder()
+    public static QueryResponse success(List<?> data, Integer count) {
+        return QueryResponse.builder()
                 .data(data)
-                .metadata(queryResult.getMetadata())
-                .success(queryResult.isSuccess())
+                .count(count)
+                .success(true)
                 .build();
     }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/dto/response/QuerySuccessResponse.java
-
-```java
-public interface QuerySuccessResponse {
-    boolean isSuccess();
-    Object getMetadata();
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/formatter/ColumnNameTransformer.java
-
-```java
-@Slf4j
-public class ColumnNameTransformer {
-    public Map<String, Object> transformColumnNames(Map<String, Object> rawData, NamingStrategy strategy) {
-        if (strategy == null || strategy == NamingStrategy.AS_IS) {
-            return rawData;
-        }
-        Map<String, Object> transformedData = new HashMap<>();
-        for (Map.Entry<String, Object> entry : rawData.entrySet()) {
-            String columnName = entry.getKey();
-            String transformedName = strategy.convert(columnName);
-            transformedData.put(transformedName, entry.getValue());
-        }
-        return transformedData;
+    public static QueryResponse success(Object singleData) {
+        return QueryResponse.builder()
+                .data(singleData)
+                .count(1)
+                .success(true)
+                .build();
     }
-    public String transformColumnName(String columnName, NamingStrategy strategy) {
-        if (strategy == null || strategy == NamingStrategy.AS_IS) {
-            return columnName;
-        }
-        return strategy.convert(columnName);
+    public static QueryResponse error(String errorCode, String errorMessage) {
+        return QueryResponse.builder()
+                .success(false)
+                .errorCode(errorCode)
+                .errorMessage(errorMessage)
+                .timestamp(System.currentTimeMillis())
+                .build();
     }
 }```
 
@@ -4567,7 +3928,6 @@ public class ColumnNameTransformer {
 ```java
 @Slf4j
 public class ResponseFormatter {
-    private final ColumnNameTransformer nameTransformer = new ColumnNameTransformer();
     public List<Map<String, Object>> formatRows(List<QueryRow> rows, QueryDefinitionBuilder definition, Object securityContext) {
         List<Map<String, Object>> formattedData = new ArrayList<>();
         for (QueryRow row : rows) {
@@ -4610,19 +3970,6 @@ public class ResponseFormatter {
                 }
             }
             formattedData.put(attrName, value);
-        }
-        if (definition.isDynamic()) {
-            Map<String, Object> rawData = row.toMap();
-            NamingStrategy strategy = definition.getNamingStrategy();
-            for (Map.Entry<String, Object> rawEntry : rawData.entrySet()) {
-                String columnName = rawEntry.getKey();
-                if (!definedAttributes.contains(columnName.toUpperCase())) {
-                    String transformedName = nameTransformer.transformColumnName(columnName, strategy);
-                    if (!formattedData.containsKey(transformedName)) {
-                        formattedData.put(transformedName, rawEntry.getValue());
-                    }
-                }
-            }
         }
         return formattedData;
     }

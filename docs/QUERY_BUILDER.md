@@ -124,13 +124,6 @@ WHERE 1=1
 .cacheKey(params -> params.toString())    // Custom cache key
 ```
 
-### 7. Dynamic Attributes
-Automatically discover and include columns not explicitly defined.
-
-```java
-.dynamic()                          // Use CAMEL case naming
-.dynamic(NamingStrategy.LOWER)     // Use lower_case naming
-```
 
 ## Complete Example
 

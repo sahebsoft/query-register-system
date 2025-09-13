@@ -4,7 +4,6 @@ import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
-import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -16,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ResponseFormatter {
 
-    private final ColumnNameTransformer nameTransformer = new ColumnNameTransformer();
 
     public List<Map<String, Object>> formatRows(List<QueryRow> rows, QueryDefinitionBuilder definition, Object securityContext) {
         List<Map<String, Object>> formattedData = new ArrayList<>();
@@ -77,22 +75,6 @@ public class ResponseFormatter {
             formattedData.put(attrName, value);
         }
 
-        // Add dynamic attributes if enabled
-        if (definition.isDynamic()) {
-            Map<String, Object> rawData = row.toMap();
-            NamingStrategy strategy = definition.getNamingStrategy();
-
-            // Add all unmapped columns as dynamic attributes
-            for (Map.Entry<String, Object> rawEntry : rawData.entrySet()) {
-                String columnName = rawEntry.getKey();
-                if (!definedAttributes.contains(columnName.toUpperCase())) {
-                    String transformedName = nameTransformer.transformColumnName(columnName, strategy);
-                    if (!formattedData.containsKey(transformedName)) {
-                        formattedData.put(transformedName, rawEntry.getValue());
-                    }
-                }
-            }
-        }
 
         return formattedData;
     }

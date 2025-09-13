@@ -14,10 +14,6 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "query.registration")
 public class QueryProperties {
 
-    /**
-     * Database dialect (ORACLE_11G or ORACLE_12C)
-     */
-    private String databaseDialect = "ORACLE_11G";
 
     /**
      * REST API configuration

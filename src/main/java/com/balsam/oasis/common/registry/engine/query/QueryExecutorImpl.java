@@ -97,7 +97,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             QueryResult result = QueryResult.builder()
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
-                    .count(rows.size()) // Always set count to actual row size
                     .build();
 
             // Run post-processors
@@ -112,7 +111,6 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             return result.toBuilder()
                     .executionTimeMs(context.getExecutionTime())
-                    .success(true)
                     .build();
 
         } catch (Exception e) {
@@ -201,7 +199,6 @@ public class QueryExecutorImpl implements QueryExecutor {
     private List<QueryRow> runRowProcessors(QueryContext context, List<QueryRow> rows) {
         QueryDefinitionBuilder definition = context.getDefinition();
 
-        // Note: Transient attributes are now handled by DynamicRowMapper
         // This method focuses on running custom row processors
 
         // Then run row processors if any

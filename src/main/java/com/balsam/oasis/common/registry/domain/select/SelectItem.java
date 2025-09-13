@@ -1,7 +1,5 @@
 package com.balsam.oasis.common.registry.domain.select;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -31,28 +29,12 @@ public class SelectItem {
     private String label;
 
     /**
-     * Additional data fields (email, phone, etc.)
-     */
-    private Map<String, Object> additions;
-
-    /**
-     * Create a simple LOV item without additions
+     * Create a simple LOV item
      */
     public static SelectItem of(String value, String label) {
         return SelectItem.builder()
                 .value(value)
                 .label(label)
-                .build();
-    }
-
-    /**
-     * Create a LOV item with additional data
-     */
-    public static SelectItem of(String value, String label, Map<String, Object> additions) {
-        return SelectItem.builder()
-                .value(value)
-                .label(label)
-                .additions(additions)
                 .build();
     }
 }

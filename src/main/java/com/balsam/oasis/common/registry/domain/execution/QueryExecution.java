@@ -170,22 +170,6 @@ public class QueryExecution {
         return this;
     }
 
-    // Caching control
-    public QueryExecution withCaching(boolean enabled) {
-        context.setCacheEnabled(enabled);
-        return this;
-    }
-
-    // Field selection
-    public QueryExecution select(String... fields) {
-        context.selectFields(fields);
-        return this;
-    }
-
-    public QueryExecution selectFields(Set<String> fields) {
-        context.selectFields(fields);
-        return this;
-    }
 
     // Validation
     public QueryExecution validate() {

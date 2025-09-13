@@ -21,7 +21,7 @@ echo "" >> "$OUTPUT_FILE"
 echo "## Table of Contents" >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
 
-find src -name "*.java" -type f | sort | while read -r file; do
+find src/main/java -name "*.java" -type f | sort | while read -r file; do
     filename=$(basename "$file")
     echo "- [$file](#$(echo "$file" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]'))" >> "$OUTPUT_FILE"
 done
@@ -30,7 +30,7 @@ echo "" >> "$OUTPUT_FILE"
 echo "---" >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
 
-find src -name "*.java" -type f | sort | while read -r file; do
+find src/main/java -name "*.java" -type f | sort | while read -r file; do
     echo "Processing: $file"
 
     echo "## $file" >> "$OUTPUT_FILE"
@@ -53,7 +53,7 @@ find src -name "*.java" -type f | sort | while read -r file; do
     echo "" >> "$OUTPUT_FILE"
 done
 
-total_files=$(find src -name "*.java" -type f | wc -l)
+total_files=$(find src/main/java -name "*.java" -type f | wc -l)
 total_lines=$(wc -l < "$OUTPUT_FILE")
 
 echo ""

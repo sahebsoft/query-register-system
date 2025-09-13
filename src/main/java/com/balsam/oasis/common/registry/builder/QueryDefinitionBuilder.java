@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CacheConfig;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
@@ -16,7 +15,6 @@ import com.balsam.oasis.common.registry.domain.processor.PostProcessor;
 import com.balsam.oasis.common.registry.domain.processor.PreProcessor;
 import com.balsam.oasis.common.registry.domain.processor.RowProcessor;
 import com.balsam.oasis.common.registry.domain.validation.BindParameterValidator;
-import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -85,29 +83,40 @@ public class QueryDefinitionBuilder {
      */
     private final Integer fetchSize;
 
-    /**
-     * Cached metadata for optimized row mapping.
-     * This field is transient and can be set via withMetadataCache method.
-     */
-    private transient MetadataCache metadataCache;
+
 
     /**
-     * Flag to include dynamic attributes (columns not defined in AttributeDef)
+     * Attribute name to use as value in select mode
      */
-    private final boolean dynamic;
+    private final String valueAttribute;
 
     /**
-     * Naming strategy for dynamic attributes
+     * Attribute name to use as label in select mode
      */
-    private final NamingStrategy namingStrategy;
+    private final String labelAttribute;
+
+    /**
+     * Flag to indicate if this query is in select/LOV mode
+     */
+    private final boolean selectMode;
 
     public boolean hasAttributes() {
         return attributes != null && !attributes.isEmpty();
     }
 
+    public boolean isSelectMode() {
+        return selectMode;
+    }
+
+    public boolean hasLabelAttribute() {
+        return labelAttribute != null;
+    }
+
+    public boolean hasValueAttribute() {
+        return valueAttribute != null;
+    }
+
     public AttributeDef<?> getAttribute(String name) {
-        // Simply return from attributes map since dynamic attributes are now
-        // pre-registered
         return attributes.get(name);
     }
 
@@ -140,71 +149,7 @@ public class QueryDefinitionBuilder {
         return postProcessors != null && !postProcessors.isEmpty();
     }
 
-    /**
-     * Returns a new instance with the metadata cache set.
-     * Since this object is immutable, we create a new instance.
-     */
-    public QueryDefinitionBuilder withMetadataCache(MetadataCache cache) {
-        return new QueryDefinitionBuilder(
-                this.name,
-                this.description,
-                this.sql,
-                this.parameters,
-                this.criteria,
-                this.preProcessors,
-                this.rowProcessors,
-                this.postProcessors,
-                this.cacheConfig,
-                this.defaultPageSize,
-                this.maxPageSize,
-                this.auditEnabled,
-                this.metricsEnabled,
-                this.queryTimeout,
-                this.attributes,
-                this.paginationEnabled,
-                this.fetchSize,
-                cache,
-                this.dynamic,
-                this.namingStrategy);
-    }
 
-    /**
-     * Returns a new instance with both metadata cache and attributes set in one
-     * operation.
-     * This is more efficient than calling withMetadataCache and withAttributes
-     * separately.
-     * Since this object is immutable, we create a new instance.
-     * 
-     * @param cache         The metadata cache to set (can be null)
-     * @param newAttributes The attributes to set (if null, existing attributes are
-     *                      used)
-     * @return A new QueryDefinitionBuilder instance with both cache and attributes
-     *         set
-     */
-    public QueryDefinitionBuilder withCacheAndAttributes(MetadataCache cache,
-            Map<String, AttributeDef<?>> newAttributes) {
-        return new QueryDefinitionBuilder(
-                this.name,
-                this.description,
-                this.sql,
-                this.parameters,
-                this.criteria,
-                this.preProcessors,
-                this.rowProcessors,
-                this.postProcessors,
-                this.cacheConfig,
-                this.defaultPageSize,
-                this.maxPageSize,
-                this.auditEnabled,
-                this.metricsEnabled,
-                this.queryTimeout,
-                newAttributes != null ? newAttributes : this.attributes,
-                this.paginationEnabled,
-                this.fetchSize,
-                cache,
-                this.dynamic,
-                this.namingStrategy);
-    }
 
     /**
      * Creates a new builder for QueryDefinition
@@ -245,9 +190,11 @@ public class QueryDefinitionBuilder {
         protected Boolean metricsEnabled = true;
         protected Integer queryTimeout;
 
-        // Dynamic attributes configuration
-        protected Boolean dynamic = false;
-        protected NamingStrategy dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
+
+        // Select mode configuration
+        protected String valueAttribute;
+        protected String labelAttribute;
+        protected Boolean selectMode = false;
 
         protected Builder(String name) {
             Preconditions.checkNotNull(name, "Query name cannot be null");
@@ -404,24 +351,34 @@ public class QueryDefinitionBuilder {
             return this;
         }
 
-        // Dynamic attributes configuration
 
         /**
-         * Enable dynamic attributes with default naming strategy (CAMEL).
+         * Configure this query as a select/LOV query with value and label attributes.
+         * @param valueAttribute The attribute name to use as the value (typically an ID)
+         * @param labelAttribute The attribute name to use as the label (display text)
          */
-        public Builder dynamic() {
-            this.dynamic = true;
-            this.dynamicAttributeNamingStrategy = NamingStrategy.CAMEL;
+        public Builder asSelect(String valueAttribute, String labelAttribute) {
+            Preconditions.checkNotNull(valueAttribute, "Value attribute cannot be null");
+            Preconditions.checkNotNull(labelAttribute, "Label attribute cannot be null");
+            this.selectMode = true;
+            this.valueAttribute = valueAttribute;
+            this.labelAttribute = labelAttribute;
             return this;
         }
 
         /**
-         * Enable dynamic attributes with specified naming strategy.
+         * Set the value attribute for select mode.
          */
-        public Builder dynamic(NamingStrategy strategy) {
-            Preconditions.checkNotNull(strategy, "NamingStrategy cannot be null");
-            this.dynamic = true;
-            this.dynamicAttributeNamingStrategy = strategy;
+        public Builder valueAttribute(String attribute) {
+            this.valueAttribute = attribute;
+            return this;
+        }
+
+        /**
+         * Set the label attribute for select mode.
+         */
+        public Builder labelAttribute(String attribute) {
+            this.labelAttribute = attribute;
             return this;
         }
 
@@ -455,9 +412,9 @@ public class QueryDefinitionBuilder {
                     ImmutableMap.copyOf(attributes),
                     paginationEnabled,
                     fetchSize,
-                    null, // metadataCache - set later if needed
-                    dynamic,
-                    dynamicAttributeNamingStrategy);
+                    valueAttribute,
+                    labelAttribute,
+                    selectMode);
 
             // Comprehensive validation:
             // 1. Validates no duplicate definitions within the query (attributes, params,

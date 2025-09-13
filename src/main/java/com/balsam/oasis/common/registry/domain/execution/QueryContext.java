@@ -1,13 +1,10 @@
 package com.balsam.oasis.common.registry.domain.execution;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
@@ -18,12 +15,12 @@ import lombok.Builder;
 import lombok.Data;
 
 /**
- * Mutable context for query execution containing all runtime parameters
+ * Simple context for query execution containing runtime parameters
  */
 @Data
 @Builder
 public class QueryContext {
-    // Base fields from BaseContext
+
     protected QueryDefinitionBuilder definition;
 
     @Builder.Default
@@ -31,23 +28,12 @@ public class QueryContext {
 
     protected Pagination pagination;
 
-    @Builder.Default
-    protected Map<String, Object> metadata = new HashMap<>();
-
-
     protected Long startTime;
     protected Long endTime;
 
     @Builder.Default
     protected boolean includeMetadata = true;
 
-    @Builder.Default
-    protected boolean auditEnabled = true;
-
-    @Builder.Default
-    protected boolean cacheEnabled = true;
-
-    protected String cacheKey;
     protected Integer totalCount;
 
     @Builder.Default
@@ -57,11 +43,6 @@ public class QueryContext {
     private List<SortSpec> sorts = new ArrayList<>();
 
     private Object securityContext;
-
-    @Builder.Default
-    private Map<String, Object> attributes = new HashMap<>();
-
-    private Set<String> selectedFields; // null or empty = all fields
 
     @Data
     @Builder
@@ -125,32 +106,22 @@ public class QueryContext {
                 .build());
     }
 
-
-    public <T> T getParam(String name, Class<T> type) {
-        Object value = getParam(name);
-        if (value == null) {
-            return null;
-        }
-        return type.cast(value);
+    public Object getParam(String name) {
+        return params.get(name);
     }
 
-    public Object getAttribute(String name) {
-        return attributes.get(name);
+    public boolean hasParam(String name) {
+        return params.containsKey(name) && params.get(name) != null;
     }
 
-    public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
-    }
-
-    public boolean hasFilter(String attribute) {
-        return filters.containsKey(attribute);
+    public boolean hasPagination() {
+        return pagination != null;
     }
 
     public boolean hasSorts() {
         return sorts != null && !sorts.isEmpty();
     }
 
-    // Methods from BaseContext
     public void startExecution() {
         this.startTime = System.currentTimeMillis();
     }
@@ -162,39 +133,4 @@ public class QueryContext {
     public long getExecutionTime() {
         return (startTime != null && endTime != null) ? endTime - startTime : 0;
     }
-
-    public void setParam(String name, Object value) {
-        params.put(name, value);
-    }
-
-    public Object getParam(String name) {
-        return params.get(name);
-    }
-
-    public boolean hasParam(String name) {
-        return params.containsKey(name) && params.get(name) != null;
-    }
-
-
-    public void addMetadata(String key, Object value) {
-        metadata.put(key, value);
-    }
-
-    public boolean hasPagination() {
-        return pagination != null;
-    }
-
-    public void selectFields(String... fields) {
-        this.selectedFields = new HashSet<>(Arrays.asList(fields));
-    }
-
-    public void selectFields(Set<String> fields) {
-        this.selectedFields = fields != null ? new HashSet<>(fields) : null;
-    }
-
-    public boolean isFieldSelected(String fieldName) {
-        return selectedFields == null || selectedFields.isEmpty() ||
-                selectedFields.contains(fieldName);
-    }
-
 }

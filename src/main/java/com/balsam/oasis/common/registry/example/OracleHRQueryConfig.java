@@ -3,14 +3,12 @@ package com.balsam.oasis.common.registry.example;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.context.annotation.Configuration;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
-import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
@@ -35,19 +33,21 @@ public class OracleHRQueryConfig {
         public void registerQueries() {
 
                 queryRegistry.register(QueryDefinitionBuilder.builder("dynamic").sql("""
-                                SELECT * from employees where department_id = :deptId
+                                SELECT * from employees
                                                     """)
-                                .parameter(ParamDef.name("deptId", Integer.class).processor((val, ctx) -> {
-                                        // If processor returns null, the default value will be used
-                                        return val != null ? (Integer) val : null;
-                                })
-                                                .defaultValue(100)
+                                .parameter(ParamDef.name("deptId", Integer.class)
                                                 .build())
+                                .attribute(AttributeDef.name("asdasd").aliasName("XX").build())
                                 .attribute(AttributeDef.name("fullName", String.class)
                                                 .calculated((row, context) -> String.format("%s %s",
-                                                                row.getString("firstName"), row.getString("lastName")))
+                                                                row.getString("FIRST_NAME"),
+                                                                row.getString("LAST_NAME")))
                                                 .build())
-                                .dynamic().build());
+                                .rowProcessor((row, context) -> {
+                                        row.set("DEPT_NAME", "zzz");
+                                        return row;
+                                })
+                                .build());
 
                 // Register all queries defined in this configuration
                 queryRegistry.register(employeesQuery());
@@ -56,7 +56,7 @@ public class OracleHRQueryConfig {
                                 """
                                                 select employee_id,email
                                                 from employees
-                                                where department_id <> 100 and job_id = :jobId
+                                                where department_id <> 100
                                                 union
                                                 select employee_id,email
                                                 from employees
@@ -64,9 +64,14 @@ public class OracleHRQueryConfig {
                                                                                 """)
                                 .attribute(AttributeDef.name("EMPLOYEE_ID", Integer.class)
                                                 .build())
-                                .parameter(ParamDef.name("jobId").required(true).build())
+                                .parameter(ParamDef.name("jobId").required(false).build())
                                 .build());
 
+                // Register select/LOV queries
+                queryRegistry.register(employeesSelectQuery());
+                queryRegistry.register(departmentsSelectQuery());
+                queryRegistry.register(jobsSelectQuery());
+                queryRegistry.register(managersSelectQuery());
         }
 
         private QueryDefinitionBuilder employeesQuery() {
@@ -167,7 +172,7 @@ public class OracleHRQueryConfig {
                                                 }).build())
                                 .attribute(AttributeDef.name("internalDebugInfo", String.class)
                                                 .selected(false) // Hidden by default unless explicitly requested
-                                                .calculated((row, context) -> "Debug: ID=" + row.get("employeeId"))
+                                                .calculated((row, context) -> "Debug: ID=" + row.get("EMPLOYEE_ID"))
                                                 .build())
 
                                 // Parameters
@@ -176,7 +181,6 @@ public class OracleHRQueryConfig {
 
                                 // Parameters for IN clause criteria
                                 .parameter(ParamDef.name("departmentIds", String.class)
-                                                .defaultValue("ASD")
                                                 .build())
                                 .parameter(ParamDef.name("employeeIds")
                                                 .build())
@@ -244,10 +248,8 @@ public class OracleHRQueryConfig {
                                 })
                                 .postProcessor((queryResult, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult.toBuilder()
-                                                        .summary(Map.of("TEST", "Summary")).build();
+                                        return queryResult;
                                 })
-                                .dynamic(NamingStrategy.CAMEL)
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
                                 .cache(true)
@@ -347,13 +349,11 @@ public class OracleHRQueryConfig {
                                                                 QueryResult result = queryExecutor.execute("employees")
                                                                                 .withParam("departmentIds",
                                                                                                 List.of(deptId))
-                                                                                .select("employeeId", "firstName")
                                                                                 .withPagination(0, 100)
                                                                                 .execute();
 
                                                                 System.out.println("Found " + result.getRows().size()
-                                                                                + " employees for dept " + deptId
-                                                                                + " (using select for performance)");
+                                                                                + " employees for dept " + deptId);
 
                                                                 // Return simplified employee data
                                                                 return result.getData();
@@ -376,6 +376,160 @@ public class OracleHRQueryConfig {
 
                                 .defaultPageSize(25)
                                 .maxPageSize(100)
+                                .build();
+        }
+
+        // Select/LOV Query Definitions
+
+        private QueryDefinitionBuilder employeesSelectQuery() {
+                return QueryDefinitionBuilder.builder("employeesLov")
+                                .sql("""
+                                                SELECT
+                                                    e.employee_id,
+                                                    e.first_name || ' ' || e.last_name as full_name,
+                                                    e.email,
+                                                    d.department_name
+                                                FROM employees e
+                                                LEFT JOIN departments d ON e.department_id = d.department_id
+                                                WHERE 1=1
+                                                --departmentFilter
+                                                --searchFilter
+                                                """)
+                                .description("Employee select for dropdowns with search and department filtering")
+                                .asSelect("employee_id", "full_name")
+                                .attribute(AttributeDef.name("employee_id", Integer.class)
+                                                .aliasName("employee_id")
+                                                .build())
+                                .attribute(AttributeDef.name("full_name", String.class)
+                                                .aliasName("full_name")
+                                                .build())
+                                .attribute(AttributeDef.name("email", String.class)
+                                                .aliasName("email")
+                                                .build())
+                                .attribute(AttributeDef.name("department_name", String.class)
+                                                .aliasName("department_name")
+                                                .build())
+                                .criteria(CriteriaDef.name("departmentFilter")
+                                                .sql("AND d.department_id = :departmentId")
+                                                .condition(ctx -> ctx.hasParam("departmentId"))
+                                                .build())
+                                .criteria(CriteriaDef.name("searchFilter")
+                                                .sql("AND LOWER(e.first_name || ' ' || e.last_name) LIKE LOWER(:search)")
+                                                .condition(ctx -> ctx.hasParam("search"))
+                                                .build())
+                                .parameter(ParamDef.name("departmentId")
+                                                .build())
+                                .parameter(ParamDef.name("search")
+                                                .build())
+                                .paginationEnabled(true)
+                                .defaultPageSize(100)
+                                .build();
+        }
+
+        private QueryDefinitionBuilder departmentsSelectQuery() {
+                return QueryDefinitionBuilder.builder("departments")
+                                .sql("""
+                                                SELECT
+                                                    d.department_id,
+                                                    d.department_name,
+                                                    l.city,
+                                                    l.state_province,
+                                                    c.country_name
+                                                FROM departments d
+                                                LEFT JOIN locations l ON d.location_id = l.location_id
+                                                LEFT JOIN countries c ON l.country_id = c.country_id
+                                                WHERE 1=1
+                                                --locationFilter
+                                                """)
+                                .description("Department select with location information")
+                                .asSelect("department_id", "department_name")
+                                .attribute(AttributeDef.name("department_id", Integer.class)
+                                                .aliasName("department_id")
+                                                .build())
+                                .attribute(AttributeDef.name("department_name", String.class)
+                                                .aliasName("department_name")
+                                                .build())
+                                .attribute(AttributeDef.name("city", String.class)
+                                                .aliasName("city")
+                                                .build())
+                                .attribute(AttributeDef.name("state_province", String.class)
+                                                .aliasName("state_province")
+                                                .build())
+                                .attribute(AttributeDef.name("country_name", String.class)
+                                                .aliasName("country_name")
+                                                .build())
+                                .criteria(CriteriaDef.name("locationFilter")
+                                                .sql("AND l.location_id = :locationId")
+                                                .condition(ctx -> ctx.hasParam("locationId"))
+                                                .build())
+                                .parameter(ParamDef.name("locationId")
+                                                .build())
+                                .build();
+        }
+
+        private QueryDefinitionBuilder jobsSelectQuery() {
+                return QueryDefinitionBuilder.builder("jobs")
+                                .sql("""
+                                                SELECT
+                                                    job_id,
+                                                    job_title,
+                                                    min_salary,
+                                                    max_salary
+                                                FROM jobs
+                                                ORDER BY job_title
+                                                """)
+                                .description("Job titles for dropdowns")
+                                .asSelect("job_id", "job_title")
+                                .attribute(AttributeDef.name("job_id", String.class)
+                                                .aliasName("job_id")
+                                                .build())
+                                .attribute(AttributeDef.name("job_title", String.class)
+                                                .aliasName("job_title")
+                                                .build())
+                                .attribute(AttributeDef.name("min_salary", BigDecimal.class)
+                                                .aliasName("min_salary")
+                                                .build())
+                                .attribute(AttributeDef.name("max_salary", BigDecimal.class)
+                                                .aliasName("max_salary")
+                                                .build())
+                                .build();
+        }
+
+        private QueryDefinitionBuilder managersSelectQuery() {
+                return QueryDefinitionBuilder.builder("managers")
+                                .sql("""
+                                                SELECT DISTINCT
+                                                    m.employee_id,
+                                                    m.first_name || ' ' || m.last_name as full_name,
+                                                    m.email,
+                                                    d.department_name
+                                                FROM employees e
+                                                INNER JOIN employees m ON e.manager_id = m.employee_id
+                                                LEFT JOIN departments d ON m.department_id = d.department_id
+                                                WHERE 1=1
+                                                --searchFilter
+                                                """)
+                                .description("Managers only for selection")
+                                .asSelect("employee_id", "full_name")
+                                .attribute(AttributeDef.name("employee_id", Integer.class)
+                                                .aliasName("employee_id")
+                                                .build())
+                                .attribute(AttributeDef.name("full_name", String.class)
+                                                .aliasName("full_name")
+                                                .build())
+                                .attribute(AttributeDef.name("email", String.class)
+                                                .aliasName("email")
+                                                .build())
+                                .attribute(AttributeDef.name("department_name", String.class)
+                                                .aliasName("department_name")
+                                                .build())
+                                .criteria(CriteriaDef.name("searchFilter")
+                                                .sql("AND LOWER(m.first_name || ' ' || m.last_name) LIKE LOWER(:search)")
+                                                .condition(ctx -> ctx.hasParam("search"))
+                                                .build())
+                                .parameter(ParamDef.name("search")
+                                                .build())
+                                .defaultPageSize(50)
                                 .build();
         }
 

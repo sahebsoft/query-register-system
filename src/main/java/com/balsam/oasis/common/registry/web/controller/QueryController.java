@@ -23,8 +23,7 @@ import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequestBody;
-import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse;
-import com.balsam.oasis.common.registry.web.dto.response.QueryErrorResponse.QueryErrorResponseBuilder;
+import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 import com.balsam.oasis.common.registry.service.QueryService;
 
@@ -255,18 +254,14 @@ public class QueryController {
         };
     }
 
-    private QueryErrorResponse buildErrorResponse(Exception e) {
-        QueryErrorResponseBuilder builder = QueryErrorResponse.builder()
-                .message(e.getMessage())
-                .timestamp(System.currentTimeMillis());
+    private QueryResponse buildErrorResponse(Exception e) {
+        String errorCode = "INTERNAL_ERROR";
+        String errorMessage = e.getMessage();
 
         if (e instanceof QueryException qe) {
-            builder.code(qe.getErrorCode())
-                    .queryName(qe.getQueryName());
-        } else {
-            builder.code("INTERNAL_ERROR");
+            errorCode = qe.getErrorCode();
         }
 
-        return builder.build();
+        return QueryResponse.error(errorCode, errorMessage);
     }
 }

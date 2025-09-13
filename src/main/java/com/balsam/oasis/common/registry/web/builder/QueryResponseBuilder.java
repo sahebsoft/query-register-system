@@ -4,8 +4,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
-import com.balsam.oasis.common.registry.web.dto.response.QueryListResponse;
-import com.balsam.oasis.common.registry.web.dto.response.QuerySingleResponse;
+import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 import com.balsam.oasis.common.registry.web.formatter.ResponseFormatter;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
@@ -30,8 +29,8 @@ public class QueryResponseBuilder {
     /**
      * Build JSON response from query result
      */
-    public ResponseEntity<?> build(QueryResult result, String queryName) {
-        QueryListResponse response = buildFormattedResponse(result);
+    public ResponseEntity<QueryResponse> build(QueryResult result, String queryName) {
+        QueryResponse response = buildFormattedResponse(result);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -41,8 +40,8 @@ public class QueryResponseBuilder {
     /**
      * Build JSON response for single result
      */
-    public ResponseEntity<QuerySingleResponse> buildSingle(QueryResult result, String queryName) {
-        QuerySingleResponse response = buildFormattedSingleResponse(result);
+    public ResponseEntity<QueryResponse> buildSingle(QueryResult result, String queryName) {
+        QueryResponse response = buildFormattedSingleResponse(result);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -53,15 +52,15 @@ public class QueryResponseBuilder {
      * Build JSON response for select/dropdown queries
      * Converts QueryResult to select response format with SelectItem objects
      */
-    public ResponseEntity<?> buildSelectResponse(QueryResult queryResult) {
-        QueryListResponse response = buildFormattedSelectResponse(queryResult);
+    public ResponseEntity<QueryResponse> buildSelectResponse(QueryResult queryResult) {
+        QueryResponse response = buildFormattedSelectResponse(queryResult);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
 
-    private QueryListResponse buildFormattedResponse(QueryResult result) {
+    private QueryResponse buildFormattedResponse(QueryResult result) {
         Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
         QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
 
@@ -72,7 +71,7 @@ public class QueryResponseBuilder {
             formattedData = result.getData();
         }
 
-        return QueryListResponse.builder()
+        return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
                 .count(result.getCount())
@@ -80,7 +79,7 @@ public class QueryResponseBuilder {
                 .build();
     }
 
-    private QuerySingleResponse buildFormattedSingleResponse(QueryResult result) {
+    private QueryResponse buildFormattedSingleResponse(QueryResult result) {
         if (result == null || result.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
@@ -95,18 +94,22 @@ public class QueryResponseBuilder {
             formattedData = result.getRows().get(0).toMap();
         }
 
-        return QuerySingleResponse.builder()
+        return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
                 .success(result.isSuccess())
                 .build();
     }
 
-    private QueryListResponse buildFormattedSelectResponse(QueryResult queryResult) {
+    private QueryResponse buildFormattedSelectResponse(QueryResult queryResult) {
         QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
-        if (!definition.getAttributes().containsKey("value") ||
-                !definition.getAttributes().containsKey("label")) {
-            throw new QueryException("Select query must have 'value' and 'label' attributes",
+
+        // Check if query has value and label attributes
+        String valueAttr = definition.getValueAttribute();
+        String labelAttr = definition.getLabelAttribute();
+
+        if (valueAttr == null || labelAttr == null) {
+            throw new QueryException("Select query must have value and label attributes defined",
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
 
@@ -116,22 +119,12 @@ public class QueryResponseBuilder {
         for (QueryRow row : queryResult.getRows()) {
             Map<String, Object> formattedRow = formatter.formatRow(row, definition, securityContext);
 
-            String value = String.valueOf(formattedRow.get("value"));
-            String label = String.valueOf(formattedRow.get("label"));
+            // Get value and label using the configured attribute names
+            String value = String.valueOf(formattedRow.get(valueAttr));
+            String label = String.valueOf(formattedRow.get(labelAttr));
 
-            Map<String, Object> additions = null;
-            List<String> additionAttrNames = definition.getAttributes().keySet().stream()
-                    .filter(name -> !"value".equals(name) && !"label".equals(name))
-                    .toList();
-
-            if (!additionAttrNames.isEmpty()) {
-                additions = new HashMap<>();
-                for (String attrName : additionAttrNames) {
-                    additions.put(attrName, formattedRow.get(attrName));
-                }
-            }
-
-            selectItems.add(SelectItem.of(value, label, additions));
+            // Create simple SelectItem without additions
+            selectItems.add(SelectItem.of(value, label));
         }
 
         QueryMetadata selectMetadata = null;
@@ -141,9 +134,12 @@ public class QueryResponseBuilder {
                     .build();
         }
 
-        return selectMetadata != null
-                ? QueryListResponse.success(selectItems, selectMetadata, queryResult.getCount())
-                : QueryListResponse.success(selectItems, queryResult.getCount());
+        return QueryResponse.builder()
+                .data(selectItems)
+                .metadata(selectMetadata)
+                .count(queryResult.getCount())
+                .success(true)
+                .build();
     }
 
 }

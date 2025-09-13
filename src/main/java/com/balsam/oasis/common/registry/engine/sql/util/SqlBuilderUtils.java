@@ -15,7 +15,6 @@ import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext.Filter;
-import com.balsam.oasis.common.registry.engine.sql.DatabaseDialect;
 
 /**
  * Consolidated SQL building utilities.
@@ -194,7 +193,7 @@ public class SqlBuilderUtils {
     
     // Pagination operations (from PaginationUtils)
     
-    public static String applyPagination(String sql, QueryContext context, DatabaseDialect dialect) {
+    public static String applyPagination(String sql, QueryContext context) {
         // Check if context has pagination
         if (context.getPagination() == null) {
             return sql;
@@ -203,23 +202,7 @@ public class SqlBuilderUtils {
         int offset = context.getPagination().getOffset();
         Integer limit = context.getPagination().getLimit();
         
-        switch (dialect) {
-            case ORACLE_11G:
-                return applyOracle11gPagination(sql, offset, limit);
-            case ORACLE_12C:
-            case ORACLE_19C:
-            case ORACLE_21C:
-                return applyOracle12cPagination(sql, offset, limit);
-            case MYSQL:
-            case MARIADB:
-                return applyMySqlPagination(sql, offset, limit);
-            case POSTGRESQL:
-                return applyPostgresPagination(sql, offset, limit);
-            case SQLSERVER:
-                return applySqlServerPagination(sql, offset, limit);
-            default:
-                return applyStandardPagination(sql, offset, limit);
-        }
+        return applyOracle11gPagination(sql, offset, limit);
     }
     
     private static String applyOracle11gPagination(String sql, int offset, Integer limit) {
@@ -237,63 +220,4 @@ public class SqlBuilderUtils {
         return paginated.toString();
     }
     
-    private static String applyOracle12cPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        paginated.append(" OFFSET ").append(offset).append(" ROWS");
-        
-        if (limit != null) {
-            paginated.append(" FETCH NEXT ").append(limit).append(" ROWS ONLY");
-        }
-        
-        return paginated.toString();
-    }
-    
-    private static String applyMySqlPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        
-        if (limit != null) {
-            paginated.append(" LIMIT ").append(limit);
-            if (offset > 0) {
-                paginated.append(" OFFSET ").append(offset);
-            }
-        }
-        
-        return paginated.toString();
-    }
-    
-    private static String applyPostgresPagination(String sql, int offset, Integer limit) {
-        StringBuilder paginated = new StringBuilder(sql);
-        
-        if (limit != null) {
-            paginated.append(" LIMIT ").append(limit);
-        }
-        
-        if (offset > 0) {
-            paginated.append(" OFFSET ").append(offset);
-        }
-        
-        return paginated.toString();
-    }
-    
-    private static String applySqlServerPagination(String sql, int offset, Integer limit) {
-        // SQL Server requires ORDER BY for OFFSET/FETCH
-        StringBuilder paginated = new StringBuilder(sql);
-        
-        if (!sql.toUpperCase().contains("ORDER BY")) {
-            paginated.append(" ORDER BY 1");
-        }
-        
-        paginated.append(" OFFSET ").append(offset).append(" ROWS");
-        
-        if (limit != null) {
-            paginated.append(" FETCH NEXT ").append(limit).append(" ROWS ONLY");
-        }
-        
-        return paginated.toString();
-    }
-    
-    private static String applyStandardPagination(String sql, int offset, Integer limit) {
-        // ANSI SQL:2008 standard
-        return applyOracle12cPagination(sql, offset, limit);
-    }
 }

@@ -7,13 +7,12 @@ import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import lombok.Builder;
 import lombok.Value;
 
 /**
- * Immutable query result container with data and metadata
+ * Simple container for query execution results
  */
 @Value
 @Builder(toBuilder = true)
@@ -24,22 +23,10 @@ public class QueryResult {
 
     QueryMetadata metadata;
 
-    @Builder.Default
-    Map<String, Object> summary = ImmutableMap.of();
-
     QueryContext context;
 
     Long executionTimeMs;
 
-    @Builder.Default
-    boolean success = true;
-
-    @Builder.Default
-    Integer count = 0;
-
-    String errorMessage;
-
-    // Helper methods
     public boolean isEmpty() {
         return rows == null || rows.isEmpty();
     }
@@ -49,20 +36,16 @@ public class QueryResult {
     }
 
     public int getCount() {
-        // Use pagination metadata total if available, otherwise fall back to count or
-        // data size
+        // If we have pagination metadata with total, use that
         if (metadata != null && metadata.getPagination() != null) {
             return metadata.getPagination().getTotal();
         }
-        return count != null ? count : size();
+        // Otherwise return actual row count
+        return size();
     }
 
     public boolean hasMetadata() {
         return metadata != null;
-    }
-
-    public boolean hasErrors() {
-        return !success || errorMessage != null;
     }
 
     public QueryRow getFirstRow() {
@@ -79,5 +62,10 @@ public class QueryResult {
                     .collect(ImmutableList.toImmutableList());
         }
         return ImmutableList.of();
+    }
+
+    // For backward compatibility
+    public boolean isSuccess() {
+        return true; // If we got here, it was successful
     }
 }
