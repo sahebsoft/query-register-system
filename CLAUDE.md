@@ -18,6 +18,7 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryExecutor.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryexecutor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/api/QueryRegistry.java](#src-main-java-com-balsam-oasis-common-registry-domain-api-queryregistry-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/Pagination.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-pagination-java)
+- [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryData.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-querydata-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-queryresult-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/SqlResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-sqlresult-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/AttributeDef.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-attributedef-java)
@@ -464,6 +465,131 @@ public class Pagination {
     }
     public int getLimit() {
         return getPageSize();
+    }
+}```
+
+---
+
+## src/main/java/com/balsam/oasis/common/registry/domain/common/QueryData.java
+
+```java
+@Value
+@Builder(toBuilder = true)
+public class QueryData {
+    @Builder.Default
+    List<QueryRow> rows = ImmutableList.of();
+    QueryMetadata metadata;
+    QueryContext context;
+    Long executionTimeMs;
+    String sql;
+    Map<String, Object> params;
+    Map<String, Object> rowData;
+    public boolean isEmpty() {
+        return rows == null || rows.isEmpty();
+    }
+    public int size() {
+        return rows != null ? rows.size() : 0;
+    }
+    public int getCount() {
+        if (metadata != null && metadata.getPagination() != null) {
+            return metadata.getPagination().getTotal();
+        }
+        return size();
+    }
+    public boolean hasMetadata() {
+        return metadata != null;
+    }
+    public QueryRow getFirstRow() {
+        if (!isEmpty()) {
+            return rows.get(0);
+        }
+        return null;
+    }
+    public List<Map<String, Object>> getData() {
+        if (rows != null && !rows.isEmpty()) {
+            return rows.stream()
+                    .map(QueryRow::toMap)
+                    .collect(ImmutableList.toImmutableList());
+        }
+        return ImmutableList.of();
+    }
+    public boolean isSuccess() {
+        return true;
+    }
+    public String getSql() {
+        return sql;
+    }
+    public Map<String, Object> getParams() {
+        return params;
+    }
+    public Object get(String key) {
+        if (rowData == null) return null;
+        Object value = rowData.get(key);
+        if (value != null) {
+            return value;
+        }
+        return rowData.get(key.toUpperCase());
+    }
+    public Object getRaw(String columnName) {
+        if (rowData == null) return null;
+        return rowData.get(columnName.toUpperCase());
+    }
+    public void set(String key, Object value) {
+        if (rowData == null) {
+            throw new IllegalStateException("Cannot set values on QueryData without row data");
+        }
+        ((Map<String, Object>) rowData).put(key, value);
+    }
+    public Map<String, Object> toMap() {
+        return rowData != null ? new HashMap<>(rowData) : new HashMap<>();
+    }
+    public boolean has(String key) {
+        return rowData != null && (rowData.containsKey(key) || rowData.containsKey(key.toUpperCase()));
+    }
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key, Class<T> type) {
+        Object value = get(key);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return (T) value;
+        } catch (ClassCastException e) {
+            return null;
+        }
+    }
+    public String getString(String key) {
+        Object value = get(key);
+        return value != null ? value.toString() : null;
+    }
+    public Integer getInteger(String key) {
+        return get(key, Integer.class);
+    }
+    public Long getLong(String key) {
+        return get(key, Long.class);
+    }
+    public Boolean getBoolean(String key) {
+        return get(key, Boolean.class);
+    }
+    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata, Long executionTime) {
+        return QueryData.builder()
+                .rows(rows)
+                .context(context)
+                .metadata(metadata)
+                .executionTimeMs(executionTime)
+                .build();
+    }
+    public static QueryData asSql(String sql, Map<String, Object> params) {
+        return QueryData.builder()
+                .sql(sql)
+                .params(params)
+                .build();
+    }
+    public static QueryData asRow(Map<String, Object> data, QueryContext context) {
+        return QueryData.builder()
+                .rowData(new HashMap<>(data))
+                .context(context)
+                .build();
     }
 }```
 
