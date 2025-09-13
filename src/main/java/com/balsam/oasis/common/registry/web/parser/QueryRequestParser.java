@@ -25,7 +25,7 @@ import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
+import com.balsam.oasis.common.registry.util.QueryUtils;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 
 /**
@@ -353,6 +353,6 @@ public class QueryRequestParser {
             return value;
         }
 
-        return TypeConversionUtils.convertValue(value, targetType);
+        return QueryUtils.convertValue(value, targetType);
     }
 }

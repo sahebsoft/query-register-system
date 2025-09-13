@@ -14,7 +14,7 @@ import com.balsam.oasis.common.registry.domain.definition.ParamDef;
 import com.balsam.oasis.common.registry.domain.processor.PostProcessor;
 import com.balsam.oasis.common.registry.domain.processor.PreProcessor;
 import com.balsam.oasis.common.registry.domain.processor.RowProcessor;
-import com.balsam.oasis.common.registry.domain.validation.BindParameterValidator;
+import com.balsam.oasis.common.registry.util.QueryUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -421,7 +421,7 @@ public class QueryDefinitionBuilder {
             // criteria)
             // 2. Validates all bind parameters in SQL and criteria are defined
             // 3. Validate bind parameters
-            BindParameterValidator.validate(queryDef);
+            QueryUtils.validateQuery(queryDef);
 
             return queryDef;
         }

@@ -13,7 +13,7 @@ import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.engine.sql.util.TypeConversionUtils;
+import com.balsam.oasis.common.registry.util.QueryUtils;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -193,7 +193,7 @@ public class OracleHRQueryConfig {
                                                         // Use TypeConverter for type safety
                                                         if (value == null)
                                                                 return null;
-                                                        return TypeConversionUtils
+                                                        return QueryUtils
                                                                         .convertValue(value, LocalDate.class);
                                                 })
                                                 .build())
@@ -202,7 +202,7 @@ public class OracleHRQueryConfig {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
                                                                 // Convert Object to Long first
-                                                                Long days = TypeConversionUtils
+                                                                Long days = QueryUtils
                                                                                 .convertValue(value, Long.class);
                                                                 ctx.addParam("hiredAfter",
                                                                                 LocalDate.now().minusDays(days));

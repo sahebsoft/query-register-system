@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
-import com.balsam.oasis.common.registry.domain.validation.BindParameterValidator;
+import com.balsam.oasis.common.registry.util.QueryUtils;
 
 /**
  * Default implementation of QueryRegistry using ConcurrentHashMap.
@@ -64,7 +64,7 @@ public class QueryRegistryImpl implements QueryRegistry {
                 registrationLog.append(", has_params=true");
 
                 // Check for unused parameters
-                Set<String> unusedParams = BindParameterValidator.findUnusedParameters(definition);
+                Set<String> unusedParams = QueryUtils.findUnusedParameters(definition);
                 if (!unusedParams.isEmpty()) {
                     registrationLog.append(", unused_params=").append(unusedParams);
                 }

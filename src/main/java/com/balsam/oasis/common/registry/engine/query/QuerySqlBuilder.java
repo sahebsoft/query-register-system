@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.engine.sql.util.SqlBuilderUtils;
+import com.balsam.oasis.common.registry.util.QueryUtils;
 
 /**
  * Builds dynamic SQL from query definition and context.
@@ -28,15 +28,15 @@ public class QuerySqlBuilder {
         String sql = definition.getSql();
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
 
-        sql = SqlBuilderUtils.applyCriteria(sql, context, bindParams);
-        sql = SqlBuilderUtils.applyFilters(sql, context, bindParams);
-        sql = SqlBuilderUtils.applySorting(sql, context);
+        sql = QueryUtils.applyCriteria(sql, context, bindParams);
+        sql = QueryUtils.applyFilters(sql, context, bindParams);
+        sql = QueryUtils.applySorting(sql, context);
 
         if (context.hasPagination() && context.getDefinition().isPaginationEnabled()) {
-            sql = SqlBuilderUtils.applyPagination(sql, context);
+            sql = QueryUtils.applyPagination(sql, context);
         }
 
-        sql = SqlBuilderUtils.cleanPlaceholders(sql);
+        sql = QueryUtils.cleanPlaceholders(sql);
 
         return new SqlResult(sql, bindParams);
     }
@@ -46,10 +46,10 @@ public class QuerySqlBuilder {
         String sql = definition.getSql();
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
 
-        sql = SqlBuilderUtils.applyCriteria(sql, context, bindParams);
-        sql = SqlBuilderUtils.applyFilters(sql, context, bindParams);
-        sql = SqlBuilderUtils.cleanPlaceholders(sql);
+        sql = QueryUtils.applyCriteria(sql, context, bindParams);
+        sql = QueryUtils.applyFilters(sql, context, bindParams);
+        sql = QueryUtils.cleanPlaceholders(sql);
 
-        return SqlBuilderUtils.wrapForCount(sql);
+        return QueryUtils.wrapForCount(sql);
     }
 }

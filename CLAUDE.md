@@ -313,7 +313,7 @@ public class QueryDefinitionBuilder {
                     valueAttribute,
                     labelAttribute,
                     selectMode);
-            BindParameterValidator.validate(queryDef);
+            QueryUtils.validateQuery(queryDef);
             return queryDef;
         }
         private void validate() {
@@ -1685,7 +1685,7 @@ public class QueryRegistryImpl implements QueryRegistry {
             registrationLog.append("attributes=").append(definition.getAttributes().size());
             if (definition.hasParams()) {
                 registrationLog.append(", has_params=true");
-                Set<String> unusedParams = BindParameterValidator.findUnusedParameters(definition);
+                Set<String> unusedParams = QueryUtils.findUnusedParameters(definition);
                 if (!unusedParams.isEmpty()) {
                     registrationLog.append(", unused_params=").append(unusedParams);
                 }
@@ -1891,23 +1891,23 @@ public class QuerySqlBuilder {
         QueryDefinitionBuilder definition = context.getDefinition();
         String sql = definition.getSql();
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
-        sql = SqlBuilderUtils.applyCriteria(sql, context, bindParams);
-        sql = SqlBuilderUtils.applyFilters(sql, context, bindParams);
-        sql = SqlBuilderUtils.applySorting(sql, context);
+        sql = QueryUtils.applyCriteria(sql, context, bindParams);
+        sql = QueryUtils.applyFilters(sql, context, bindParams);
+        sql = QueryUtils.applySorting(sql, context);
         if (context.hasPagination() && context.getDefinition().isPaginationEnabled()) {
-            sql = SqlBuilderUtils.applyPagination(sql, context);
+            sql = QueryUtils.applyPagination(sql, context);
         }
-        sql = SqlBuilderUtils.cleanPlaceholders(sql);
+        sql = QueryUtils.cleanPlaceholders(sql);
         return new SqlResult(sql, bindParams);
     }
     public String buildCountQuery(QueryContext context) {
         QueryDefinitionBuilder definition = context.getDefinition();
         String sql = definition.getSql();
         Map<String, Object> bindParams = new HashMap<>(context.getParams());
-        sql = SqlBuilderUtils.applyCriteria(sql, context, bindParams);
-        sql = SqlBuilderUtils.applyFilters(sql, context, bindParams);
-        sql = SqlBuilderUtils.cleanPlaceholders(sql);
-        return SqlBuilderUtils.wrapForCount(sql);
+        sql = QueryUtils.applyCriteria(sql, context, bindParams);
+        sql = QueryUtils.applyFilters(sql, context, bindParams);
+        sql = QueryUtils.cleanPlaceholders(sql);
+        return QueryUtils.wrapForCount(sql);
     }
 }```
 
@@ -2561,7 +2561,7 @@ public class OracleHRQueryConfig {
                                                 .processor((value, ctx) -> {
                                                         if (value == null)
                                                                 return null;
-                                                        return TypeConversionUtils
+                                                        return QueryUtils
                                                                         .convertValue(value, LocalDate.class);
                                                 })
                                                 .build())
@@ -2569,7 +2569,7 @@ public class OracleHRQueryConfig {
                                                 .processor((value, ctx) -> {
                                                         System.out.println("proccess days " + value);
                                                         if (value != null) {
-                                                                Long days = TypeConversionUtils
+                                                                Long days = QueryUtils
                                                                                 .convertValue(value, Long.class);
                                                                 ctx.addParam("hiredAfter",
                                                                                 LocalDate.now().minusDays(days));
@@ -4206,7 +4206,7 @@ public class QueryRequestParser {
         if (targetType == null || value == null) {
             return value;
         }
-        return TypeConversionUtils.convertValue(value, targetType);
+        return QueryUtils.convertValue(value, targetType);
     }
 }```
 
