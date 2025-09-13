@@ -152,8 +152,8 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("totalCompensation", BigDecimal.class)
                                                 .calculated((row, context) -> {
                                                         System.out.println("totalCompensation");
-                                                        BigDecimal salary = row.getBigDecimal("salary");
-                                                        BigDecimal commission = row.getBigDecimal("commissionPct");
+                                                        BigDecimal salary = (BigDecimal) row.get("SALARY");
+                                                        BigDecimal commission = (BigDecimal) row.get("COMMISSION_PCT");
                                                         if (salary == null)
                                                                 return BigDecimal.ZERO;
                                                         if (commission == null)
@@ -328,7 +328,7 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("departmentEmployees", List.class)
                                                 .calculated((row, context) -> {
                                                         System.out.println("Fetching employees for department");
-                                                        Integer deptId = row.getRaw("DEPARTMENT_ID", Integer.class);
+                                                        Integer deptId = (Integer) row.getRaw("DEPARTMENT_ID");
                                                         if (deptId == null) {
                                                                 return List.of();
                                                         }

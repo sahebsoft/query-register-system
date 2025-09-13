@@ -44,7 +44,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/select/ValueDef.java](#src-main-java-com-balsam-oasis-common-registry-domain-select-valuedef-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/validation/BindParameterValidator.java](#src-main-java-com-balsam-oasis-common-registry-domain-validation-bindparametervalidator-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/validation/QueryDefinitionValidator.java](#src-main-java-com-balsam-oasis-common-registry-domain-validation-querydefinitionvalidator-java)
-- [src/main/java/com/balsam/oasis/common/registry/engine/query/BaseRowMapper.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-baserowmapper-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryexecutorimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRegistryImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryregistryimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRow.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryrow-java)
@@ -68,6 +67,8 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryListResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-querylistresponse-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QuerySingleResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-querysingleresponse-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QuerySuccessResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-querysuccessresponse-java)
+- [src/main/java/com/balsam/oasis/common/registry/web/formatter/ColumnNameTransformer.java](#src-main-java-com-balsam-oasis-common-registry-web-formatter-columnnametransformer-java)
+- [src/main/java/com/balsam/oasis/common/registry/web/formatter/ResponseFormatter.java](#src-main-java-com-balsam-oasis-common-registry-web-formatter-responseformatter-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/parser/QueryRequestParser.java](#src-main-java-com-balsam-oasis-common-registry-web-parser-queryrequestparser-java)
 
 ---
@@ -1997,146 +1998,6 @@ public class QueryDefinitionValidator {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/engine/query/BaseRowMapper.java
-
-```java
-public abstract class BaseRowMapper<T> {
-    private static final Logger log = LoggerFactory.getLogger(BaseRowMapper.class);
-    public T mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
-        QueryDefinitionBuilder definition = context.getDefinition();
-        MetadataCache cache = definition.getMetadataCache();
-        Map<String, Object> processedData = new HashMap<>();
-        Map<String, Object> rawData = MetadataOperations.extractRawData(rs, cache);
-        Map<String, AttributeDef<?>> attributes = definition.getAttributes();
-        processAttributes(rs, attributes, processedData, rawData, cache, context);
-        T intermediateResult = createIntermediateOutput(processedData, rawData, context);
-        applyFormatters(attributes, intermediateResult, processedData, context);
-        if (shouldIncludeDynamicAttributes(definition)) {
-            addDynamicAttributes(processedData, rawData, attributes, definition);
-        }
-        return createFinalOutput(processedData, rawData, context);
-    }
-    private void processAttributes(ResultSet rs, Map<String, AttributeDef<?>> attributes,
-            Map<String, Object> processedData, Map<String, Object> rawData,
-            MetadataCache cache, QueryContext context) throws SQLException {
-        for (Map.Entry<String, AttributeDef<?>> entry : attributes.entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            if (!isAttributeIncluded(attr, attrName, context)) {
-                if (attr.virtual()) {
-                    log.debug("Skipping unselected field: {}", attrName);
-                }
-                continue;
-            }
-            if (attr.isSecured() && hasSecurityContext(context)) {
-                Object securityContext = getSecurityContext(context);
-                Boolean allowed = attr.securityRule().apply(securityContext);
-                if (!Boolean.TRUE.equals(allowed)) {
-                    processedData.put(attrName, null);
-                    continue;
-                }
-            }
-            if (attr.virtual()) {
-                continue;
-            }
-            Object rawValue = MetadataOperations.extractAttributeValue(rs, attr, cache, rawData);
-            Object convertedValue = rawValue;
-            if (rawValue != null && attr.type() != null) {
-                convertedValue = convertToType(rawValue, attr.type());
-            }
-            processedData.put(attrName, convertedValue);
-        }
-    }
-    private void applyFormatters(Map<String, AttributeDef<?>> attributes,
-            T intermediateResult, Map<String, Object> processedData,
-            QueryContext context) {
-        for (Map.Entry<String, AttributeDef<?>> entry : attributes.entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            if (!attr.virtual() || !isAttributeIncluded(attr, attrName, context)) {
-                continue;
-            }
-            if (attr.hasCalculator()) {
-                try {
-                    Object calculatedValue = calculateAttribute(attr, intermediateResult, context);
-                    if (calculatedValue != null && attr.type() != null) {
-                        calculatedValue = convertToType(calculatedValue, attr.type());
-                    }
-                    setValueInOutput(intermediateResult, attrName, calculatedValue);
-                    processedData.put(attrName, calculatedValue);
-                } catch (Exception e) {
-                    log.warn("Failed to calculate transient attribute {}: {}", attrName, e.getMessage());
-                    setValueInOutput(intermediateResult, attrName, null);
-                    processedData.put(attrName, null);
-                }
-            }
-        }
-        for (Map.Entry<String, AttributeDef<?>> entry : attributes.entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            if (!attr.hasFormatter() || !isAttributeIncluded(attr, attrName, context)) {
-                continue;
-            }
-            try {
-                Object currentValue = getValueFromOutput(intermediateResult, attrName);
-                if (currentValue != null) {
-                    AttributeFormatter formatter = attr.formatter();
-                    String formattedValue = formatter.format(currentValue);
-                    setValueInOutput(intermediateResult, attrName, formattedValue);
-                    processedData.put(attrName, formattedValue);
-                }
-            } catch (Exception e) {
-                log.warn("Failed to format attribute {}: {}", attrName, e.getMessage());
-            }
-        }
-    }
-    protected boolean isAttributeIncluded(AttributeDef<?> attr, String attrName, QueryContext context) {
-        if (!attr.selected()) {
-            return context.getSelectedFields() != null &&
-                    context.getSelectedFields().contains(attrName);
-        }
-        return context.isFieldSelected(attrName);
-    }
-    protected Object convertToType(Object value, Class<?> targetType) {
-        if (value == null || targetType == null) {
-            return value;
-        }
-        if (targetType.isInstance(value)) {
-            return value;
-        }
-        try {
-            return TypeConversionUtils.convertValue(value, targetType);
-        } catch (Exception e) {
-            log.warn("Failed to convert value {} to type {}: {}",
-                    value, targetType.getSimpleName(), e.getMessage());
-            return value;
-        }
-    }
-    protected abstract T createIntermediateOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, QueryContext context);
-    protected abstract T createFinalOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, QueryContext context);
-    protected abstract Object getValueFromOutput(T output, String attributeName);
-    protected abstract void setValueInOutput(T output, String attributeName, Object value);
-    protected boolean hasSecurityContext(QueryContext context) {
-        return context.getSecurityContext() != null;
-    }
-    protected Object getSecurityContext(QueryContext context) {
-        return context.getSecurityContext();
-    }
-    protected abstract Object calculateAttribute(AttributeDef<?> attr, T intermediateResult, QueryContext context);
-    protected boolean shouldIncludeDynamicAttributes(QueryDefinitionBuilder definition) {
-        return definition.isDynamic();
-    }
-    protected void addDynamicAttributes(Map<String, Object> processedData,
-            Map<String, Object> rawData,
-            Map<String, AttributeDef<?>> definedAttributes,
-            QueryDefinitionBuilder definition) {
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java
 
 ```java
@@ -2462,120 +2323,60 @@ public class QueryRegistryImpl implements QueryRegistry {
 ```java
 public class QueryRow {
     private final Map<String, Object> data;
-    private final Map<String, Object> rawData;
     private final QueryContext context;
-    private QueryRow(Map<String, Object> data, Map<String, Object> rawData, QueryContext context) {
+    private QueryRow(Map<String, Object> data, QueryContext context) {
         this.data = new HashMap<>(data);
-        this.rawData = rawData != null ? new HashMap<>(rawData) : new HashMap<>();
         this.context = context;
     }
     public static QueryRow create(Map<String, Object> data, Map<String, Object> rawData, QueryContext context) {
-        return new QueryRow(data, rawData, context);
+        return new QueryRow(rawData, context);
     }
-    public static QueryRow create(Map<String, Object> data, QueryContext context) {
-        return new QueryRow(data, null, context);
-    }
-    public Object get(String attributeName) {
-        return data.get(attributeName);
-    }
-    @SuppressWarnings("unchecked")
-    public <T> T get(String attributeName, Class<T> type) {
-        Object value = data.get(attributeName);
-        if (value == null) {
-            return null;
+    public Object get(String key) {
+        Object value = data.get(key);
+        if (value != null) {
+            return value;
         }
-        if (type.isAssignableFrom(value.getClass())) {
-            return (T) value;
-        }
-        return TypeConversionUtils.convertValue(value, type);
-    }
-    public <T> Optional<T> getOptional(String attributeName, Class<T> type) {
-        return Optional.ofNullable(get(attributeName, type));
-    }
-    public String getString(String attributeName) {
-        return get(attributeName, String.class);
-    }
-    public Integer getInteger(String attributeName) {
-        return get(attributeName, Integer.class);
-    }
-    public Long getLong(String attributeName) {
-        return get(attributeName, Long.class);
-    }
-    public Double getDouble(String attributeName) {
-        return get(attributeName, Double.class);
-    }
-    public Float getFloat(String attributeName) {
-        return get(attributeName, Float.class);
-    }
-    public BigDecimal getBigDecimal(String attributeName) {
-        return get(attributeName, BigDecimal.class);
-    }
-    public LocalDate getLocalDate(String attributeName) {
-        return get(attributeName, LocalDate.class);
-    }
-    public LocalDateTime getLocalDateTime(String attributeName) {
-        return get(attributeName, LocalDateTime.class);
-    }
-    public Boolean getBoolean(String attributeName) {
-        return get(attributeName, Boolean.class);
-    }
-    public byte[] getBytes(String attributeName) {
-        return get(attributeName, byte[].class);
-    }
-    public String getString(String attributeName, String defaultValue) {
-        String value = getString(attributeName);
-        return value != null ? value : defaultValue;
-    }
-    public Integer getInteger(String attributeName, Integer defaultValue) {
-        Integer value = getInteger(attributeName);
-        return value != null ? value : defaultValue;
-    }
-    public Long getLong(String attributeName, Long defaultValue) {
-        Long value = getLong(attributeName);
-        return value != null ? value : defaultValue;
-    }
-    public Double getDouble(String attributeName, Double defaultValue) {
-        Double value = getDouble(attributeName);
-        return value != null ? value : defaultValue;
-    }
-    public Boolean getBoolean(String attributeName, Boolean defaultValue) {
-        Boolean value = getBoolean(attributeName);
-        return value != null ? value : defaultValue;
+        return data.get(key.toUpperCase());
     }
     public Object getRaw(String columnName) {
-        return rawData.get(columnName.toUpperCase());
+        return data.get(columnName.toUpperCase());
     }
-    @SuppressWarnings("unchecked")
-    public <T> T getRaw(String columnName, Class<T> type) {
-        Object value = getRaw(columnName);
-        if (value == null) {
-            return null;
-        }
-        if (type.isAssignableFrom(value.getClass())) {
-            return (T) value;
-        }
-        return TypeConversionUtils.convertValue(value, type);
-    }
-    public void set(String attributeName, Object value) {
-        data.put(attributeName, value);
-    }
-    public boolean hasAttribute(String attributeName) {
-        return data.containsKey(attributeName);
-    }
-    public boolean isNull(String attributeName) {
-        return data.get(attributeName) == null;
+    public void set(String key, Object value) {
+        data.put(key, value);
     }
     public Map<String, Object> toMap() {
-        Map<String, Object> result = new HashMap<>();
-        data.forEach((k, v) -> {
-            if (v != null && (context == null || context.isFieldSelected(k))) {
-                result.put(k, v);
-            }
-        });
-        return ImmutableMap.copyOf(result);
+        return new HashMap<>(data);
     }
     public QueryContext getContext() {
         return context;
+    }
+    public boolean has(String key) {
+        return data.containsKey(key) || data.containsKey(key.toUpperCase());
+    }
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key, Class<T> type) {
+        Object value = get(key);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return (T) value;
+        } catch (ClassCastException e) {
+            return null;
+        }
+    }
+    public String getString(String key) {
+        Object value = get(key);
+        return value != null ? value.toString() : null;
+    }
+    public Integer getInteger(String key) {
+        return get(key, Integer.class);
+    }
+    public Long getLong(String key) {
+        return get(key, Long.class);
+    }
+    public Boolean getBoolean(String key) {
+        return get(key, Boolean.class);
     }
 }```
 
@@ -2584,57 +2385,28 @@ public class QueryRow {
 ## src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRowMapperImpl.java
 
 ```java
-public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
-    @Override
-    protected QueryRow createIntermediateOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, QueryContext context) {
-        return QueryRow.create(processedData, rawData, context);
-    }
-    @Override
-    protected QueryRow createFinalOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, QueryContext context) {
-        return QueryRow.create(processedData, rawData, context);
-    }
-    @Override
-    protected Object getValueFromOutput(QueryRow output, String attributeName) {
-        return output.get(attributeName);
-    }
-    @Override
-    protected void setValueInOutput(QueryRow output, String attributeName, Object value) {
-        output.set(attributeName, value);
-    }
-    @Override
-    protected Object calculateAttribute(AttributeDef<?> attr, QueryRow intermediateResult, QueryContext context) {
-        return attr.calculator().calculate(intermediateResult, context);
-    }
-    @Override
-    protected void addDynamicAttributes(Map<String, Object> processedData,
-            Map<String, Object> rawData,
-            Map<String, AttributeDef<?>> definedAttributes,
-            QueryDefinitionBuilder definition) {
-        if (rawData == null || rawData.isEmpty()) {
-            return;
-        }
-        NamingStrategy namingStrategy = definition.getNamingStrategy();
-        Set<String> definedNames = new HashSet<>();
-        for (Map.Entry<String, AttributeDef<?>> entry : definedAttributes.entrySet()) {
-            definedNames.add(entry.getKey().toUpperCase());
-            AttributeDef<?> attr = entry.getValue();
-            if (attr.aliasName() != null) {
-                definedNames.add(attr.aliasName().toUpperCase());
+@Slf4j
+public class QueryRowMapperImpl {
+    public QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        MetadataCache cache = definition.getMetadataCache();
+        Map<String, Object> rawData = MetadataOperations.extractRawData(rs, cache);
+        QueryRow row = QueryRow.create(rawData, rawData, context);
+        if (definition.hasAttributes()) {
+            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                AttributeDef<?> attr = entry.getValue();
+                if (attr.virtual() && attr.hasCalculator()) {
+                    try {
+                        Object calculatedValue = attr.calculator().calculate(row, context);
+                        row.set(entry.getKey(), calculatedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to calculate virtual attribute {}: {}", entry.getKey(), e.getMessage());
+                        row.set(entry.getKey(), null);
+                    }
+                }
             }
         }
-        for (Map.Entry<String, Object> entry : rawData.entrySet()) {
-            String columnName = entry.getKey(); 
-            if (definedNames.contains(columnName)) {
-                continue;
-            }
-            String attributeName = namingStrategy.convert(columnName);
-            if (processedData.containsKey(attributeName)) {
-                continue;
-            }
-            processedData.put(attributeName, entry.getValue());
-        }
+        return row;
     }
 }```
 
@@ -3754,8 +3526,8 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("totalCompensation", BigDecimal.class)
                                                 .calculated((row, context) -> {
                                                         System.out.println("totalCompensation");
-                                                        BigDecimal salary = row.getBigDecimal("salary");
-                                                        BigDecimal commission = row.getBigDecimal("commissionPct");
+                                                        BigDecimal salary = (BigDecimal) row.get("SALARY");
+                                                        BigDecimal commission = (BigDecimal) row.get("COMMISSION_PCT");
                                                         if (salary == null)
                                                                 return BigDecimal.ZERO;
                                                         if (commission == null)
@@ -3916,7 +3688,7 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("departmentEmployees", List.class)
                                                 .calculated((row, context) -> {
                                                         System.out.println("Fetching employees for department");
-                                                        Integer deptId = row.getRaw("DEPARTMENT_ID", Integer.class);
+                                                        Integer deptId = (Integer) row.getRaw("DEPARTMENT_ID");
                                                         if (deptId == null) {
                                                                 return List.of();
                                                         }
@@ -4204,24 +3976,95 @@ public class QueryService {
 ## src/main/java/com/balsam/oasis/common/registry/web/builder/QueryResponseBuilder.java
 
 ```java
+@Slf4j
 public class QueryResponseBuilder {
+    private final ResponseFormatter formatter = new ResponseFormatter();
     public ResponseEntity<?> build(QueryResult result, String queryName) {
-        QueryListResponse response = QueryListResponse.from(result);
+        QueryListResponse response = buildFormattedResponse(result);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
     public ResponseEntity<QuerySingleResponse> buildSingle(QueryResult result, String queryName) {
-        QuerySingleResponse response = QuerySingleResponse.from(result);
+        QuerySingleResponse response = buildFormattedSingleResponse(result);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
     public ResponseEntity<?> buildSelectResponse(QueryResult queryResult) {
-        QueryListResponse response = QueryListResponse.fromSelect(queryResult);
+        QueryListResponse response = buildFormattedSelectResponse(queryResult);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
+    }
+    private QueryListResponse buildFormattedResponse(QueryResult result) {
+        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
+        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
+        List<?> formattedData;
+        if (definition != null && !result.getRows().isEmpty()) {
+            formattedData = formatter.formatRows(result.getRows(), definition, securityContext);
+        } else {
+            formattedData = result.getData();
+        }
+        return QueryListResponse.builder()
+                .data(formattedData)
+                .metadata(result.getMetadata())
+                .count(result.getCount())
+                .success(result.isSuccess())
+                .build();
+    }
+    private QuerySingleResponse buildFormattedSingleResponse(QueryResult result) {
+        if (result == null || result.getRows().isEmpty()) {
+            throw new QueryException("No data found", "NOT_FOUND", (String) null);
+        }
+        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
+        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
+        Object formattedData;
+        if (definition != null) {
+            formattedData = formatter.formatRow(result.getRows().get(0), definition, securityContext);
+        } else {
+            formattedData = result.getRows().get(0).toMap();
+        }
+        return QuerySingleResponse.builder()
+                .data(formattedData)
+                .metadata(result.getMetadata())
+                .success(result.isSuccess())
+                .build();
+    }
+    private QueryListResponse buildFormattedSelectResponse(QueryResult queryResult) {
+        QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
+        if (!definition.getAttributes().containsKey("value") ||
+                !definition.getAttributes().containsKey("label")) {
+            throw new QueryException("Select query must have 'value' and 'label' attributes",
+                    "INVALID_SELECT_DEFINITION", definition.getName());
+        }
+        Object securityContext = queryResult.getContext() != null ? queryResult.getContext().getSecurityContext() : null;
+        List<SelectItem> selectItems = new ArrayList<>();
+        for (QueryRow row : queryResult.getRows()) {
+            Map<String, Object> formattedRow = formatter.formatRow(row, definition, securityContext);
+            String value = String.valueOf(formattedRow.get("value"));
+            String label = String.valueOf(formattedRow.get("label"));
+            Map<String, Object> additions = null;
+            List<String> additionAttrNames = definition.getAttributes().keySet().stream()
+                    .filter(name -> !"value".equals(name) && !"label".equals(name))
+                    .toList();
+            if (!additionAttrNames.isEmpty()) {
+                additions = new HashMap<>();
+                for (String attrName : additionAttrNames) {
+                    additions.put(attrName, formattedRow.get(attrName));
+                }
+            }
+            selectItems.add(SelectItem.of(value, label, additions));
+        }
+        QueryMetadata selectMetadata = null;
+        if (queryResult.hasMetadata() && queryResult.getMetadata().getPagination() != null) {
+            selectMetadata = QueryMetadata.builder()
+                    .pagination(queryResult.getMetadata().getPagination())
+                    .build();
+        }
+        return selectMetadata != null
+                ? QueryListResponse.success(selectItems, selectMetadata, queryResult.getCount())
+                : QueryListResponse.success(selectItems, queryResult.getCount());
     }
 }```
 
@@ -4688,6 +4531,101 @@ public class QuerySingleResponse implements QuerySuccessResponse {
 public interface QuerySuccessResponse {
     boolean isSuccess();
     Object getMetadata();
+}```
+
+---
+
+## src/main/java/com/balsam/oasis/common/registry/web/formatter/ColumnNameTransformer.java
+
+```java
+@Slf4j
+public class ColumnNameTransformer {
+    public Map<String, Object> transformColumnNames(Map<String, Object> rawData, NamingStrategy strategy) {
+        if (strategy == null || strategy == NamingStrategy.AS_IS) {
+            return rawData;
+        }
+        Map<String, Object> transformedData = new HashMap<>();
+        for (Map.Entry<String, Object> entry : rawData.entrySet()) {
+            String columnName = entry.getKey();
+            String transformedName = strategy.convert(columnName);
+            transformedData.put(transformedName, entry.getValue());
+        }
+        return transformedData;
+    }
+    public String transformColumnName(String columnName, NamingStrategy strategy) {
+        if (strategy == null || strategy == NamingStrategy.AS_IS) {
+            return columnName;
+        }
+        return strategy.convert(columnName);
+    }
+}```
+
+---
+
+## src/main/java/com/balsam/oasis/common/registry/web/formatter/ResponseFormatter.java
+
+```java
+@Slf4j
+public class ResponseFormatter {
+    private final ColumnNameTransformer nameTransformer = new ColumnNameTransformer();
+    public List<Map<String, Object>> formatRows(List<QueryRow> rows, QueryDefinitionBuilder definition, Object securityContext) {
+        List<Map<String, Object>> formattedData = new ArrayList<>();
+        for (QueryRow row : rows) {
+            Map<String, Object> formattedRow = formatRow(row, definition, securityContext);
+            formattedData.add(formattedRow);
+        }
+        return formattedData;
+    }
+    public Map<String, Object> formatRow(QueryRow row, QueryDefinitionBuilder definition, Object securityContext) {
+        Map<String, Object> formattedData = new HashMap<>();
+        Set<String> definedAttributes = new HashSet<>();
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            AttributeDef<?> attr = entry.getValue();
+            definedAttributes.add(attrName.toUpperCase());
+            if (attr.isSecured() && securityContext != null) {
+                Boolean allowed = attr.securityRule().apply(securityContext);
+                if (!Boolean.TRUE.equals(allowed)) {
+                    formattedData.put(attrName, null);
+                    continue;
+                }
+            }
+            Object value;
+            if (attr.aliasName() != null && !attr.virtual()) {
+                value = row.getRaw(attr.aliasName());
+            } else if (attr.virtual()) {
+                value = row.get(attrName);
+            } else {
+                value = row.getRaw(attrName.toUpperCase());
+                if (value == null) {
+                    value = row.get(attrName);
+                }
+            }
+            if (value != null && attr.hasFormatter()) {
+                try {
+                    AttributeFormatter formatter = attr.formatter();
+                    value = formatter.format(value);
+                } catch (Exception e) {
+                    log.warn("Failed to format attribute {}: {}", attrName, e.getMessage());
+                }
+            }
+            formattedData.put(attrName, value);
+        }
+        if (definition.isDynamic()) {
+            Map<String, Object> rawData = row.toMap();
+            NamingStrategy strategy = definition.getNamingStrategy();
+            for (Map.Entry<String, Object> rawEntry : rawData.entrySet()) {
+                String columnName = rawEntry.getKey();
+                if (!definedAttributes.contains(columnName.toUpperCase())) {
+                    String transformedName = nameTransformer.transformColumnName(columnName, strategy);
+                    if (!formattedData.containsKey(transformedName)) {
+                        formattedData.put(transformedName, rawEntry.getValue());
+                    }
+                }
+            }
+        }
+        return formattedData;
+    }
 }```
 
 ---

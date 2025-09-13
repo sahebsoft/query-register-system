@@ -1,91 +1,52 @@
 package com.balsam.oasis.common.registry.engine.query;
 
-import java.util.HashSet;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Map;
-import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.NamingStrategy;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
+import com.balsam.oasis.common.registry.engine.sql.MetadataCache;
+import com.balsam.oasis.common.registry.engine.sql.MetadataOperations;
 
 /**
- * Query-specific implementation of BaseRowMapper that produces Row objects.
+ * Simple row mapper that extracts raw data and applies calculators.
+ * All formatting, security, and naming transformations are handled in REST layer.
  */
-public class QueryRowMapperImpl extends BaseRowMapper<QueryRow> {
+@Slf4j
+public class QueryRowMapperImpl {
 
-    @Override
-    protected QueryRow createIntermediateOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, QueryContext context) {
-        // Create a Row that can be used in calculators
-        return QueryRow.create(processedData, rawData, context);
-    }
+    /**
+     * Map a ResultSet row to QueryRow with minimal processing.
+     */
+    public QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        MetadataCache cache = definition.getMetadataCache();
 
-    @Override
-    protected QueryRow createFinalOutput(Map<String, Object> processedData,
-            Map<String, Object> rawData, QueryContext context) {
-        // For Query, the final output is the same Row object
-        return QueryRow.create(processedData, rawData, context);
-    }
+        // Extract all raw data from ResultSet
+        Map<String, Object> rawData = MetadataOperations.extractRawData(rs, cache);
 
-    @Override
-    protected Object getValueFromOutput(QueryRow output, String attributeName) {
-        return output.get(attributeName);
-    }
+        // Create QueryRow with raw data
+        QueryRow row = QueryRow.create(rawData, rawData, context);
 
-    @Override
-    protected void setValueInOutput(QueryRow output, String attributeName, Object value) {
-        output.set(attributeName, value);
-    }
-
-    @Override
-    protected Object calculateAttribute(AttributeDef<?> attr, QueryRow intermediateResult, QueryContext context) {
-        // Calculator now expects Row and QueryContext
-        return attr.calculator().calculate(intermediateResult, context);
-    }
-
-    @Override
-    protected void addDynamicAttributes(Map<String, Object> processedData,
-            Map<String, Object> rawData,
-            Map<String, AttributeDef<?>> definedAttributes,
-            QueryDefinitionBuilder definition) {
-        if (rawData == null || rawData.isEmpty()) {
-            return;
-        }
-
-        // Get the naming strategy
-        NamingStrategy namingStrategy = definition.getNamingStrategy();
-
-        // Create a set of defined attribute names and their aliases for quick lookup
-        // (uppercase)
-        Set<String> definedNames = new HashSet<>();
-        for (Map.Entry<String, AttributeDef<?>> entry : definedAttributes.entrySet()) {
-            definedNames.add(entry.getKey().toUpperCase());
-            AttributeDef<?> attr = entry.getValue();
-            if (attr.aliasName() != null) {
-                definedNames.add(attr.aliasName().toUpperCase());
+        // Apply calculators for virtual attributes if any
+        if (definition.hasAttributes()) {
+            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                AttributeDef<?> attr = entry.getValue();
+                if (attr.virtual() && attr.hasCalculator()) {
+                    try {
+                        Object calculatedValue = attr.calculator().calculate(row, context);
+                        row.set(entry.getKey(), calculatedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to calculate virtual attribute {}: {}", entry.getKey(), e.getMessage());
+                        row.set(entry.getKey(), null);
+                    }
+                }
             }
         }
 
-        // Add undefined columns with naming strategy
-        for (Map.Entry<String, Object> entry : rawData.entrySet()) {
-            String columnName = entry.getKey(); // Already uppercase from BaseRowMapper
-
-            // Skip if this column is already defined
-            if (definedNames.contains(columnName)) {
-                continue;
-            }
-
-            // Apply naming strategy to get the attribute name
-            String attributeName = namingStrategy.convert(columnName);
-
-            // Skip if the converted name conflicts with an existing attribute
-            if (processedData.containsKey(attributeName)) {
-                continue;
-            }
-
-            // Add the dynamic attribute
-            processedData.put(attributeName, entry.getValue());
-        }
+        return row;
     }
 }
