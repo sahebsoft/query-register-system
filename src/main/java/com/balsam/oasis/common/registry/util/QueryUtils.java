@@ -222,7 +222,7 @@ public class QueryUtils {
         SQL_TYPE_MAP.put(Types.LONGNVARCHAR, String.class);
         SQL_TYPE_MAP.put(Types.CLOB, String.class);
         SQL_TYPE_MAP.put(Types.NCLOB, String.class);
-        SQL_TYPE_MAP.put(Types.DATE, Date.class);
+        SQL_TYPE_MAP.put(Types.DATE, java.sql.Date.class);
         SQL_TYPE_MAP.put(Types.TIME, Time.class);
         SQL_TYPE_MAP.put(Types.TIMESTAMP, Timestamp.class);
         SQL_TYPE_MAP.put(Types.TIME_WITH_TIMEZONE, Time.class);
@@ -287,7 +287,7 @@ public class QueryUtils {
         if (targetType == Boolean.class || targetType == boolean.class) {
             return (T) convertToBoolean(value);
         }
-        if (Date.class.isAssignableFrom(targetType)) {
+        if (java.util.Date.class.isAssignableFrom(targetType)) {
             return convertToDate(value, targetType);
         }
         if (LocalDate.class.isAssignableFrom(targetType)) {
@@ -375,8 +375,8 @@ public class QueryUtils {
             return null;
         }
 
-        if (targetType == Date.class) {
-            return (T) new Date(millis);
+        if (targetType == java.sql.Date.class) {
+            return (T) new java.sql.Date(millis);
         } else if (targetType == Time.class) {
             return (T) new Time(millis);
         } else if (targetType == Timestamp.class) {
@@ -390,8 +390,8 @@ public class QueryUtils {
     private static LocalDate convertToLocalDate(Object value) {
         if (value instanceof LocalDate) {
             return (LocalDate) value;
-        } else if (value instanceof Date) {
-            return ((Date) value).toLocalDate();
+        } else if (value instanceof java.sql.Date) {
+            return ((java.sql.Date) value).toLocalDate();
         } else if (value instanceof Timestamp) {
             return ((Timestamp) value).toLocalDateTime().toLocalDate();
         } else if (value instanceof String) {
@@ -405,8 +405,8 @@ public class QueryUtils {
             return (LocalDateTime) value;
         } else if (value instanceof Timestamp) {
             return ((Timestamp) value).toLocalDateTime();
-        } else if (value instanceof Date) {
-            return new Timestamp(((Date) value).getTime()).toLocalDateTime();
+        } else if (value instanceof java.util.Date) {
+            return new Timestamp(((java.util.Date) value).getTime()).toLocalDateTime();
         } else if (value instanceof String) {
             return LocalDateTime.parse(value.toString());
         }
