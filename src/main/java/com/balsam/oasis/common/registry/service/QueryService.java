@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
+import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
@@ -26,10 +26,10 @@ public class QueryService {
     
     private static final Logger log = LoggerFactory.getLogger(QueryService.class);
     
-    private final QueryExecutor queryExecutor;
-    private final QueryRegistry queryRegistry;
-    
-    public QueryService(QueryExecutor queryExecutor, QueryRegistry queryRegistry) {
+    private final QueryExecutorImpl queryExecutor;
+    private final QueryRegistryImpl queryRegistry;
+
+    public QueryService(QueryExecutorImpl queryExecutor, QueryRegistryImpl queryRegistry) {
         this.queryExecutor = queryExecutor;
         this.queryRegistry = queryRegistry;
     }

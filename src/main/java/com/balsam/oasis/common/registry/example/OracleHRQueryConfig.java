@@ -7,8 +7,8 @@ import java.util.List;
 import org.springframework.context.annotation.Configuration;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
+import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
@@ -26,8 +26,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OracleHRQueryConfig {
 
-        private final QueryRegistry queryRegistry;
-        private final QueryExecutor queryExecutor;
+        private final QueryRegistryImpl queryRegistry;
+        private final QueryExecutorImpl queryExecutor;
 
         @PostConstruct
         public void registerQueries() {

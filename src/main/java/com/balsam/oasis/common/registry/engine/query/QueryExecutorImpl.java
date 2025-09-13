@@ -12,8 +12,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.domain.common.QueryResult;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
@@ -25,17 +23,17 @@ import com.google.common.collect.ImmutableList;
 /**
  * Default implementation of QueryExecutor using JdbcTemplate
  */
-public class QueryExecutorImpl implements QueryExecutor {
+public class QueryExecutorImpl {
 
     private static final Logger log = LoggerFactory.getLogger(QueryExecutorImpl.class);
 
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
-    private final QueryRegistry queryRegistry;
+    private final QueryRegistryImpl queryRegistry;
     private final QuerySqlBuilder sqlBuilder;
     private final QueryRowMapperImpl rowMapper;
 
-    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
+    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistryImpl queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.queryRegistry = queryRegistry;
@@ -43,7 +41,6 @@ public class QueryExecutorImpl implements QueryExecutor {
         this.rowMapper = new QueryRowMapperImpl();
     }
 
-    @Override
     public QueryExecution execute(String queryName) {
         QueryDefinitionBuilder definition = queryRegistry.get(queryName);
         if (definition == null) {
@@ -52,12 +49,10 @@ public class QueryExecutorImpl implements QueryExecutor {
         return new QueryExecution(definition, this);
     }
 
-    @Override
     public QueryExecution execute(QueryDefinitionBuilder definition) {
         return new QueryExecution(definition, this);
     }
 
-    @Override
     public QueryExecution prepare(QueryDefinitionBuilder definition) {
         return new QueryExecution(definition, this);
     }

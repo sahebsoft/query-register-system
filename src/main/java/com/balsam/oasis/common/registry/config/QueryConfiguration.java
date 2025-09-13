@@ -5,8 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.balsam.oasis.common.registry.domain.api.QueryExecutor;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
@@ -29,13 +27,13 @@ public class QueryConfiguration {
     }
 
     @Bean
-    QueryRegistry queryRegistry() {
+    QueryRegistryImpl queryRegistry() {
         return new QueryRegistryImpl();
     }
 
     @Bean
-    QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
-            QueryRegistry queryRegistry,
+    QueryExecutorImpl queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
+            QueryRegistryImpl queryRegistry,
             QueryProperties properties) {
         return new QueryExecutorImpl(jdbcTemplate, sqlBuilder, queryRegistry);
     }
@@ -51,7 +49,7 @@ public class QueryConfiguration {
     }
 
     @Bean
-    QueryService queryService(QueryExecutor queryExecutor, QueryRegistry queryRegistry) {
+    QueryService queryService(QueryExecutorImpl queryExecutor, QueryRegistryImpl queryRegistry) {
         return new QueryService(queryExecutor, queryRegistry);
     }
 

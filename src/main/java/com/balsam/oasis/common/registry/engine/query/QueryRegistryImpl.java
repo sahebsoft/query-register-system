@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.api.QueryRegistry;
 import com.balsam.oasis.common.registry.util.QueryUtils;
 
 /**
@@ -34,7 +33,7 @@ import com.balsam.oasis.common.registry.util.QueryUtils;
  * @author Query Registration System
  * @since 2.0
  */
-public class QueryRegistryImpl implements QueryRegistry {
+public class QueryRegistryImpl {
 
     private static final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
 
@@ -42,7 +41,6 @@ public class QueryRegistryImpl implements QueryRegistry {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
 
-    @Override
     public void register(QueryDefinitionBuilder definition) {
         validateDefinition(definition);
 
@@ -76,7 +74,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         }
     }
 
-    @Override
     public void clear() {
         lock.writeLock().lock();
         try {
@@ -88,7 +85,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         }
     }
 
-    @Override
     public QueryDefinitionBuilder get(String name) {
         if (name == null) {
             return null;
@@ -102,7 +98,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         }
     }
 
-    @Override
     public Set<String> getQueryNames() {
         lock.readLock().lock();
         try {
@@ -112,7 +107,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         }
     }
 
-    @Override
     public Collection<QueryDefinitionBuilder> getAllQueries() {
         lock.readLock().lock();
         try {
@@ -122,7 +116,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         }
     }
 
-    @Override
     public int size() {
         lock.readLock().lock();
         try {
@@ -132,7 +125,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         }
     }
 
-    @Override
     public boolean isEmpty() {
         lock.readLock().lock();
         try {

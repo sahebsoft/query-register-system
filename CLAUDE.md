@@ -357,12 +357,12 @@ public class QueryConfiguration {
         return new QuerySqlBuilder();
     }
     @Bean
-    QueryRegistry queryRegistry() {
+    QueryRegistryImpl queryRegistry() {
         return new QueryRegistryImpl();
     }
     @Bean
-    QueryExecutor queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
-            QueryRegistry queryRegistry,
+    QueryExecutorImpl queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
+            QueryRegistryImpl queryRegistry,
             QueryProperties properties) {
         return new QueryExecutorImpl(jdbcTemplate, sqlBuilder, queryRegistry);
     }
@@ -375,7 +375,7 @@ public class QueryConfiguration {
         return new QueryResponseBuilder();
     }
     @Bean
-    QueryService queryService(QueryExecutor queryExecutor, QueryRegistry queryRegistry) {
+    QueryService queryService(QueryExecutorImpl queryExecutor, QueryRegistryImpl queryRegistry) {
         return new QueryService(queryExecutor, queryRegistry);
     }
     @Bean
@@ -1612,21 +1612,20 @@ public class SelectItem {
 ## src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java
 
 ```java
-public class QueryExecutorImpl implements QueryExecutor {
+public class QueryExecutorImpl {
     private static final Logger log = LoggerFactory.getLogger(QueryExecutorImpl.class);
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
-    private final QueryRegistry queryRegistry;
+    private final QueryRegistryImpl queryRegistry;
     private final QuerySqlBuilder sqlBuilder;
     private final QueryRowMapperImpl rowMapper;
-    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistry queryRegistry) {
+    public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistryImpl queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.queryRegistry = queryRegistry;
         this.sqlBuilder = sqlBuilder;
         this.rowMapper = new QueryRowMapperImpl();
     }
-    @Override
     public QueryExecution execute(String queryName) {
         QueryDefinitionBuilder definition = queryRegistry.get(queryName);
         if (definition == null) {
@@ -1634,11 +1633,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
         return new QueryExecution(definition, this);
     }
-    @Override
     public QueryExecution execute(QueryDefinitionBuilder definition) {
         return new QueryExecution(definition, this);
     }
-    @Override
     public QueryExecution prepare(QueryDefinitionBuilder definition) {
         return new QueryExecution(definition, this);
     }
@@ -1773,11 +1770,10 @@ public class QueryExecutorImpl implements QueryExecutor {
 ## src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRegistryImpl.java
 
 ```java
-public class QueryRegistryImpl implements QueryRegistry {
+public class QueryRegistryImpl {
     private static final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
     private final ConcurrentMap<String, QueryDefinitionBuilder> registry = new ConcurrentHashMap<>();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    @Override
     public void register(QueryDefinitionBuilder definition) {
         validateDefinition(definition);
         String name = definition.getName();
@@ -1801,7 +1797,6 @@ public class QueryRegistryImpl implements QueryRegistry {
             lock.writeLock().unlock();
         }
     }
-    @Override
     public void clear() {
         lock.writeLock().lock();
         try {
@@ -1812,7 +1807,6 @@ public class QueryRegistryImpl implements QueryRegistry {
             lock.writeLock().unlock();
         }
     }
-    @Override
     public QueryDefinitionBuilder get(String name) {
         if (name == null) {
             return null;
@@ -1824,7 +1818,6 @@ public class QueryRegistryImpl implements QueryRegistry {
             lock.readLock().unlock();
         }
     }
-    @Override
     public Set<String> getQueryNames() {
         lock.readLock().lock();
         try {
@@ -1833,7 +1826,6 @@ public class QueryRegistryImpl implements QueryRegistry {
             lock.readLock().unlock();
         }
     }
-    @Override
     public Collection<QueryDefinitionBuilder> getAllQueries() {
         lock.readLock().lock();
         try {
@@ -1842,7 +1834,6 @@ public class QueryRegistryImpl implements QueryRegistry {
             lock.readLock().unlock();
         }
     }
-    @Override
     public int size() {
         lock.readLock().lock();
         try {
@@ -1851,7 +1842,6 @@ public class QueryRegistryImpl implements QueryRegistry {
             lock.readLock().unlock();
         }
     }
-    @Override
     public boolean isEmpty() {
         lock.readLock().lock();
         try {
@@ -2025,8 +2015,8 @@ public class QuerySqlBuilder {
 @Configuration
 @RequiredArgsConstructor
 public class OracleHRQueryConfig {
-        private final QueryRegistry queryRegistry;
-        private final QueryExecutor queryExecutor;
+        private final QueryRegistryImpl queryRegistry;
+        private final QueryExecutorImpl queryExecutor;
         @PostConstruct
         public void registerQueries() {
                 queryRegistry.register(QueryDefinitionBuilder.builder("dynamic").sql("""
@@ -2495,9 +2485,9 @@ public class OracleHRQueryConfig {
 @Service
 public class QueryService {
     private static final Logger log = LoggerFactory.getLogger(QueryService.class);
-    private final QueryExecutor queryExecutor;
-    private final QueryRegistry queryRegistry;
-    public QueryService(QueryExecutor queryExecutor, QueryRegistry queryRegistry) {
+    private final QueryExecutorImpl queryExecutor;
+    private final QueryRegistryImpl queryRegistry;
+    public QueryService(QueryExecutorImpl queryExecutor, QueryRegistryImpl queryRegistry) {
         this.queryExecutor = queryExecutor;
         this.queryRegistry = queryRegistry;
     }
