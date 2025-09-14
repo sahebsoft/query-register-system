@@ -64,7 +64,7 @@ public class OracleHRQueryConfig {
                                                                                 """)
                                 .attribute(AttributeDef.name("EMPLOYEE_ID", Integer.class)
                                                 .build())
-                                .parameter(ParamDef.name("jobId").required(false).build())
+                                .parameter(ParamDef.name("jobId", String.class).required(false).build())
                                 .build());
 
                 // Register select/LOV queries
@@ -182,33 +182,19 @@ public class OracleHRQueryConfig {
                                 // Parameters for IN clause criteria
                                 .parameter(ParamDef.name("departmentIds", String.class)
                                                 .build())
-                                .parameter(ParamDef.name("employeeIds")
-                                                .build())
-                                .parameter(ParamDef.name("jobIds")
-                                                .build())
-                                .parameter(ParamDef.name("minSalary")
-                                                .build())
-                                .parameter(ParamDef.name("hiredAfter")
+                                .parameter(ParamDef.name("employeeIds", List.class).build())
+                                .parameter(ParamDef.name("jobIds", List.class).build())
+                                .parameter(ParamDef.name("minSalary", BigDecimal.class).build())
+                                .parameter(ParamDef.name("hiredAfter", LocalDate.class)
                                                 .processor((value, ctx) -> {
-                                                        // Use TypeConverter for type safety
-                                                        if (value == null)
-                                                                return null;
-                                                        return QueryUtils
-                                                                        .convertValue(value, LocalDate.class);
-                                                })
-                                                .build())
-                                .parameter(ParamDef.name("hiredAfterDays")
-                                                .processor((value, ctx) -> {
-                                                        System.out.println("proccess days " + value);
-                                                        if (value != null) {
-                                                                // Convert Object to Long first
-                                                                Long days = QueryUtils
-                                                                                .convertValue(value, Long.class);
-                                                                ctx.addParam("hiredAfter",
-                                                                                LocalDate.now().minusDays(days));
-                                                                return days;
+                                                        System.out.println("processing hiredAfter: " + value);
+                                                        if (value instanceof Integer days) {
+                                                                return LocalDate.now().minusDays(days);
                                                         }
-                                                        return null;
+                                                        if (value == null) {
+                                                                return null;
+                                                        }
+                                                        return QueryUtils.convertValue(value, LocalDate.class);
                                                 })
                                                 .build())
 

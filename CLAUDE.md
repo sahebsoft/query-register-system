@@ -1427,13 +1427,31 @@ public interface AttributeFormatter<T> extends QueryProcessor {
 @FunctionalInterface
 public interface Calculator<T> extends QueryProcessor {
     T calculate(QueryRow row, QueryContext context);
+    default T calculateWithAllRows(QueryRow currentRow, java.util.List<QueryRow> allRows, QueryContext context) {
+        return calculate(currentRow, context);
+    }
     @Override
-    @SuppressWarnings("unchecked")
     default Object process(Object input, QueryContext context) {
         if (!(input instanceof QueryRow)) {
             throw new IllegalArgumentException("Calculator processor requires QueryRow input");
         }
         return calculate((QueryRow) input, context);
+    }
+    static <T> Calculator<T> withFullContext(AggregateCalculator<T> aggregateCalc) {
+        return new Calculator<T>() {
+            @Override
+            public T calculate(QueryRow row, QueryContext context) {
+                return aggregateCalc.calculate(row, java.util.List.of(row), context);
+            }
+            @Override
+            public T calculateWithAllRows(QueryRow currentRow, java.util.List<QueryRow> allRows, QueryContext context) {
+                return aggregateCalc.calculate(currentRow, allRows, context);
+            }
+        };
+    }
+    @FunctionalInterface
+    interface AggregateCalculator<T> {
+        T calculate(QueryRow currentRow, java.util.List<QueryRow> allRows, QueryContext context);
     }
 }```
 
@@ -1631,6 +1649,7 @@ public class QueryExecutorImpl {
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
                     .build();
+            runResultAwareParamProcessors(context, result);
             result = runPostProcessors(context, result);
             if (context.isIncludeMetadata()) {
                 result = addMetadata(context, result);
@@ -1658,6 +1677,25 @@ public class QueryExecutorImpl {
         if (definition.hasPreProcessors()) {
             definition.getPreProcessors().forEach(processor -> processor.process(context));
         }
+    }
+    private void runResultAwareParamProcessors(QueryContext context, QueryResult result) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        if (!definition.hasParams()) {
+            return;
+        }
+        definition.getParameters().forEach((paramName, paramDef) -> {
+            if (paramDef.hasProcessor()) {
+                try {
+                    Object currentValue = context.getParam(paramName);
+                    @SuppressWarnings("unchecked")
+                    var processor = (com.balsam.oasis.common.registry.domain.processor.ParamProcessor<Object>) paramDef.processor();
+                    Object processedValue = processor.process(currentValue, context);
+                    context.addParam(paramName, processedValue);
+                } catch (Exception e) {
+                    log.warn("Failed to process result-aware parameter {}: {}", paramName, e.getMessage());
+                }
+            }
+        });
     }
     private List<QueryRow> executeQuery(QueryContext context, String sql, Map<String, Object> params) {
         try {
@@ -1703,18 +1741,88 @@ public class QueryExecutorImpl {
     }
     private List<QueryRow> runRowProcessors(QueryContext context, List<QueryRow> rows) {
         QueryDefinitionBuilder definition = context.getDefinition();
-        if (!definition.hasRowProcessors()) {
+        List<QueryRow> processedRows = recalculateVirtualAttributesWithFullContext(context, rows);
+        if (definition.hasRowProcessors()) {
+            List<QueryRow> tempProcessedRows = new ArrayList<>();
+            for (QueryRow row : processedRows) {
+                QueryRow processedRow = row;
+                for (var processor : definition.getRowProcessors()) {
+                    processedRow = processor.process(processedRow, context);
+                }
+                tempProcessedRows.add(processedRow);
+            }
+            processedRows = tempProcessedRows;
+        }
+        processedRows = applyAttributeFormatters(context, processedRows);
+        return processedRows;
+    }
+    private List<QueryRow> recalculateVirtualAttributesWithFullContext(QueryContext context, List<QueryRow> rows) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        if (!definition.hasAttributes()) {
             return rows;
         }
-        List<QueryRow> processedRows = new ArrayList<>();
-        for (QueryRow row : rows) {
-            QueryRow processedRow = row;
-            for (var processor : definition.getRowProcessors()) {
-                processedRow = processor.process(processedRow, context);
-            }
-            processedRows.add(processedRow);
+        boolean hasAggregateCalculators = definition.getAttributes().values().stream()
+                .anyMatch(attr -> attr.virtual() && attr.hasCalculator());
+        if (!hasAggregateCalculators) {
+            return rows;
         }
-        return processedRows;
+        List<QueryRow> enhancedRows = new ArrayList<>();
+        for (QueryRow row : rows) {
+            QueryRow enhancedRow = row;
+            for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                String attrName = entry.getKey();
+                var attr = entry.getValue();
+                if (attr.virtual() && attr.hasCalculator()) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        var calculator = (com.balsam.oasis.common.registry.domain.processor.Calculator<Object>) attr.calculator();
+                        Object enhancedValue = calculator.calculateWithAllRows(enhancedRow, rows, context);
+                        enhancedRow.set(attrName, enhancedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to recalculate virtual attribute {}: {}", attrName, e.getMessage());
+                    }
+                }
+            }
+            enhancedRows.add(enhancedRow);
+        }
+        return enhancedRows;
+    }
+    private List<QueryRow> applyAttributeFormatters(QueryContext context, List<QueryRow> rows) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        if (!definition.hasAttributes()) {
+            return rows;
+        }
+        boolean hasFormatters = definition.getAttributes().values().stream()
+                .anyMatch(com.balsam.oasis.common.registry.domain.definition.AttributeDef::hasFormatter);
+        if (!hasFormatters) {
+            return rows;
+        }
+        List<QueryRow> formattedRows = new ArrayList<>();
+        for (QueryRow row : rows) {
+            QueryRow formattedRow = applyRowAttributeFormatters(row, definition);
+            formattedRows.add(formattedRow);
+        }
+        return formattedRows;
+    }
+    private QueryRow applyRowAttributeFormatters(QueryRow row, QueryDefinitionBuilder definition) {
+        for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            var attr = entry.getValue();
+            if (attr.hasFormatter()) {
+                Object value = row.get(attrName);
+                if (value != null) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        var formatter = (com.balsam.oasis.common.registry.domain.processor.AttributeFormatter<Object>) attr.formatter();
+                        String formattedValue = formatter.format(value);
+                        row.set(attrName, formattedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to format attribute {}: {}", attrName, e.getMessage());
+                    }
+                }
+            }
+        }
+        return row;
     }
     private QueryResult runPostProcessors(QueryContext context, QueryResult result) {
         QueryDefinitionBuilder definition = context.getDefinition();
@@ -1723,7 +1831,7 @@ public class QueryExecutorImpl {
         }
         QueryResult processedResult = result;
         for (var processor : definition.getPostProcessors()) {
-            return processor.process(processedResult, context);
+            processedResult = processor.process(processedResult, context);
         }
         return processedResult;
     }
@@ -2021,7 +2129,7 @@ public class OracleHRQueryConfig {
                                                                                 """)
                                 .attribute(AttributeDef.name("EMPLOYEE_ID", Integer.class)
                                                 .build())
-                                .parameter(ParamDef.name("jobId").required(false).build())
+                                .parameter(ParamDef.name("jobId", String.class).required(false).build())
                                 .build());
                 queryRegistry.register(employeesSelectQuery());
                 queryRegistry.register(departmentsSelectQuery());
@@ -2127,31 +2235,19 @@ public class OracleHRQueryConfig {
                                                 .build())
                                 .parameter(ParamDef.name("departmentIds", String.class)
                                                 .build())
-                                .parameter(ParamDef.name("employeeIds")
-                                                .build())
-                                .parameter(ParamDef.name("jobIds")
-                                                .build())
-                                .parameter(ParamDef.name("minSalary")
-                                                .build())
-                                .parameter(ParamDef.name("hiredAfter")
+                                .parameter(ParamDef.name("employeeIds", List.class).build())
+                                .parameter(ParamDef.name("jobIds", List.class).build())
+                                .parameter(ParamDef.name("minSalary", BigDecimal.class).build())
+                                .parameter(ParamDef.name("hiredAfter", LocalDate.class)
                                                 .processor((value, ctx) -> {
-                                                        if (value == null)
-                                                                return null;
-                                                        return QueryUtils
-                                                                        .convertValue(value, LocalDate.class);
-                                                })
-                                                .build())
-                                .parameter(ParamDef.name("hiredAfterDays")
-                                                .processor((value, ctx) -> {
-                                                        System.out.println("proccess days " + value);
-                                                        if (value != null) {
-                                                                Long days = QueryUtils
-                                                                                .convertValue(value, Long.class);
-                                                                ctx.addParam("hiredAfter",
-                                                                                LocalDate.now().minusDays(days));
-                                                                return days;
+                                                        System.out.println("processing hiredAfter: " + value);
+                                                        if (value instanceof Integer days) {
+                                                                return LocalDate.now().minusDays(days);
                                                         }
-                                                        return null;
+                                                        if (value == null) {
+                                                                return null;
+                                                        }
+                                                        return QueryUtils.convertValue(value, LocalDate.class);
                                                 })
                                                 .build())
                                 .criteria(CriteriaDef.name("departmentFilter")

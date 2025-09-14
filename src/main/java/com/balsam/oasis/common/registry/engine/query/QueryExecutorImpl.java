@@ -94,6 +94,9 @@ public class QueryExecutorImpl {
                     .context(context)
                     .build();
 
+            // Run result-aware parameter processors
+            runResultAwareParamProcessors(context, result);
+
             // Run post-processors
             result = runPostProcessors(context, result);
 
@@ -131,6 +134,32 @@ public class QueryExecutorImpl {
         if (definition.hasPreProcessors()) {
             definition.getPreProcessors().forEach(processor -> processor.process(context));
         }
+    }
+
+    private void runResultAwareParamProcessors(QueryContext context, QueryResult result) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+
+        if (!definition.hasParams()) {
+            return;
+        }
+
+        // Allow parameters to be processed again with access to query results
+        // This enables parameters to be transformed based on result data
+        definition.getParameters().forEach((paramName, paramDef) -> {
+            if (paramDef.hasProcessor()) {
+                try {
+                    Object currentValue = context.getParam(paramName);
+                    @SuppressWarnings("unchecked")
+                    var processor = (com.balsam.oasis.common.registry.domain.processor.ParamProcessor<Object>) paramDef.processor();
+
+                    // Use the same context - the processor can access full context if needed
+                    Object processedValue = processor.process(currentValue, context);
+                    context.addParam(paramName, processedValue);
+                } catch (Exception e) {
+                    log.warn("Failed to process result-aware parameter {}: {}", paramName, e.getMessage());
+                }
+            }
+        });
     }
 
     private List<QueryRow> executeQuery(QueryContext context, String sql, Map<String, Object> params) {
@@ -194,23 +223,111 @@ public class QueryExecutorImpl {
     private List<QueryRow> runRowProcessors(QueryContext context, List<QueryRow> rows) {
         QueryDefinitionBuilder definition = context.getDefinition();
 
-        // This method focuses on running custom row processors
+        // First recalculate virtual attributes with full context access
+        List<QueryRow> processedRows = recalculateVirtualAttributesWithFullContext(context, rows);
 
-        // Then run row processors if any
-        if (!definition.hasRowProcessors()) {
+        // Then run custom row processors if any
+        if (definition.hasRowProcessors()) {
+            List<QueryRow> tempProcessedRows = new ArrayList<>();
+            for (QueryRow row : processedRows) {
+                QueryRow processedRow = row;
+                for (var processor : definition.getRowProcessors()) {
+                    processedRow = processor.process(processedRow, context);
+                }
+                tempProcessedRows.add(processedRow);
+            }
+            processedRows = tempProcessedRows;
+        }
+
+        // Finally apply attribute formatters
+        processedRows = applyAttributeFormatters(context, processedRows);
+
+        return processedRows;
+    }
+
+    private List<QueryRow> recalculateVirtualAttributesWithFullContext(QueryContext context, List<QueryRow> rows) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+
+        if (!definition.hasAttributes()) {
             return rows;
         }
 
-        List<QueryRow> processedRows = new ArrayList<>();
-        for (QueryRow row : rows) {
-            QueryRow processedRow = row;
-            for (var processor : definition.getRowProcessors()) {
-                processedRow = processor.process(processedRow, context);
-            }
-            processedRows.add(processedRow);
+        // Check if any attributes need full context calculation
+        boolean hasAggregateCalculators = definition.getAttributes().values().stream()
+                .anyMatch(attr -> attr.virtual() && attr.hasCalculator());
+
+        if (!hasAggregateCalculators) {
+            return rows;
         }
 
-        return processedRows;
+        // Recalculate virtual attributes with access to all rows
+        List<QueryRow> enhancedRows = new ArrayList<>();
+        for (QueryRow row : rows) {
+            QueryRow enhancedRow = row;
+            for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                String attrName = entry.getKey();
+                var attr = entry.getValue();
+
+                if (attr.virtual() && attr.hasCalculator()) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        var calculator = (com.balsam.oasis.common.registry.domain.processor.Calculator<Object>) attr.calculator();
+                        Object enhancedValue = calculator.calculateWithAllRows(enhancedRow, rows, context);
+                        enhancedRow.set(attrName, enhancedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to recalculate virtual attribute {}: {}", attrName, e.getMessage());
+                    }
+                }
+            }
+            enhancedRows.add(enhancedRow);
+        }
+
+        return enhancedRows;
+    }
+
+    private List<QueryRow> applyAttributeFormatters(QueryContext context, List<QueryRow> rows) {
+        QueryDefinitionBuilder definition = context.getDefinition();
+
+        if (!definition.hasAttributes()) {
+            return rows;
+        }
+
+        boolean hasFormatters = definition.getAttributes().values().stream()
+                .anyMatch(com.balsam.oasis.common.registry.domain.definition.AttributeDef::hasFormatter);
+
+        if (!hasFormatters) {
+            return rows;
+        }
+
+        List<QueryRow> formattedRows = new ArrayList<>();
+        for (QueryRow row : rows) {
+            QueryRow formattedRow = applyRowAttributeFormatters(row, definition);
+            formattedRows.add(formattedRow);
+        }
+
+        return formattedRows;
+    }
+
+    private QueryRow applyRowAttributeFormatters(QueryRow row, QueryDefinitionBuilder definition) {
+        for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            var attr = entry.getValue();
+
+            if (attr.hasFormatter()) {
+                Object value = row.get(attrName);
+                if (value != null) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        var formatter = (com.balsam.oasis.common.registry.domain.processor.AttributeFormatter<Object>) attr.formatter();
+                        String formattedValue = formatter.format(value);
+                        row.set(attrName, formattedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to format attribute {}: {}", attrName, e.getMessage());
+                    }
+                }
+            }
+        }
+        return row;
     }
 
     private QueryResult runPostProcessors(QueryContext context, QueryResult result) {
@@ -221,7 +338,7 @@ public class QueryExecutorImpl {
 
         QueryResult processedResult = result;
         for (var processor : definition.getPostProcessors()) {
-            return processor.process(processedResult, context);
+            processedResult = processor.process(processedResult, context);
         }
 
         return processedResult;
