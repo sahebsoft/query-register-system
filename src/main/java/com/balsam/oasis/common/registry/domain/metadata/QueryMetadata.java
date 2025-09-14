@@ -2,7 +2,7 @@ package com.balsam.oasis.common.registry.domain.metadata;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -53,9 +53,9 @@ public class QueryMetadata {
 
     public static class MetadataBuilder {
         private final QueryContext context;
-        private final QueryResult result;
+        private final QueryData result;
 
-        public MetadataBuilder(QueryContext context, QueryResult result) {
+        public MetadataBuilder(QueryContext context, QueryData result) {
             this.context = context;
             this.result = result;
         }

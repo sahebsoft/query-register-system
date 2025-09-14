@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -332,7 +332,7 @@ public class OracleHRQueryConfig {
                                                                 // deptId
                                                                 // Using select() to only get needed fields (performance
                                                                 // optimization)
-                                                                QueryResult result = queryExecutor.execute("employees")
+                                                                QueryData result = queryExecutor.execute("employees")
                                                                                 .withParam("departmentIds",
                                                                                                 List.of(deptId))
                                                                                 .withPagination(0, 100)

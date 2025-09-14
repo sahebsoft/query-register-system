@@ -1250,7 +1250,7 @@ public class QueryExecution {
         }
         return this;
     }
-    public QueryResult execute() {
+    public QueryData execute() {
         initializeNonRequiredParams();
         validate();
         return executor.doExecute(context);
@@ -1269,7 +1269,7 @@ public class QueryExecution {
     public QueryRow executeSingle() {
         initializeNonRequiredParams();
         validate();
-        QueryResult result = executor.doExecute(context);
+        QueryData result = executor.doExecute(context);
         if (result.getRows().isEmpty()) {
             return null;
         }
@@ -1280,7 +1280,7 @@ public class QueryExecution {
         }
         return result.getRows().get(0);
     }
-    public java.util.concurrent.CompletableFuture<QueryResult> executeAsync() {
+    public java.util.concurrent.CompletableFuture<QueryData> executeAsync() {
         return java.util.concurrent.CompletableFuture.supplyAsync(this::execute);
     }
     public java.util.concurrent.CompletableFuture<Object> executeSingleAsync() {
@@ -1331,8 +1331,8 @@ public class QueryMetadata {
     }
     public static class MetadataBuilder {
         private final QueryContext context;
-        private final QueryResult result;
-        public MetadataBuilder(QueryContext context, QueryResult result) {
+        private final QueryData result;
+        public MetadataBuilder(QueryContext context, QueryData result) {
             this.context = context;
             this.result = result;
         }
@@ -1473,13 +1473,13 @@ public interface ParamProcessor<T> extends QueryProcessor {
 ```java
 @FunctionalInterface
 public interface PostProcessor extends QueryProcessor {
-    QueryResult process(QueryResult result, QueryContext context);
+    QueryData process(QueryData result, QueryContext context);
     @Override
     default Object process(Object input, QueryContext context) {
-        if (!(input instanceof QueryResult)) {
-            throw new IllegalArgumentException("Post processor requires QueryResult input");
+        if (!(input instanceof QueryData)) {
+            throw new IllegalArgumentException("Post processor requires QueryData input");
         }
-        return process((QueryResult) input, context);
+        return process((QueryData) input, context);
     }
 }```
 
@@ -1539,10 +1539,10 @@ public interface QueryProcessor {
     }
     static QueryProcessor postProcessor(PostProcessorAction action) {
         return (input, context) -> {
-            if (!(input instanceof QueryResult)) {
-                throw new IllegalArgumentException("Post processor requires QueryResult input");
+            if (!(input instanceof QueryData)) {
+                throw new IllegalArgumentException("Post processor requires QueryData input");
             }
-            return action.process((QueryResult) input, context);
+            return action.process((QueryData) input, context);
         };
     }
     @FunctionalInterface
@@ -1555,7 +1555,7 @@ public interface QueryProcessor {
     }
     @FunctionalInterface
     interface PostProcessorAction {
-        QueryResult process(QueryResult result, QueryContext context);
+        QueryData process(QueryData result, QueryContext context);
     }
 }```
 
@@ -1630,7 +1630,7 @@ public class QueryExecutorImpl {
         return new QueryExecution(definition, this);
     }
     @Transactional(readOnly = true)
-    public QueryResult doExecute(QueryContext context) {
+    public QueryData doExecute(QueryContext context) {
         context.startExecution();
         try {
             runPreProcessors(context);
@@ -1645,7 +1645,7 @@ public class QueryExecutorImpl {
             }
             List<QueryRow> rows = executeQuery(context, finalSql, params);
             rows = runRowProcessors(context, rows);
-            QueryResult result = QueryResult.builder()
+            QueryData result = QueryData.builder()
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
                     .build();
@@ -1678,7 +1678,7 @@ public class QueryExecutorImpl {
             definition.getPreProcessors().forEach(processor -> processor.process(context));
         }
     }
-    private void runResultAwareParamProcessors(QueryContext context, QueryResult result) {
+    private void runResultAwareParamProcessors(QueryContext context, QueryData result) {
         QueryDefinitionBuilder definition = context.getDefinition();
         if (!definition.hasParams()) {
             return;
@@ -1824,18 +1824,18 @@ public class QueryExecutorImpl {
         }
         return row;
     }
-    private QueryResult runPostProcessors(QueryContext context, QueryResult result) {
+    private QueryData runPostProcessors(QueryContext context, QueryData result) {
         QueryDefinitionBuilder definition = context.getDefinition();
         if (!definition.hasPostProcessors()) {
             return result;
         }
-        QueryResult processedResult = result;
+        QueryData processedResult = result;
         for (var processor : definition.getPostProcessors()) {
             processedResult = processor.process(processedResult, context);
         }
         return processedResult;
     }
-    private QueryResult addMetadata(QueryContext context, QueryResult result) {
+    private QueryData addMetadata(QueryContext context, QueryData result) {
         var metadataBuilder = new QueryMetadata.MetadataBuilder(context, result);
         var metadata = metadataBuilder.build();
         return result.toBuilder()
@@ -2369,7 +2369,7 @@ public class OracleHRQueryConfig {
                                                                 System.out.println(
                                                                                 "Fetching employees for department ID: "
                                                                                                 + deptId);
-                                                                QueryResult result = queryExecutor.execute("employees")
+                                                                QueryData result = queryExecutor.execute("employees")
                                                                                 .withParam("departmentIds",
                                                                                                 List.of(deptId))
                                                                                 .withPagination(0, 100)
@@ -2559,7 +2559,7 @@ public class QueryService {
         this.queryExecutor = queryExecutor;
         this.queryRegistry = queryRegistry;
     }
-    public QueryResult executeQuery(String queryName, QueryRequest request) {
+    public QueryData executeQuery(String queryName, QueryRequest request) {
         log.info("Executing query: {} with params: {}", queryName, request.getParams());
         QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
         if (queryDefinition == null) {
@@ -2596,7 +2596,7 @@ public class QueryService {
         }
         return execution.execute();
     }
-    public QueryResult executeQuery(String queryName) {
+    public QueryData executeQuery(String queryName) {
         return executeQuery(queryName, QueryRequest.builder().build());
     }
     public QueryExecution createExecution(QueryDefinitionBuilder queryDefinition) {
@@ -2615,7 +2615,7 @@ public class QueryService {
     public List<String> getRegisteredQueryNames() {
         return List.of();
     }
-    public QueryResult executeAsSelect(String queryName, QueryRequest request) {
+    public QueryData executeAsSelect(String queryName, QueryRequest request) {
         log.info("Executing query as select: {} with params: {}", queryName, request.getParams());
         QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
         if (queryDefinition == null) {
@@ -3155,25 +3155,25 @@ public class QueryUtils {
 @Slf4j
 public class QueryResponseBuilder {
     private final ResponseFormatter formatter = new ResponseFormatter();
-    public ResponseEntity<QueryResponse> build(QueryResult result, String queryName) {
+    public ResponseEntity<QueryResponse> build(QueryData result, String queryName) {
         QueryResponse response = buildFormattedResponse(result);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    public ResponseEntity<QueryResponse> buildSingle(QueryResult result, String queryName) {
+    public ResponseEntity<QueryResponse> buildSingle(QueryData result, String queryName) {
         QueryResponse response = buildFormattedSingleResponse(result);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    public ResponseEntity<QueryResponse> buildSelectResponse(QueryResult queryResult) {
+    public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryResult) {
         QueryResponse response = buildFormattedSelectResponse(queryResult);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    private QueryResponse buildFormattedResponse(QueryResult result) {
+    private QueryResponse buildFormattedResponse(QueryData result) {
         Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
         QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
         List<?> formattedData;
@@ -3189,7 +3189,7 @@ public class QueryResponseBuilder {
                 .success(result.isSuccess())
                 .build();
     }
-    private QueryResponse buildFormattedSingleResponse(QueryResult result) {
+    private QueryResponse buildFormattedSingleResponse(QueryData result) {
         if (result == null || result.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
@@ -3207,7 +3207,7 @@ public class QueryResponseBuilder {
                 .success(result.isSuccess())
                 .build();
     }
-    private QueryResponse buildFormattedSelectResponse(QueryResult queryResult) {
+    private QueryResponse buildFormattedSelectResponse(QueryData queryResult) {
         QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
         String valueAttr = definition.getValueAttribute();
         String labelAttr = definition.getLabelAttribute();

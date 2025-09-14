@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
@@ -42,7 +42,7 @@ public class QueryService {
      * @return QueryResult containing the execution results
      * @throws QueryException if query not found or execution fails
      */
-    public QueryResult executeQuery(String queryName, QueryRequest request) {
+    public QueryData executeQuery(String queryName, QueryRequest request) {
         log.info("Executing query: {} with params: {}", queryName, request.getParams());
         
         // Get the query definition
@@ -104,7 +104,7 @@ public class QueryService {
      * @return QueryResult containing the execution results
      * @throws QueryException if query not found or execution fails
      */
-    public QueryResult executeQuery(String queryName) {
+    public QueryData executeQuery(String queryName) {
         return executeQuery(queryName, QueryRequest.builder().build());
     }
     
@@ -163,7 +163,7 @@ public class QueryService {
      * @return QueryResult containing the execution results formatted for select
      * @throws QueryException if query not found or not configured for select mode
      */
-    public QueryResult executeAsSelect(String queryName, QueryRequest request) {
+    public QueryData executeAsSelect(String queryName, QueryRequest request) {
         log.info("Executing query as select: {} with params: {}", queryName, request.getParams());
 
         // Get the query definition

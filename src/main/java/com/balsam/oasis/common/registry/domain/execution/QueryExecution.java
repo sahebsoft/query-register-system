@@ -7,7 +7,7 @@ import java.util.Set;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
@@ -263,7 +263,7 @@ public class QueryExecution {
     }
 
     // Execution
-    public QueryResult execute() {
+    public QueryData execute() {
         // Initialize non-required params with null if not provided
         initializeNonRequiredParams();
 
@@ -296,7 +296,7 @@ public class QueryExecution {
         validate();
 
         // Execute the query
-        QueryResult result = executor.doExecute(context);
+        QueryData result = executor.doExecute(context);
 
         // Check result size
         if (result.getRows().isEmpty()) {
@@ -313,7 +313,7 @@ public class QueryExecution {
     }
 
     // Async execution
-    public java.util.concurrent.CompletableFuture<QueryResult> executeAsync() {
+    public java.util.concurrent.CompletableFuture<QueryData> executeAsync() {
         return java.util.concurrent.CompletableFuture.supplyAsync(this::execute);
     }
 

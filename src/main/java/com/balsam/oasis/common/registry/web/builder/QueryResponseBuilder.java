@@ -3,7 +3,7 @@ package com.balsam.oasis.common.registry.web.builder;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 import com.balsam.oasis.common.registry.web.formatter.ResponseFormatter;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
@@ -29,7 +29,7 @@ public class QueryResponseBuilder {
     /**
      * Build JSON response from query result
      */
-    public ResponseEntity<QueryResponse> build(QueryResult result, String queryName) {
+    public ResponseEntity<QueryResponse> build(QueryData result, String queryName) {
         QueryResponse response = buildFormattedResponse(result);
 
         return ResponseEntity.ok()
@@ -40,7 +40,7 @@ public class QueryResponseBuilder {
     /**
      * Build JSON response for single result
      */
-    public ResponseEntity<QueryResponse> buildSingle(QueryResult result, String queryName) {
+    public ResponseEntity<QueryResponse> buildSingle(QueryData result, String queryName) {
         QueryResponse response = buildFormattedSingleResponse(result);
 
         return ResponseEntity.ok()
@@ -52,7 +52,7 @@ public class QueryResponseBuilder {
      * Build JSON response for select/dropdown queries
      * Converts QueryResult to select response format with SelectItem objects
      */
-    public ResponseEntity<QueryResponse> buildSelectResponse(QueryResult queryResult) {
+    public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryResult) {
         QueryResponse response = buildFormattedSelectResponse(queryResult);
 
         return ResponseEntity.ok()
@@ -60,7 +60,7 @@ public class QueryResponseBuilder {
                 .body(response);
     }
 
-    private QueryResponse buildFormattedResponse(QueryResult result) {
+    private QueryResponse buildFormattedResponse(QueryData result) {
         Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
         QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
 
@@ -79,7 +79,7 @@ public class QueryResponseBuilder {
                 .build();
     }
 
-    private QueryResponse buildFormattedSingleResponse(QueryResult result) {
+    private QueryResponse buildFormattedSingleResponse(QueryData result) {
         if (result == null || result.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
@@ -101,7 +101,7 @@ public class QueryResponseBuilder {
                 .build();
     }
 
-    private QueryResponse buildFormattedSelectResponse(QueryResult queryResult) {
+    private QueryResponse buildFormattedSelectResponse(QueryData queryResult) {
         QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
 
         // Check if query has value and label attributes

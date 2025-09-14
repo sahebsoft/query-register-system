@@ -1,17 +1,17 @@
 package com.balsam.oasis.common.registry.domain.processor;
 
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 
 @FunctionalInterface
 public interface PostProcessor extends QueryProcessor {
-    QueryResult process(QueryResult result, QueryContext context);
+    QueryData process(QueryData result, QueryContext context);
 
     @Override
     default Object process(Object input, QueryContext context) {
-        if (!(input instanceof QueryResult)) {
-            throw new IllegalArgumentException("Post processor requires QueryResult input");
+        if (!(input instanceof QueryData)) {
+            throw new IllegalArgumentException("Post processor requires QueryData input");
         }
-        return process((QueryResult) input, context);
+        return process((QueryData) input, context);
     }
 }

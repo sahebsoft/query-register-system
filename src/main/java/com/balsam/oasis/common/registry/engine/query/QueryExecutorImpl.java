@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
@@ -61,7 +61,7 @@ public class QueryExecutorImpl {
      * Internal execution method
      */
     @Transactional(readOnly = true)
-    public QueryResult doExecute(QueryContext context) {
+    public QueryData doExecute(QueryContext context) {
         context.startExecution();
 
         try {
@@ -89,7 +89,7 @@ public class QueryExecutorImpl {
             rows = runRowProcessors(context, rows);
 
             // Build initial result
-            QueryResult result = QueryResult.builder()
+            QueryData result = QueryData.builder()
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
                     .build();
@@ -136,7 +136,7 @@ public class QueryExecutorImpl {
         }
     }
 
-    private void runResultAwareParamProcessors(QueryContext context, QueryResult result) {
+    private void runResultAwareParamProcessors(QueryContext context, QueryData result) {
         QueryDefinitionBuilder definition = context.getDefinition();
 
         if (!definition.hasParams()) {
@@ -330,13 +330,13 @@ public class QueryExecutorImpl {
         return row;
     }
 
-    private QueryResult runPostProcessors(QueryContext context, QueryResult result) {
+    private QueryData runPostProcessors(QueryContext context, QueryData result) {
         QueryDefinitionBuilder definition = context.getDefinition();
         if (!definition.hasPostProcessors()) {
             return result;
         }
 
-        QueryResult processedResult = result;
+        QueryData processedResult = result;
         for (var processor : definition.getPostProcessors()) {
             processedResult = processor.process(processedResult, context);
         }
@@ -344,7 +344,7 @@ public class QueryExecutorImpl {
         return processedResult;
     }
 
-    private QueryResult addMetadata(QueryContext context, QueryResult result) {
+    private QueryData addMetadata(QueryContext context, QueryData result) {
         var metadataBuilder = new QueryMetadata.MetadataBuilder(context, result);
         var metadata = metadataBuilder.build();
 

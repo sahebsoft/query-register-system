@@ -1,6 +1,6 @@
 package com.balsam.oasis.common.registry.domain.processor;
 
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
 
@@ -51,10 +51,10 @@ public interface QueryProcessor {
 
     static QueryProcessor postProcessor(PostProcessorAction action) {
         return (input, context) -> {
-            if (!(input instanceof QueryResult)) {
-                throw new IllegalArgumentException("Post processor requires QueryResult input");
+            if (!(input instanceof QueryData)) {
+                throw new IllegalArgumentException("Post processor requires QueryData input");
             }
-            return action.process((QueryResult) input, context);
+            return action.process((QueryData) input, context);
         };
     }
 
@@ -71,6 +71,6 @@ public interface QueryProcessor {
 
     @FunctionalInterface
     interface PostProcessorAction {
-        QueryResult process(QueryResult result, QueryContext context);
+        QueryData process(QueryData result, QueryContext context);
     }
 }
