@@ -28,9 +28,6 @@ public class QueryContext {
 
     protected Pagination pagination;
 
-    protected Long startTime;
-    protected Long endTime;
-
     @Builder.Default
     protected boolean includeMetadata = true;
 
@@ -121,15 +118,4 @@ public class QueryContext {
         return sorts != null && !sorts.isEmpty();
     }
 
-    public void startExecution() {
-        this.startTime = System.currentTimeMillis();
-    }
-
-    public void endExecution() {
-        this.endTime = System.currentTimeMillis();
-    }
-
-    public long getExecutionTime() {
-        return (startTime != null && endTime != null) ? endTime - startTime : 0;
-    }
 }

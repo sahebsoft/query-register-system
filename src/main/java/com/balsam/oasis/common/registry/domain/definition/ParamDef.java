@@ -38,7 +38,7 @@ public record ParamDef<T>(
 
         if (hasProcessor()) {
             try {
-                T processed = processor.process(value, context);
+                T processed = processor.process((String) value, context);
                 return processed != null;
             } catch (Exception e) {
                 return false;

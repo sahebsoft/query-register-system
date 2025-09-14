@@ -63,7 +63,7 @@ public class QueryResponseBuilder {
         return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
-                .count(result.getCount())
+                .count((long) result.getCount())
                 .success(result.isSuccess())
                 .build();
     }
@@ -124,7 +124,7 @@ public class QueryResponseBuilder {
         return QueryResponse.builder()
                 .data(selectItems)
                 .metadata(selectMetadata)
-                .count(queryData.getCount())
+                .count((long) queryData.getCount())
                 .success(true)
                 .build();
     }

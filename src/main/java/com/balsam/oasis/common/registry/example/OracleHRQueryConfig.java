@@ -13,6 +13,8 @@ import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
+import com.balsam.oasis.common.registry.domain.exception.QueryException;
+import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.util.QueryUtils;
 
 import jakarta.annotation.PostConstruct;
@@ -40,8 +42,9 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("asdasd").aliasName("XX").build())
                                 .attribute(AttributeDef.name("fullName", String.class)
                                                 .calculated((row, context) -> String.format("%s %s",
-                                                                row.getString("FIRST_NAME"),
-                                                                row.getString("LAST_NAME")))
+                                                                row.getRaw("FIRST_NAME"), // Raw SQL access since no
+                                                                                          // attributes defined
+                                                                row.getRaw("LAST_NAME")))
                                                 .build())
                                 .rowProcessor((row, context) -> {
                                         row.set("DEPT_NAME", "zzz");
@@ -148,6 +151,11 @@ public class OracleHRQueryConfig {
                                 .attribute(AttributeDef.name("jobTitle", String.class)
                                                 .aliasName("job_title")
                                                 .build())
+                                // Salary information
+                                .attribute(AttributeDef.name("salary", BigDecimal.class)
+                                                .formatter(value -> String.format("$%.2f", value))
+                                                .aliasName("salary")
+                                                .build())
                                 // Location information
                                 .attribute(AttributeDef.name("city", String.class)
                                                 .aliasName("CITY").formatter(String::toUpperCase)
@@ -155,9 +163,11 @@ public class OracleHRQueryConfig {
                                 // Transient attributes (calculated fields)
                                 .attribute(AttributeDef.name("totalCompensation", BigDecimal.class)
                                                 .calculated((row, context) -> {
-                                                        System.out.println("totalCompensation");
-                                                        BigDecimal salary = (BigDecimal) row.get("SALARY");
-                                                        BigDecimal commission = (BigDecimal) row.get("COMMISSION_PCT");
+                                                        // Use attribute names to access data
+                                                        BigDecimal salary = (BigDecimal) row.get("salary");
+                                                        BigDecimal commission = (BigDecimal) row
+                                                                        .getRaw("COMMISSION_PCT"); // Commission not in
+                                                                                                   // attributes
                                                         if (salary == null)
                                                                 return BigDecimal.ZERO;
                                                         if (commission == null)
@@ -171,7 +181,7 @@ public class OracleHRQueryConfig {
                                                 }).build())
                                 .attribute(AttributeDef.name("internalDebugInfo", String.class)
                                                 .selected(false) // Hidden by default unless explicitly requested
-                                                .calculated((row, context) -> "Debug: ID=" + row.get("EMPLOYEE_ID"))
+                                                .calculated((row, context) -> "Debug: ID=" + row.get("employeeId"))
                                                 .build())
 
                                 // Parameters
@@ -186,14 +196,26 @@ public class OracleHRQueryConfig {
                                 .parameter(ParamDef.name("minSalary", BigDecimal.class).build())
                                 .parameter(ParamDef.name("hiredAfter", LocalDate.class)
                                                 .processor((value, ctx) -> {
-                                                        System.out.println("processing hiredAfter: " + value);
-                                                        if (value instanceof Integer days) {
-                                                                return LocalDate.now().minusDays(days);
-                                                        }
+                                                        System.out.println("processing hiredAfter: '" + value
+                                                                        + "' (String input)");
                                                         if (value == null) {
                                                                 return null;
                                                         }
-                                                        return QueryUtils.convertValue(value, LocalDate.class);
+                                                        try {
+                                                                // Try parsing as number of days
+                                                                int days = Integer.parseInt(value);
+                                                                return LocalDate.now().minusDays(days);
+                                                        } catch (NumberFormatException e) {
+                                                                // Try parsing as ISO date string
+                                                                try {
+                                                                        return LocalDate.parse(value);
+                                                                } catch (Exception ex) {
+                                                                        throw new QueryException(
+                                                                                        "Invalid hiredAfter value: '"
+                                                                                                        + value
+                                                                                                        + "'. Expected number of days (e.g., '10') or ISO date (e.g., '2023-01-01')");
+                                                                }
+                                                        }
                                                 })
                                                 .build())
 
@@ -228,7 +250,6 @@ public class OracleHRQueryConfig {
                                         System.out.println("@@@@@@@@@preProcessor@@@@@@@@");
                                 })
                                 .rowProcessor((row, context) -> {
-                                        System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
                                         return row;
                                 })
                                 .postProcessor((queryData, context) -> {

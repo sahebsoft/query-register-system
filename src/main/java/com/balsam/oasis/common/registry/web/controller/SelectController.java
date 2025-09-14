@@ -1,10 +1,11 @@
 package com.balsam.oasis.common.registry.web.controller;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,11 +15,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
+import com.balsam.oasis.common.registry.domain.select.SelectItem;
+import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
@@ -36,25 +37,21 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/select/v2")
 @Tag(name = "Select API", description = "List of Values endpoints for dropdowns and select components")
-public class SelectController {
+public class SelectController extends QueryBaseController {
 
     private static final Logger log = LoggerFactory.getLogger(SelectController.class);
 
     private final QueryService queryService;
-    private final QueryResponseBuilder responseBuilder;
     private final QueryRequestParser requestParser;
 
-    public SelectController(QueryService queryService,
-            QueryResponseBuilder responseBuilder,
-            QueryRequestParser requestParser) {
+    public SelectController(QueryService queryService, QueryRequestParser requestParser) {
         this.queryService = queryService;
-        this.responseBuilder = responseBuilder;
         this.requestParser = requestParser;
     }
 
     @GetMapping("/{selectName}")
     @Operation(summary = "Get list of values", description = "Execute a select query for dropdowns/selects")
-    public ResponseEntity<?> getListOfValues(
+    public ResponseEntity<QueryResponse<List<SelectItem>>> getListOfValues(
             @PathVariable @Parameter(description = "Name of the registered select") String selectName,
             @RequestParam(required = false) @Parameter(description = "IDs to fetch (for default values)") List<String> id,
             @RequestParam(required = false) @Parameter(description = "Search term to filter results") String search,
@@ -65,17 +62,13 @@ public class SelectController {
         log.info("Executing select: {} with ids: {}, search: {}, pagination: {}-{}",
                 selectName, id, search, _start, _end);
 
-        try {
+        return handleQueryData(() -> {
             // Get the query definition
             QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(selectName);
 
             if (queryDefinition == null) {
-                log.error("Select query not found: {}", selectName);
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(buildErrorResponse(new QueryException(
-                                selectName, QueryException.ErrorCode.QUERY_NOT_FOUND,
-                                "Select query not found: " + selectName)));
+                throw new QueryException(selectName, QueryException.ErrorCode.QUERY_NOT_FOUND,
+                        "Select query not found: " + selectName);
             }
 
             // Parse request parameters with type information
@@ -125,44 +118,22 @@ public class SelectController {
             }
 
             // Execute through service as select mode
-            QueryData queryData = queryService.executeAsSelect(selectName, queryRequest);
-            return responseBuilder.buildSelectResponse(queryData);
+            return queryService.executeAsSelect(selectName, queryRequest);
+        }, queryData -> {
+            // Build SelectItem list from query results
+            List<SelectItem> selectItems = new ArrayList<>();
 
-        } catch (QueryException e) {
-            log.error("Select execution failed: {}", e.getMessage());
-            return ResponseEntity
-                    .status(determineHttpStatus(e))
-                    .body(buildErrorResponse(e));
-        } catch (Exception e) {
-            log.error("Unexpected error executing select: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildErrorResponse(e));
-        }
-    }
+            QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(selectName);
+            String valueAttr = queryDefinition.getValueAttribute() != null ? queryDefinition.getValueAttribute() : "value";
+            String labelAttr = queryDefinition.getLabelAttribute() != null ? queryDefinition.getLabelAttribute() : "label";
 
-    private HttpStatus determineHttpStatus(QueryException e) {
-        String errorCode = e.getErrorCode();
-        if (errorCode == null) {
-            return HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-
-        return switch (errorCode) {
-            case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
-            case "VALIDATION_ERROR", "DEFINITION_ERROR", "LOV_NOT_SUPPORTED" -> HttpStatus.BAD_REQUEST;
-            case "TIMEOUT_ERROR" -> HttpStatus.REQUEST_TIMEOUT;
-            default -> HttpStatus.INTERNAL_SERVER_ERROR;
-        };
-    }
-
-    private QueryResponse buildErrorResponse(Exception e) {
-        String errorCode = "INTERNAL_ERROR";
-        String errorMessage = e.getMessage();
-
-        if (e instanceof QueryException qe) {
-            errorCode = qe.getErrorCode();
-        }
-
-        return QueryResponse.error(errorCode, errorMessage);
+            for (QueryRow row : queryData.getRows()) {
+                Map<String, Object> rowData = row.toMap();
+                String value = String.valueOf(rowData.get(valueAttr));
+                String label = String.valueOf(rowData.get(labelAttr));
+                selectItems.add(SelectItem.of(value, label));
+            }
+            return selectItems;
+        });
     }
 }

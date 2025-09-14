@@ -178,6 +178,9 @@ public class QueryRequestParser {
 
                 // Only process if the parameter is defined in the query
                 if (paramType != null) {
+                    // Check if parameter has a processor - if so, don't pre-convert
+                    boolean hasProcessor = hasParamProcessor(queryDefinition, paramName);
+
                     // Handle List parameters for IN clause criteria
                     if (List.class.isAssignableFrom(paramType)) {
                         // Parse comma-separated values into a list
@@ -189,7 +192,11 @@ public class QueryRequestParser {
                         } else {
                             params.put(paramName, Collections.singletonList(value.trim()));
                         }
+                    } else if (hasProcessor) {
+                        // ALWAYS pass strings to processors - they handle their own type conversion
+                        params.put(paramName, value.trim());
                     } else {
+                        // Only non-processor parameters get pre-converted
                         params.put(paramName, parseValue(value, paramType));
                     }
                 }
@@ -279,6 +286,14 @@ public class QueryRequestParser {
         }
         ParamDef<?> paramDef = queryDefinition.getParam(paramName);
         return paramDef != null ? paramDef.type() : null;
+    }
+
+    private boolean hasParamProcessor(QueryDefinitionBuilder queryDefinition, String paramName) {
+        if (queryDefinition == null) {
+            return false;
+        }
+        ParamDef<?> paramDef = queryDefinition.getParam(paramName);
+        return paramDef != null && paramDef.hasProcessor();
     }
 
     /**

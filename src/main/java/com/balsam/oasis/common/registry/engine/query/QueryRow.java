@@ -19,31 +19,42 @@ public class QueryRow {
     }
 
     /**
-     * Create a QueryRow from raw data
+     * Create a QueryRow from clean attribute data
      */
+    public static QueryRow create(Map<String, Object> attributeData, QueryContext context) {
+        // Use attribute data directly - no SQL column names
+        return new QueryRow(attributeData, context);
+    }
+
+    /**
+     * Legacy method - kept for backward compatibility
+     */
+    @Deprecated
     public static QueryRow create(Map<String, Object> data, Map<String, Object> rawData, QueryContext context) {
-        // Just use the raw data directly
+        // Use the raw data directly for legacy compatibility
         return new QueryRow(rawData, context);
     }
 
     /**
-     * Get value by key (can be column name or attribute name)
+     * Get value by attribute name
      */
-    public Object get(String key) {
-        // Try exact match first
-        Object value = data.get(key);
-        if (value != null) {
-            return value;
-        }
-        // Try uppercase for column names
-        return data.get(key.toUpperCase());
+    public Object get(String attributeName) {
+        // With clean attribute-only data, use direct lookup
+        return data.get(attributeName);
     }
 
     /**
-     * Get raw value by column name (always uppercase)
+     * Get raw value by column name - maintained for compatibility with calculators
+     * that might still access SQL column names directly
      */
     public Object getRaw(String columnName) {
-        return data.get(columnName.toUpperCase());
+        // Try uppercase first (SQL standard)
+        Object value = data.get(columnName.toUpperCase());
+        if (value != null) {
+            return value;
+        }
+        // Try exact match as fallback
+        return data.get(columnName);
     }
 
     /**
@@ -68,10 +79,10 @@ public class QueryRow {
     }
 
     /**
-     * Check if a key exists
+     * Check if an attribute exists
      */
-    public boolean has(String key) {
-        return data.containsKey(key) || data.containsKey(key.toUpperCase());
+    public boolean has(String attributeName) {
+        return data.containsKey(attributeName);
     }
 
     /**

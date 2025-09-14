@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequestBody;
 import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
@@ -72,25 +69,21 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/query/v2")
 @Tag(name = "Query API", description = "Query Registration System API")
-public class QueryController {
+public class QueryController extends QueryBaseController {
 
     private static final Logger log = LoggerFactory.getLogger(QueryController.class);
 
     private final QueryService queryService;
     private final QueryRequestParser requestParser;
-    private final QueryResponseBuilder responseBuilder;
 
-    public QueryController(QueryService queryService,
-            QueryRequestParser requestParser,
-            QueryResponseBuilder responseBuilder) {
+    public QueryController(QueryService queryService, QueryRequestParser requestParser) {
         this.queryService = queryService;
         this.requestParser = requestParser;
-        this.responseBuilder = responseBuilder;
     }
 
     @GetMapping("/{queryName}")
     @Operation(summary = "Execute a query", description = "Execute a registered query with filters, sorting, and pagination")
-    public ResponseEntity<?> executeQuery(
+    public ResponseEntity<QueryResponse<List<Map<String, Object>>>> executeQuery(
             @PathVariable @Parameter(description = "Name of the registered query") String queryName,
             @RequestParam(defaultValue = "0") @Parameter(description = "Start index for pagination") int _start,
             @RequestParam(defaultValue = "50") @Parameter(description = "End index for pagination") int _end,
@@ -99,49 +92,31 @@ public class QueryController {
 
         log.info("Executing query: {} with params: {}", queryName, allParams);
 
-        try {
+        return handleQueryDataAsList(() -> {
             // Get the query definition for type-aware parsing
             QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
 
             if (queryDefinition == null) {
-                log.error("Query not found: {}", queryName);
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(buildErrorResponse(
-                                new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName)));
+                throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName);
             }
 
             // Parse request parameters with type information
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
             // Execute query through service
-            QueryData result = queryService.executeQuery(queryName, queryRequest);
-
-            // Build JSON response
-            return responseBuilder.build(result, queryName);
-
-        } catch (QueryException e) {
-            log.error("Query execution failed: {}", e.getMessage());
-            return ResponseEntity
-                    .status(determineHttpStatus(e))
-                    .body(buildErrorResponse(e));
-        } catch (Exception e) {
-            log.error("Unexpected error executing query: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildErrorResponse(e));
-        }
+            return queryService.executeQuery(queryName, queryRequest);
+        });
     }
 
     @PostMapping("/{queryName}")
     @Operation(summary = "Execute a query with body", description = "Execute a query with complex parameters in request body")
-    public ResponseEntity<?> executeQueryWithBody(
+    public ResponseEntity<QueryResponse<List<Map<String, Object>>>> executeQueryWithBody(
             @PathVariable String queryName,
             @RequestBody QueryRequestBody body) {
 
         log.info("Executing query with body: {}", queryName);
 
-        try {
+        return handleQueryDataAsList(() -> {
             // Convert body to QueryRequest
             QueryRequest queryRequest = QueryRequest.builder()
                     .params(body.getParams())
@@ -149,45 +124,27 @@ public class QueryController {
                     .sorts(body.getSorts())
                     .pagination(body.getStart(), body.getEnd())
                     .build();
-            
+
             // Execute query through service
-            QueryData result = queryService.executeQuery(queryName, queryRequest);
-
-            // Build JSON response
-            return responseBuilder.build(result, queryName);
-
-        } catch (QueryException e) {
-            log.error("Query execution failed: {}", e.getMessage());
-            return ResponseEntity
-                    .status(determineHttpStatus(e))
-                    .body(buildErrorResponse(e));
-        } catch (Exception e) {
-            log.error("Unexpected error executing query: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildErrorResponse(e));
-        }
+            return queryService.executeQuery(queryName, queryRequest);
+        });
     }
 
     @GetMapping("/{queryName}/find-by-key")
     @Operation(summary = "Find by key", description = "Find a single record using key criteria")
-    public ResponseEntity<?> findByKey(
+    public ResponseEntity<QueryResponse<Map<String, Object>>> findByKey(
             @PathVariable @Parameter(description = "Name of the registered query") String queryName,
             @RequestParam(defaultValue = "false") @Parameter(description = "Include metadata") boolean _meta,
             @RequestParam MultiValueMap<String, String> keyParams) {
 
         log.info("Finding by key for query: {} with params: {}", queryName, keyParams);
 
-        try {
+        return handleQueryDataAsSingle(() -> {
             // Get the query definition
             QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
 
             if (queryDefinition == null) {
-                log.error("Query not found: {}", queryName);
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(buildErrorResponse(
-                                new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName)));
+                throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName);
             }
 
             // Extract key parameters
@@ -203,64 +160,21 @@ public class QueryController {
                     .params(params)
                     .pagination(0, 1) // Limit to single result
                     .build();
-            
+
             // Execute through service
-            QueryData result = queryService.executeQuery(queryName, queryRequest);
-
-            // Build single object response
-            return responseBuilder.buildSingle(result, queryName);
-
-        } catch (QueryException e) {
-            log.error("Find-by-key execution failed: {}", e.getMessage());
-            return ResponseEntity
-                    .status(determineHttpStatus(e))
-                    .body(buildErrorResponse(e));
-        } catch (Exception e) {
-            log.error("Unexpected error in find-by-key: {}", e.getMessage(), e);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildErrorResponse(e));
-        }
+            return queryService.executeQuery(queryName, queryRequest);
+        });
     }
 
     @GetMapping("/{queryName}/metadata")
     @Operation(summary = "Get query metadata", description = "Get metadata for a registered query without executing it")
-    public ResponseEntity<?> getQueryMetadata(@PathVariable String queryName) {
-        try {
+    public ResponseEntity<QueryResponse<Map<String, Object>>> getQueryMetadata(@PathVariable String queryName) {
+        return handleSingleRequest(() -> {
             // This would return query definition metadata
             // Implementation would depend on QueryExecutor providing metadata access
-            return ResponseEntity.ok(Map.of(
+            return Map.of(
                     "queryName", queryName,
-                    "message", "Metadata endpoint - to be implemented"));
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildErrorResponse(e));
-        }
-    }
-
-    private HttpStatus determineHttpStatus(QueryException e) {
-        String errorCode = e.getErrorCode();
-        if (errorCode == null) {
-            return HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-
-        return switch (errorCode) {
-            case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
-            case "VALIDATION_ERROR", "DEFINITION_ERROR" -> HttpStatus.BAD_REQUEST;
-            case "TIMEOUT_ERROR" -> HttpStatus.REQUEST_TIMEOUT;
-            default -> HttpStatus.INTERNAL_SERVER_ERROR;
-        };
-    }
-
-    private QueryResponse buildErrorResponse(Exception e) {
-        String errorCode = "INTERNAL_ERROR";
-        String errorMessage = e.getMessage();
-
-        if (e instanceof QueryException qe) {
-            errorCode = qe.getErrorCode();
-        }
-
-        return QueryResponse.error(errorCode, errorMessage);
+                    "message", "Metadata endpoint - to be implemented");
+        });
     }
 }

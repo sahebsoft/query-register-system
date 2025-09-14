@@ -18,7 +18,6 @@ import java.util.Map;
 public class QueryMetadata {
     PaginationInfo pagination;
     List<AttributeInfo> attributes;
-    Long executionTimeMs;
 
     @Value
     @Builder
@@ -63,7 +62,6 @@ public class QueryMetadata {
             return QueryMetadata.builder()
                     .pagination(buildPaginationInfo())
                     .attributes(buildAttributesInfo())
-                    .executionTimeMs(context.getExecutionTime())
                     .build();
         }
 

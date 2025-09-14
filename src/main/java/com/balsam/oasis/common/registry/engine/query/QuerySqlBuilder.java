@@ -52,4 +52,17 @@ public class QuerySqlBuilder {
 
         return QueryUtils.wrapForCount(sql);
     }
+
+    public String buildCountQueryWithProcessedParams(QueryContext context, Map<String, Object> processedParams) {
+        // Build count query reusing already processed parameters to avoid double processing
+        QueryDefinitionBuilder definition = context.getDefinition();
+        String sql = definition.getSql();
+        Map<String, Object> bindParams = new HashMap<>(processedParams);
+
+        sql = QueryUtils.applyCriteria(sql, context, bindParams);
+        sql = QueryUtils.applyFilters(sql, context, bindParams);
+        sql = QueryUtils.cleanPlaceholders(sql);
+
+        return QueryUtils.wrapForCount(sql);
+    }
 }

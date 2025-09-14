@@ -13,6 +13,10 @@ import com.balsam.oasis.common.registry.service.QueryService;
 import com.balsam.oasis.common.registry.web.controller.QueryController;
 import com.balsam.oasis.common.registry.web.controller.SelectController;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
+import com.balsam.oasis.common.registry.engine.plsql.PlsqlExecutorImpl;
+import com.balsam.oasis.common.registry.engine.plsql.PlsqlRegistryImpl;
+import com.balsam.oasis.common.registry.service.PlsqlService;
+import com.balsam.oasis.common.registry.web.controller.PlsqlController;
 
 /**
  * Configuration for Query Registration System
@@ -56,16 +60,35 @@ public class QueryConfiguration {
     @Bean
     QueryController queryController(
             QueryService queryService,
-            QueryRequestParser requestParser,
-            QueryResponseBuilder responseBuilder) {
-        return new QueryController(queryService, requestParser, responseBuilder);
+            QueryRequestParser requestParser) {
+        return new QueryController(queryService, requestParser);
     }
 
     @Bean
     SelectController selectController(
             QueryService queryService,
-            QueryResponseBuilder responseBuilder,
             QueryRequestParser requestParser) {
-        return new SelectController(queryService, responseBuilder, requestParser);
+        return new SelectController(queryService, requestParser);
+    }
+
+    // PL/SQL Configuration
+    @Bean
+    PlsqlRegistryImpl plsqlRegistry() {
+        return new PlsqlRegistryImpl();
+    }
+
+    @Bean
+    PlsqlExecutorImpl plsqlExecutor(JdbcTemplate jdbcTemplate, PlsqlRegistryImpl plsqlRegistry) {
+        return new PlsqlExecutorImpl(jdbcTemplate, plsqlRegistry);
+    }
+
+    @Bean
+    PlsqlService plsqlService(PlsqlExecutorImpl plsqlExecutor, PlsqlRegistryImpl plsqlRegistry) {
+        return new PlsqlService(plsqlExecutor, plsqlRegistry);
+    }
+
+    @Bean
+    PlsqlController plsqlController(PlsqlService plsqlService) {
+        return new PlsqlController(plsqlService);
     }
 }

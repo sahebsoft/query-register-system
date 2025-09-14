@@ -192,7 +192,7 @@ public class QueryExecution {
                 if (paramDef.hasProcessor()) {
                     try {
                         ParamProcessor<?> processor = paramDef.processor();
-                        Object processedValue = processor.process(value, context);
+                        Object processedValue = processor.process((String) value, context);
                         // If processor returns null and there's a default value, use the default
                         if (processedValue == null && paramDef.hasDefaultValue()) {
                             context.addParam(name, paramDef.defaultValue());

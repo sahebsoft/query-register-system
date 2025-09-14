@@ -64,8 +64,6 @@ public class QueryExecutorImpl {
      */
     @Transactional(readOnly = true)
     public QueryData doExecute(QueryContext context) {
-        context.startExecution();
-
         try {
             // Run pre-processors
             runPreProcessors(context);
@@ -80,7 +78,7 @@ public class QueryExecutorImpl {
 
             // Calculate total count if pagination is used
             if (context.hasPagination() && context.getDefinition().isPaginationEnabled()) {
-                int totalCount = executeTotalCountQuery(context, sqlResult);
+                int totalCount = executeTotalCountQuery(context, params);
                 context.setTotalCount(totalCount);
             }
 
@@ -96,8 +94,8 @@ public class QueryExecutorImpl {
                     .context(context)
                     .build();
 
-            // Run result-aware parameter processors
-            runResultAwareParamProcessors(context);
+            // Skip result-aware parameter processors - parameters were already processed during validation
+            // This prevents double-processing bugs where processors receive non-string values
 
             // Run post-processors
             result = runPostProcessors(context, result);
@@ -107,14 +105,9 @@ public class QueryExecutorImpl {
                 result = addMetadata(context, result);
             }
 
-            context.endExecution();
-
-            return result.toBuilder()
-                    .executionTimeMs(context.getExecutionTime())
-                    .build();
+            return result;
 
         } catch (Exception e) {
-            context.endExecution();
             log.error("Query execution failed for '{}': {}",
                     context.getDefinition().getName(), e.getMessage(), e);
 
@@ -138,31 +131,8 @@ public class QueryExecutorImpl {
         }
     }
 
-    private void runResultAwareParamProcessors(QueryContext context) {
-        QueryDefinitionBuilder definition = context.getDefinition();
-
-        if (!definition.hasParams()) {
-            return;
-        }
-
-        // Allow parameters to be processed again with access to query results
-        // This enables parameters to be transformed based on result data
-        definition.getParameters().forEach((paramName, paramDef) -> {
-            if (paramDef.hasProcessor()) {
-                try {
-                    Object currentValue = context.getParam(paramName);
-                    @SuppressWarnings("unchecked")
-                    var processor = (com.balsam.oasis.common.registry.domain.processor.ParamProcessor<Object>) paramDef.processor();
-
-                    // Use the same context - the processor can access full context if needed
-                    Object processedValue = processor.process(currentValue, context);
-                    context.addParam(paramName, processedValue);
-                } catch (Exception e) {
-                    log.warn("Failed to process result-aware parameter {}: {}", paramName, e.getMessage());
-                }
-            }
-        });
-    }
+    // Result-aware parameter processors removed - this was causing double-processing bugs
+    // Parameters are now processed only once during validation with string inputs
 
     private List<QueryRow> executeQuery(QueryContext context, String sql, Map<String, Object> params) {
         try {
@@ -204,16 +174,14 @@ public class QueryExecutorImpl {
         }
     }
 
-    private int executeTotalCountQuery(QueryContext context, SqlResult sqlResult) {
+    private int executeTotalCountQuery(QueryContext context, Map<String, Object> processedParams) {
         try {
-            // Build count query without pagination
-            // Use the original SQL without pagination for count
-            String countSql = sqlBuilder.buildCountQuery(context);
-            Map<String, Object> params = sqlResult.getParams();
+            // Build count query using already processed parameters to avoid double-processing
+            String countSql = sqlBuilder.buildCountQueryWithProcessedParams(context, processedParams);
 
             log.debug("Executing count query: {}", countSql);
 
-            Integer count = namedJdbcTemplate.queryForObject(countSql, params, Integer.class);
+            Integer count = namedJdbcTemplate.queryForObject(countSql, processedParams, Integer.class);
             return count != null ? count : 0;
 
         } catch (Exception e) {
@@ -334,24 +302,24 @@ public class QueryExecutorImpl {
     }
 
     /**
-     * Optimized method to apply attribute formatters to a single row in-place
+     * Apply attribute formatters to a single row in-place.
+     * With clean attribute-only data, no duplication issues can occur.
      */
-
     private QueryRow applyRowAttributeFormatters(QueryRow row, QueryDefinitionBuilder definition) {
         for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
+            String attributeName = entry.getKey();  // Always use attribute name
             var attr = entry.getValue();
 
             if (attr.hasFormatter()) {
-                Object value = row.get(attrName);
+                Object value = row.get(attributeName);  // Clean attribute name access
                 if (value != null) {
                     try {
                         @SuppressWarnings("unchecked")
                         var formatter = (com.balsam.oasis.common.registry.domain.processor.AttributeFormatter<Object>) attr.formatter();
                         String formattedValue = formatter.format(value);
-                        row.set(attrName, formattedValue);
+                        row.set(attributeName, formattedValue);  // Update same key - no duplication possible
                     } catch (Exception e) {
-                        log.warn("Failed to format attribute {}: {}", attrName, e.getMessage());
+                        log.warn("Failed to format attribute {}: {}", attributeName, e.getMessage());
                     }
                 }
             }
@@ -383,35 +351,74 @@ public class QueryExecutorImpl {
     }
 
     /**
-     * Map a ResultSet row to QueryRow with minimal processing.
-     * Consolidated from QueryRowMapperImpl for simpler architecture.
+     * Map a ResultSet row to QueryRow using early transformation principle.
+     * This ensures clean attribute name mapping and prevents duplication issues.
      */
     private QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
         QueryDefinitionBuilder definition = context.getDefinition();
 
-        // Extract all raw data from ResultSet
-        Map<String, Object> rawData = extractRawData(rs);
+        // Step 1: Extract raw SQL data
+        Map<String, Object> rawSqlData = extractRawData(rs);
 
-        // Create QueryRow with raw data
-        QueryRow row = QueryRow.create(rawData, rawData, context);
+        // Step 2: IMMEDIATELY transform to attribute names
+        Map<String, Object> attributeData = transformSqlToAttributeNames(rawSqlData, definition);
 
-        // Apply calculators for virtual attributes if any
+        // Step 3: Create clean QueryRow with only attribute names
+        QueryRow row = QueryRow.create(attributeData, context);
+
+        // Step 4: Process virtual attributes (using attribute names)
         if (definition.hasAttributes()) {
             for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                String attributeName = entry.getKey();
                 AttributeDef<?> attr = entry.getValue();
                 if (attr.virtual() && attr.hasCalculator()) {
                     try {
                         Object calculatedValue = attr.calculator().calculate(row, context);
-                        row.set(entry.getKey(), calculatedValue);
+                        row.set(attributeName, calculatedValue);
                     } catch (Exception e) {
-                        log.warn("Failed to calculate virtual attribute {}: {}", entry.getKey(), e.getMessage());
-                        row.set(entry.getKey(), null);
+                        log.warn("Failed to calculate virtual attribute {}: {}", attributeName, e.getMessage());
+                        row.set(attributeName, null);
                     }
                 }
             }
         }
 
         return row;
+    }
+
+    /**
+     * Transform SQL column names to attribute names immediately after extraction.
+     * This creates a clean boundary between SQL concerns and domain logic.
+     */
+    private Map<String, Object> transformSqlToAttributeNames(Map<String, Object> sqlData, QueryDefinitionBuilder definition) {
+        Map<String, Object> attributeData = new HashMap<>();
+
+        if (definition.hasAttributes()) {
+            // Transform defined attributes from SQL columns to attribute names
+            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                String attributeName = entry.getKey();  // city
+                AttributeDef<?> attr = entry.getValue();
+
+                if (!attr.virtual()) {  // Only process non-virtual attributes from SQL
+                    String sqlColumn = attr.aliasName() != null ? attr.aliasName().toUpperCase() : attributeName.toUpperCase();
+
+                    // Transform: SQL column name -> attribute name
+                    Object value = sqlData.get(sqlColumn);
+                    if (value != null) {
+                        attributeData.put(attributeName, value);
+                    }
+                }
+            }
+        } else {
+            // Fallback: If no attributes defined, use SQL column names as-is (lowercase)
+            // This maintains backward compatibility
+            for (Map.Entry<String, Object> entry : sqlData.entrySet()) {
+                String lowerKey = entry.getKey().toLowerCase();
+                attributeData.put(lowerKey, entry.getValue());
+            }
+        }
+
+        return attributeData; // Clean attribute names only
     }
 
     /**

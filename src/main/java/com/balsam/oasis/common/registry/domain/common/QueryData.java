@@ -27,7 +27,6 @@ public class QueryData {
     List<QueryRow> rows = ImmutableList.of();
     QueryMetadata metadata;
     QueryContext context;
-    Long executionTimeMs;
 
     // SQL Building fields
     String sql;
@@ -153,13 +152,11 @@ public class QueryData {
     // ============= FACTORY METHODS =============
 
     // Create as QueryData
-    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata,
-            Long executionTime) {
+    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata) {
         return QueryData.builder()
                 .rows(rows)
                 .context(context)
                 .metadata(metadata)
-                .executionTimeMs(executionTime)
                 .build();
     }
 
