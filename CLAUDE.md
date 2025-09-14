@@ -38,7 +38,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryexecutorimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRegistryImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryregistryimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRow.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryrow-java)
-- [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRowMapperImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryrowmapperimpl-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QuerySqlBuilder.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-querysqlbuilder-java)
 - [src/main/java/com/balsam/oasis/common/registry/example/OracleHRQueryConfig.java](#src-main-java-com-balsam-oasis-common-registry-example-oraclehrqueryconfig-java)
 - [src/main/java/com/balsam/oasis/common/registry/service/QueryService.java](#src-main-java-com-balsam-oasis-common-registry-service-queryservice-java)
@@ -1913,50 +1912,6 @@ public class QueryRow {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/engine/query/QueryRowMapperImpl.java
-
-```java
-@Slf4j
-public class QueryRowMapperImpl {
-    public QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
-        QueryDefinitionBuilder definition = context.getDefinition();
-        Map<String, Object> rawData = extractRawData(rs);
-        QueryRow row = QueryRow.create(rawData, rawData, context);
-        if (definition.hasAttributes()) {
-            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-                AttributeDef<?> attr = entry.getValue();
-                if (attr.virtual() && attr.hasCalculator()) {
-                    try {
-                        Object calculatedValue = attr.calculator().calculate(row, context);
-                        row.set(entry.getKey(), calculatedValue);
-                    } catch (Exception e) {
-                        log.warn("Failed to calculate virtual attribute {}: {}", entry.getKey(), e.getMessage());
-                        row.set(entry.getKey(), null);
-                    }
-                }
-            }
-        }
-        return row;
-    }
-    private Map<String, Object> extractRawData(ResultSet rs) throws SQLException {
-        Map<String, Object> rawData = new HashMap<>();
-        ResultSetMetaData metaData = rs.getMetaData();
-        int columnCount = metaData.getColumnCount();
-        for (int i = 1; i <= columnCount; i++) {
-            String columnName = metaData.getColumnName(i).toUpperCase();
-            String columnLabel = metaData.getColumnLabel(i).toUpperCase();
-            Object value = rs.getObject(i);
-            rawData.put(columnName, value);
-            if (!columnName.equals(columnLabel)) {
-                rawData.put(columnLabel, value);
-            }
-        }
-        return rawData;
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/engine/query/QuerySqlBuilder.java
 
 ```java
@@ -3054,7 +3009,6 @@ public class QueryUtils {
 ```java
 @Slf4j
 public class QueryResponseBuilder {
-    private final ResponseFormatter formatter = new ResponseFormatter();
     public ResponseEntity<QueryResponse> build(QueryData result, String queryName) {
         QueryResponse response = buildFormattedResponse(result);
         return ResponseEntity.ok()
@@ -3074,14 +3028,7 @@ public class QueryResponseBuilder {
                 .body(response);
     }
     private QueryResponse buildFormattedResponse(QueryData result) {
-        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
-        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
-        List<?> formattedData;
-        if (definition != null && !result.getRows().isEmpty()) {
-            formattedData = formatter.formatRows(result.getRows(), definition, securityContext);
-        } else {
-            formattedData = result.getData();
-        }
+        List<?> formattedData = buildResponseData(result);
         return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
@@ -3089,17 +3036,55 @@ public class QueryResponseBuilder {
                 .success(result.isSuccess())
                 .build();
     }
+    private List<Map<String, Object>> buildResponseData(QueryData result) {
+        if (result.getRows().isEmpty()) {
+            return result.getData();
+        }
+        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
+        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
+        if (definition == null || !hasSecurityRules(definition)) {
+            return result.getData();
+        }
+        List<Map<String, Object>> securedData = new ArrayList<>();
+        for (QueryRow row : result.getRows()) {
+            Map<String, Object> securedRow = applySecurityRules(row.toMap(), definition, securityContext);
+            securedData.add(securedRow);
+        }
+        return securedData;
+    }
+    private boolean hasSecurityRules(QueryDefinitionBuilder definition) {
+        return definition.getAttributes().values().stream()
+                .anyMatch(AttributeDef::isSecured);
+    }
+    private Map<String, Object> applySecurityRules(Map<String, Object> rowData, QueryDefinitionBuilder definition, Object securityContext) {
+        if (securityContext == null) {
+            return rowData;
+        }
+        Map<String, Object> securedData = new HashMap<>(rowData);
+        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            AttributeDef<?> attr = entry.getValue();
+            if (attr.isSecured()) {
+                Boolean allowed = attr.securityRule().apply(securityContext);
+                if (!Boolean.TRUE.equals(allowed)) {
+                    securedData.put(attrName, null); 
+                }
+            }
+        }
+        return securedData;
+    }
     private QueryResponse buildFormattedSingleResponse(QueryData result) {
         if (result == null || result.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
+        QueryRow firstRow = result.getRows().get(0);
         Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
         QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
         Object formattedData;
-        if (definition != null) {
-            formattedData = formatter.formatRow(result.getRows().get(0), definition, securityContext);
+        if (definition != null && hasSecurityRules(definition) && securityContext != null) {
+            formattedData = applySecurityRules(firstRow.toMap(), definition, securityContext);
         } else {
-            formattedData = result.getRows().get(0).toMap();
+            formattedData = firstRow.toMap();
         }
         return QueryResponse.builder()
                 .data(formattedData)
@@ -3119,9 +3104,14 @@ public class QueryResponseBuilder {
                 : null;
         List<SelectItem> selectItems = new ArrayList<>();
         for (QueryRow row : queryData.getRows()) {
-            Map<String, Object> formattedRow = formatter.formatRow(row, definition, securityContext);
-            String value = String.valueOf(formattedRow.get(valueAttr));
-            String label = String.valueOf(formattedRow.get(labelAttr));
+            Map<String, Object> rowData;
+            if (definition != null && hasSecurityRules(definition) && securityContext != null) {
+                rowData = applySecurityRules(row.toMap(), definition, securityContext);
+            } else {
+                rowData = row.toMap();
+            }
+            String value = String.valueOf(rowData.get(valueAttr));
+            String label = String.valueOf(rowData.get(labelAttr));
             selectItems.add(SelectItem.of(value, label));
         }
         QueryMetadata selectMetadata = null;

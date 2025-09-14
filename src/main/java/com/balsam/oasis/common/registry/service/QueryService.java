@@ -1,8 +1,6 @@
 package com.balsam.oasis.common.registry.service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +13,6 @@ import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
-import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 
 /**
  * Shared service for executing queries and selects.
