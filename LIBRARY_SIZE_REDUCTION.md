@@ -106,7 +106,6 @@ public record FieldDefinition(
     boolean required,
     boolean virtual,
     QueryProcessor processor,
-    Function<Object, Boolean> securityRule,
     String sql,  // for criteria
     Predicate<QueryContext> condition  // for criteria
 ) {

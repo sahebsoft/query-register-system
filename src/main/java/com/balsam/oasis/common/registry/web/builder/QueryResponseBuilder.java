@@ -10,10 +10,8 @@ import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.balsam.oasis.common.registry.domain.select.SelectItem;
 import com.balsam.oasis.common.registry.domain.metadata.QueryMetadata;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.ArrayList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,57 +69,12 @@ public class QueryResponseBuilder {
     }
 
     /**
-     * Build response data applying only security rules (formatting already done in row processing)
+     * Build response data from query results
      */
     private List<Map<String, Object>> buildResponseData(QueryData result) {
-        if (result.getRows().isEmpty()) {
-            return result.getData();
-        }
-
-        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
-        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
-
-        // If no definition or no security rules, just return the formatted data directly
-        if (definition == null || !hasSecurityRules(definition)) {
-            return result.getData();
-        }
-
-        // Apply security rules to pre-formatted data
-        List<Map<String, Object>> securedData = new ArrayList<>();
-        for (QueryRow row : result.getRows()) {
-            Map<String, Object> securedRow = applySecurityRules(row.toMap(), definition, securityContext);
-            securedData.add(securedRow);
-        }
-
-        return securedData;
+        return result.getData();
     }
 
-    private boolean hasSecurityRules(QueryDefinitionBuilder definition) {
-        return definition.getAttributes().values().stream()
-                .anyMatch(AttributeDef::isSecured);
-    }
-
-    private Map<String, Object> applySecurityRules(Map<String, Object> rowData, QueryDefinitionBuilder definition, Object securityContext) {
-        if (securityContext == null) {
-            return rowData;
-        }
-
-        Map<String, Object> securedData = new HashMap<>(rowData);
-
-        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-
-            if (attr.isSecured()) {
-                Boolean allowed = attr.securityRule().apply(securityContext);
-                if (!Boolean.TRUE.equals(allowed)) {
-                    securedData.put(attrName, null); // Hide secured data
-                }
-            }
-        }
-
-        return securedData;
-    }
 
     private QueryResponse buildFormattedSingleResponse(QueryData result) {
         if (result == null || result.getRows().isEmpty()) {
@@ -129,16 +82,7 @@ public class QueryResponseBuilder {
         }
 
         QueryRow firstRow = result.getRows().get(0);
-        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
-        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
-
-        // Use pre-formatted data from QueryRow, apply security rules if needed
-        Object formattedData;
-        if (definition != null && hasSecurityRules(definition) && securityContext != null) {
-            formattedData = applySecurityRules(firstRow.toMap(), definition, securityContext);
-        } else {
-            formattedData = firstRow.toMap();
-        }
+        Object formattedData = firstRow.toMap();
 
         return QueryResponse.builder()
                 .data(formattedData)
@@ -159,24 +103,14 @@ public class QueryResponseBuilder {
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
 
-        Object securityContext = queryData.getContext() != null ? queryData.getContext().getSecurityContext()
-                : null;
-
         List<SelectItem> selectItems = new ArrayList<>();
         for (QueryRow row : queryData.getRows()) {
-            // Use pre-formatted data from QueryRow, apply security rules if needed
-            Map<String, Object> rowData;
-            if (definition != null && hasSecurityRules(definition) && securityContext != null) {
-                rowData = applySecurityRules(row.toMap(), definition, securityContext);
-            } else {
-                rowData = row.toMap();
-            }
+            Map<String, Object> rowData = row.toMap();
 
             // Get value and label using the configured attribute names
             String value = String.valueOf(rowData.get(valueAttr));
             String label = String.valueOf(rowData.get(labelAttr));
 
-            // Create simple SelectItem without additions
             selectItems.add(SelectItem.of(value, label));
         }
 

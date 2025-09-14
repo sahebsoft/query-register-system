@@ -40,7 +40,6 @@ public class QueryMetadata {
     public static class AttributeInfo {
         String name;
         String type;
-        Boolean restricted;
         String label;
         String labelKey;
         String width;
@@ -108,19 +107,10 @@ public class QueryMetadata {
                     continue;
                 }
 
-                Boolean restricted = null;
-                if (attr.isSecured() && context.getSecurityContext() != null) {
-                    Boolean allowed = attr.securityRule().apply(context.getSecurityContext());
-                    if (!Boolean.TRUE.equals(allowed)) {
-                        restricted = true;
-                    }
-                }
-
                 AttributeInfo attrInfo = AttributeInfo
                         .builder()
                         .name(attrName)
                         .type(attr.type() != null ? attr.type().getSimpleName() : "Object")
-                        .restricted(restricted)
                         .label(attr.label())
                         .labelKey(attr.labelKey())
                         .width(attr.width())

@@ -1,7 +1,5 @@
 package com.balsam.oasis.common.registry.service;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -97,27 +95,11 @@ public class QueryService {
      * Execute a query with default empty parameters.
      *
      * @param queryName The name of the registered query
-     * @return QueryData containing the execution results
+     * @return QueryExecution containing the execution results
      * @throws QueryException if query not found or execution fails
      */
-    public QueryData executeQuery(String queryName) {
-        return executeQuery(queryName, QueryRequest.builder().build());
-    }
-
-    /**
-     * Execute a query with direct execution object.
-     * Used for programmatic query execution.
-     *
-     * @param queryDefinition The query definition
-     * @return QueryExecution object for fluent configuration
-     */
-    public QueryExecution createExecution(QueryDefinitionBuilder queryDefinition) {
-        if (queryDefinition == null) {
-            throw new QueryException(QueryException.ErrorCode.QUERY_NOT_FOUND,
-                    "Query definition cannot be null");
-        }
-
-        return queryExecutor.execute(queryDefinition);
+    public QueryExecution executeQuery(String queryName) {
+        return queryExecutor.execute(queryName);
     }
 
     /**
@@ -128,26 +110,6 @@ public class QueryService {
      */
     public QueryDefinitionBuilder getQueryDefinition(String queryName) {
         return queryRegistry.get(queryName);
-    }
-
-    /**
-     * Check if a query is registered.
-     *
-     * @param queryName The name of the query
-     * @return true if registered, false otherwise
-     */
-    public boolean isQueryRegistered(String queryName) {
-        return queryRegistry.get(queryName) != null;
-    }
-
-    /**
-     * Get all registered query names.
-     *
-     * @return List of registered query names
-     */
-    public List<String> getRegisteredQueryNames() {
-        // TODO: Add list() method to QueryRegistry interface
-        return List.of();
     }
 
     /**

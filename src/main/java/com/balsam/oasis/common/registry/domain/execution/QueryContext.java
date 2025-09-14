@@ -42,7 +42,6 @@ public class QueryContext {
     @Builder.Default
     private List<SortSpec> sorts = new ArrayList<>();
 
-    private Object securityContext;
 
     @Data
     @Builder

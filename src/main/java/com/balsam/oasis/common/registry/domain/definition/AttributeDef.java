@@ -1,6 +1,5 @@
 package com.balsam.oasis.common.registry.domain.definition;
 
-import java.util.function.Function;
 import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
 import com.balsam.oasis.common.registry.domain.processor.Calculator;
 import lombok.Builder;
@@ -19,7 +18,6 @@ public record AttributeDef<T>(
         boolean selected,
         AttributeFormatter<T> formatter,
         Calculator<T> calculator,
-        Function<Object, Boolean> securityRule,
         String description,
         // Display metadata
         String label,
@@ -89,10 +87,6 @@ public record AttributeDef<T>(
     }
 
     // Helper methods
-    public boolean isSecured() {
-        return securityRule != null;
-    }
-
     public boolean hasFormatter() {
         return formatter != null;
     }

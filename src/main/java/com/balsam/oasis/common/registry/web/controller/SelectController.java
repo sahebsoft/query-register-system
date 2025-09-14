@@ -150,7 +150,6 @@ public class SelectController {
         return switch (errorCode) {
             case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "VALIDATION_ERROR", "DEFINITION_ERROR", "LOV_NOT_SUPPORTED" -> HttpStatus.BAD_REQUEST;
-            case "SECURITY_ERROR" -> HttpStatus.FORBIDDEN;
             case "TIMEOUT_ERROR" -> HttpStatus.REQUEST_TIMEOUT;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };

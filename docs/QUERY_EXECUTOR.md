@@ -116,11 +116,7 @@ QueryData result = queryExecutor.execute("employees")
 .selectFields(Set.of("employeeId", "email"))
 ```
 
-### 6. Security Context
 
-```java
-.withSecurityContext(userContext)
-```
 
 ### 7. Metadata Control
 

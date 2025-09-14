@@ -122,7 +122,6 @@ com.balsam.oasis.common.registry.domain/
 ├── execution/
 │   ├── ExecutionPolicy.java
 │   ├── CachePolicy.java
-│   └── SecurityPolicy.java
 └── sql/
     ├── SqlTemplate.java
     └── SqlPlaceholder.java

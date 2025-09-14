@@ -48,7 +48,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/request/QueryRequest.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-request-queryrequest-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/request/QueryRequestBody.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-request-queryrequestbody-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-queryresponse-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/formatter/ResponseFormatter.java](#src-main-java-com-balsam-oasis-common-registry-web-formatter-responseformatter-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/parser/QueryRequestParser.java](#src-main-java-com-balsam-oasis-common-registry-web-parser-queryrequestparser-java)
 
 ---
@@ -600,7 +599,6 @@ public record AttributeDef<T>(
         boolean selected,
         AttributeFormatter<T> formatter,
         Calculator<T> calculator,
-        Function<Object, Boolean> securityRule,
         String description,
         String label,
         String labelKey,
@@ -649,9 +647,6 @@ public record AttributeDef<T>(
     }
     public static <T> AttributeDefBuilder<T> name(String name, Class<T> type) {
         return of(name, type);
-    }
-    public boolean isSecured() {
-        return securityRule != null;
     }
     public boolean hasFormatter() {
         return formatter != null;
@@ -972,7 +967,6 @@ public class QueryContext {
     private Map<String, Filter> filters = new LinkedHashMap<>();
     @Builder.Default
     private List<SortSpec> sorts = new ArrayList<>();
-    private Object securityContext;
     @Data
     @Builder
     public static class Filter {
@@ -1131,10 +1125,6 @@ public class QueryExecution {
         }
         return withPagination(offset, offset + limit);
     }
-    public QueryExecution withSecurityContext(Object securityContext) {
-        context.setSecurityContext(securityContext);
-        return this;
-    }
     public QueryExecution includeMetadata(boolean include) {
         context.setIncludeMetadata(include);
         return this;
@@ -1272,7 +1262,6 @@ public class QueryMetadata {
     public static class AttributeInfo {
         String name;
         String type;
-        Boolean restricted;
         String label;
         String labelKey;
         String width;
@@ -1328,18 +1317,10 @@ public class QueryMetadata {
                 if (!attr.selected()) {
                     continue;
                 }
-                Boolean restricted = null;
-                if (attr.isSecured() && context.getSecurityContext() != null) {
-                    Boolean allowed = attr.securityRule().apply(context.getSecurityContext());
-                    if (!Boolean.TRUE.equals(allowed)) {
-                        restricted = true;
-                    }
-                }
                 AttributeInfo attrInfo = AttributeInfo
                         .builder()
                         .name(attrName)
                         .type(attr.type() != null ? attr.type().getSimpleName() : "Object")
-                        .restricted(restricted)
                         .label(attr.label())
                         .labelKey(attr.labelKey())
                         .width(attr.width())
@@ -2451,24 +2432,11 @@ public class QueryService {
         }
         return execution.execute();
     }
-    public QueryData executeQuery(String queryName) {
-        return executeQuery(queryName, QueryRequest.builder().build());
-    }
-    public QueryExecution createExecution(QueryDefinitionBuilder queryDefinition) {
-        if (queryDefinition == null) {
-            throw new QueryException(QueryException.ErrorCode.QUERY_NOT_FOUND,
-                    "Query definition cannot be null");
-        }
-        return queryExecutor.execute(queryDefinition);
+    public QueryExecution executeQuery(String queryName) {
+        return queryExecutor.execute(queryName);
     }
     public QueryDefinitionBuilder getQueryDefinition(String queryName) {
         return queryRegistry.get(queryName);
-    }
-    public boolean isQueryRegistered(String queryName) {
-        return queryRegistry.get(queryName) != null;
-    }
-    public List<String> getRegisteredQueryNames() {
-        return List.of();
     }
     public QueryData executeAsSelect(String queryName, QueryRequest request) {
         log.info("Executing query as select: {} with params: {}", queryName, request.getParams());
@@ -3037,55 +3005,14 @@ public class QueryResponseBuilder {
                 .build();
     }
     private List<Map<String, Object>> buildResponseData(QueryData result) {
-        if (result.getRows().isEmpty()) {
-            return result.getData();
-        }
-        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
-        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
-        if (definition == null || !hasSecurityRules(definition)) {
-            return result.getData();
-        }
-        List<Map<String, Object>> securedData = new ArrayList<>();
-        for (QueryRow row : result.getRows()) {
-            Map<String, Object> securedRow = applySecurityRules(row.toMap(), definition, securityContext);
-            securedData.add(securedRow);
-        }
-        return securedData;
-    }
-    private boolean hasSecurityRules(QueryDefinitionBuilder definition) {
-        return definition.getAttributes().values().stream()
-                .anyMatch(AttributeDef::isSecured);
-    }
-    private Map<String, Object> applySecurityRules(Map<String, Object> rowData, QueryDefinitionBuilder definition, Object securityContext) {
-        if (securityContext == null) {
-            return rowData;
-        }
-        Map<String, Object> securedData = new HashMap<>(rowData);
-        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            if (attr.isSecured()) {
-                Boolean allowed = attr.securityRule().apply(securityContext);
-                if (!Boolean.TRUE.equals(allowed)) {
-                    securedData.put(attrName, null); 
-                }
-            }
-        }
-        return securedData;
+        return result.getData();
     }
     private QueryResponse buildFormattedSingleResponse(QueryData result) {
         if (result == null || result.getRows().isEmpty()) {
             throw new QueryException("No data found", "NOT_FOUND", (String) null);
         }
         QueryRow firstRow = result.getRows().get(0);
-        Object securityContext = result.getContext() != null ? result.getContext().getSecurityContext() : null;
-        QueryDefinitionBuilder definition = result.getContext() != null ? result.getContext().getDefinition() : null;
-        Object formattedData;
-        if (definition != null && hasSecurityRules(definition) && securityContext != null) {
-            formattedData = applySecurityRules(firstRow.toMap(), definition, securityContext);
-        } else {
-            formattedData = firstRow.toMap();
-        }
+        Object formattedData = firstRow.toMap();
         return QueryResponse.builder()
                 .data(formattedData)
                 .metadata(result.getMetadata())
@@ -3100,16 +3027,9 @@ public class QueryResponseBuilder {
             throw new QueryException("Select query must have value and label attributes defined",
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
-        Object securityContext = queryData.getContext() != null ? queryData.getContext().getSecurityContext()
-                : null;
         List<SelectItem> selectItems = new ArrayList<>();
         for (QueryRow row : queryData.getRows()) {
-            Map<String, Object> rowData;
-            if (definition != null && hasSecurityRules(definition) && securityContext != null) {
-                rowData = applySecurityRules(row.toMap(), definition, securityContext);
-            } else {
-                rowData = row.toMap();
-            }
+            Map<String, Object> rowData = row.toMap();
             String value = String.valueOf(rowData.get(valueAttr));
             String label = String.valueOf(rowData.get(labelAttr));
             selectItems.add(SelectItem.of(value, label));
@@ -3270,7 +3190,6 @@ public class QueryController {
         return switch (errorCode) {
             case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "VALIDATION_ERROR", "DEFINITION_ERROR" -> HttpStatus.BAD_REQUEST;
-            case "SECURITY_ERROR" -> HttpStatus.FORBIDDEN;
             case "TIMEOUT_ERROR" -> HttpStatus.REQUEST_TIMEOUT;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
@@ -3381,7 +3300,6 @@ public class SelectController {
         return switch (errorCode) {
             case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "VALIDATION_ERROR", "DEFINITION_ERROR", "LOV_NOT_SUPPORTED" -> HttpStatus.BAD_REQUEST;
-            case "SECURITY_ERROR" -> HttpStatus.FORBIDDEN;
             case "TIMEOUT_ERROR" -> HttpStatus.REQUEST_TIMEOUT;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
@@ -3484,60 +3402,6 @@ public class QueryResponse {
                 .errorMessage(errorMessage)
                 .timestamp(System.currentTimeMillis())
                 .build();
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/formatter/ResponseFormatter.java
-
-```java
-@Slf4j
-public class ResponseFormatter {
-    public List<Map<String, Object>> formatRows(List<QueryRow> rows, QueryDefinitionBuilder definition, Object securityContext) {
-        List<Map<String, Object>> formattedData = new ArrayList<>();
-        for (QueryRow row : rows) {
-            Map<String, Object> formattedRow = formatRow(row, definition, securityContext);
-            formattedData.add(formattedRow);
-        }
-        return formattedData;
-    }
-    public Map<String, Object> formatRow(QueryRow row, QueryDefinitionBuilder definition, Object securityContext) {
-        Map<String, Object> formattedData = new HashMap<>();
-        Set<String> definedAttributes = new HashSet<>();
-        for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-            String attrName = entry.getKey();
-            AttributeDef<?> attr = entry.getValue();
-            definedAttributes.add(attrName.toUpperCase());
-            if (attr.isSecured() && securityContext != null) {
-                Boolean allowed = attr.securityRule().apply(securityContext);
-                if (!Boolean.TRUE.equals(allowed)) {
-                    formattedData.put(attrName, null);
-                    continue;
-                }
-            }
-            Object value;
-            if (attr.aliasName() != null && !attr.virtual()) {
-                value = row.getRaw(attr.aliasName());
-            } else if (attr.virtual()) {
-                value = row.get(attrName);
-            } else {
-                value = row.getRaw(attrName.toUpperCase());
-                if (value == null) {
-                    value = row.get(attrName);
-                }
-            }
-            if (value != null && attr.hasFormatter()) {
-                try {
-                    AttributeFormatter formatter = attr.formatter();
-                    value = formatter.format(value);
-                } catch (Exception e) {
-                    log.warn("Failed to format attribute {}: {}", attrName, e.getMessage());
-                }
-            }
-            formattedData.put(attrName, value);
-        }
-        return formattedData;
     }
 }```
 

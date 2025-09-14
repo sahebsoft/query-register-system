@@ -150,8 +150,7 @@ public class OracleHRQueryConfig {
                                                 .build())
                                 // Location information
                                 .attribute(AttributeDef.name("city", String.class)
-                                                .aliasName("city")
-                                                .formatter(value -> value.toLowerCase())
+                                                .aliasName("CITY").formatter(String::toUpperCase)
                                                 .build())
                                 // Transient attributes (calculated fields)
                                 .attribute(AttributeDef.name("totalCompensation", BigDecimal.class)

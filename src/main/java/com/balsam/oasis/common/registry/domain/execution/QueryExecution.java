@@ -3,7 +3,6 @@ package com.balsam.oasis.common.registry.domain.execution;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.Pagination;
@@ -155,12 +154,6 @@ public class QueryExecution {
         }
         // Reuse withPagination by converting offset+limit to start/end
         return withPagination(offset, offset + limit);
-    }
-
-    // Security context
-    public QueryExecution withSecurityContext(Object securityContext) {
-        context.setSecurityContext(securityContext);
-        return this;
     }
 
     // Metadata control
