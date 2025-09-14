@@ -4,7 +4,7 @@ import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
 
 @FunctionalInterface
-public interface Calculator<T> extends QueryProcessor {
+public interface Calculator<T> {
     T calculate(QueryRow row, QueryContext context);
 
     /**
@@ -13,14 +13,6 @@ public interface Calculator<T> extends QueryProcessor {
      */
     default T calculateWithAllRows(QueryRow currentRow, java.util.List<QueryRow> allRows, QueryContext context) {
         return calculate(currentRow, context);
-    }
-
-    @Override
-    default Object process(Object input, QueryContext context) {
-        if (!(input instanceof QueryRow)) {
-            throw new IllegalArgumentException("Calculator processor requires QueryRow input");
-        }
-        return calculate((QueryRow) input, context);
     }
 
     /**

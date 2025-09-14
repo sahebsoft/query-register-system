@@ -232,9 +232,9 @@ public class OracleHRQueryConfig {
                                         System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
                                         return row;
                                 })
-                                .postProcessor((queryResult, context) -> {
+                                .postProcessor((queryData, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult;
+                                        return queryData;
                                 })
                                 .defaultPageSize(20)
                                 .maxPageSize(100)

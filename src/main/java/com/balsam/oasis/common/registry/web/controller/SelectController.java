@@ -74,7 +74,8 @@ public class SelectController {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(new QueryException(
-                                selectName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Select query not found: " + selectName)));
+                                selectName, QueryException.ErrorCode.QUERY_NOT_FOUND,
+                                "Select query not found: " + selectName)));
             }
 
             // Parse request parameters with type information
@@ -85,18 +86,20 @@ public class SelectController {
                 log.warn("Query {} not configured for select mode, using default attributes", selectName);
             }
 
-            String valueAttr = queryDefinition.getValueAttribute() != null ? queryDefinition.getValueAttribute() : "value";
-            String labelAttr = queryDefinition.getLabelAttribute() != null ? queryDefinition.getLabelAttribute() : "label";
+            String valueAttr = queryDefinition.getValueAttribute() != null ? queryDefinition.getValueAttribute()
+                    : "value";
+            String labelAttr = queryDefinition.getLabelAttribute() != null ? queryDefinition.getLabelAttribute()
+                    : "label";
 
             // Handle ID fetching (for default values) - add IN filter on value attribute
             if (id != null && !id.isEmpty()) {
                 log.debug("Fetching by IDs: {}", id);
                 queryRequest.getFilters().put(valueAttr,
-                    QueryContext.Filter.builder()
-                        .attribute(valueAttr)
-                        .operator(FilterOp.IN)
-                        .values(id.stream().map(s -> (Object) s).toList())
-                        .build());
+                        QueryContext.Filter.builder()
+                                .attribute(valueAttr)
+                                .operator(FilterOp.IN)
+                                .values(id.stream().map(s -> (Object) s).toList())
+                                .build());
             }
             // Handle search
             else if (search != null && !search.isEmpty()) {
@@ -113,17 +116,17 @@ public class SelectController {
                 } else {
                     // Fallback to filtering on label column with case insensitive LIKE
                     queryRequest.getFilters().put(labelAttr,
-                        QueryContext.Filter.builder()
-                            .attribute(labelAttr)
-                            .operator(FilterOp.LIKE)
-                            .value("%" + search + "%")
-                            .build());
+                            QueryContext.Filter.builder()
+                                    .attribute(labelAttr)
+                                    .operator(FilterOp.LIKE)
+                                    .value("%" + search + "%")
+                                    .build());
                 }
             }
 
             // Execute through service as select mode
-            QueryData queryResult = queryService.executeAsSelect(selectName, queryRequest);
-            return responseBuilder.buildSelectResponse(queryResult);
+            QueryData queryData = queryService.executeAsSelect(selectName, queryRequest);
+            return responseBuilder.buildSelectResponse(queryData);
 
         } catch (QueryException e) {
             log.error("Select execution failed: {}", e.getMessage());

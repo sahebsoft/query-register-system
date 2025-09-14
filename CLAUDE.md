@@ -33,7 +33,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/ParamProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-paramprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PostProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-postprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PreProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-preprocessor-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/processor/QueryProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-queryprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/RowProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-rowprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/select/SelectItem.java](#src-main-java-com-balsam-oasis-common-registry-domain-select-selectitem-java)
 - [src/main/java/com/balsam/oasis/common/registry/engine/query/QueryExecutorImpl.java](#src-main-java-com-balsam-oasis-common-registry-engine-query-queryexecutorimpl-java)
@@ -494,7 +493,8 @@ public class QueryData {
         return params;
     }
     public Object get(String key) {
-        if (rowData == null) return null;
+        if (rowData == null)
+            return null;
         Object value = rowData.get(key);
         if (value != null) {
             return value;
@@ -502,7 +502,8 @@ public class QueryData {
         return rowData.get(key.toUpperCase());
     }
     public Object getRaw(String columnName) {
-        if (rowData == null) return null;
+        if (rowData == null)
+            return null;
         return rowData.get(columnName.toUpperCase());
     }
     public void set(String key, Object value) {
@@ -542,7 +543,8 @@ public class QueryData {
     public Boolean getBoolean(String key) {
         return get(key, Boolean.class);
     }
-    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata, Long executionTime) {
+    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata,
+            Long executionTime) {
         return QueryData.builder()
                 .rows(rows)
                 .context(context)
@@ -1361,14 +1363,8 @@ public class QueryMetadata {
 
 ```java
 @FunctionalInterface
-public interface AttributeFormatter<T> extends QueryProcessor {
+public interface AttributeFormatter<T> {
     String format(T value);
-    @Override
-    @SuppressWarnings("unchecked")
-    default Object process(Object input, QueryContext context) {
-        if (input == null) return null;
-        return format((T) input);
-    }
 }```
 
 ---
@@ -1377,17 +1373,10 @@ public interface AttributeFormatter<T> extends QueryProcessor {
 
 ```java
 @FunctionalInterface
-public interface Calculator<T> extends QueryProcessor {
+public interface Calculator<T> {
     T calculate(QueryRow row, QueryContext context);
     default T calculateWithAllRows(QueryRow currentRow, java.util.List<QueryRow> allRows, QueryContext context) {
         return calculate(currentRow, context);
-    }
-    @Override
-    default Object process(Object input, QueryContext context) {
-        if (!(input instanceof QueryRow)) {
-            throw new IllegalArgumentException("Calculator processor requires QueryRow input");
-        }
-        return calculate((QueryRow) input, context);
     }
     static <T> Calculator<T> withFullContext(AggregateCalculator<T> aggregateCalc) {
         return new Calculator<T>() {
@@ -1413,7 +1402,7 @@ public interface Calculator<T> extends QueryProcessor {
 
 ```java
 @FunctionalInterface
-public interface ParamProcessor<T> extends QueryProcessor {
+public interface ParamProcessor<T> {
     T process(Object value, QueryContext context);
 }
 ```
@@ -1424,15 +1413,8 @@ public interface ParamProcessor<T> extends QueryProcessor {
 
 ```java
 @FunctionalInterface
-public interface PostProcessor extends QueryProcessor {
+public interface PostProcessor {
     QueryData process(QueryData result, QueryContext context);
-    @Override
-    default Object process(Object input, QueryContext context) {
-        if (!(input instanceof QueryData)) {
-            throw new IllegalArgumentException("Post processor requires QueryData input");
-        }
-        return process((QueryData) input, context);
-    }
 }```
 
 ---
@@ -1441,74 +1423,8 @@ public interface PostProcessor extends QueryProcessor {
 
 ```java
 @FunctionalInterface
-public interface PreProcessor extends QueryProcessor {
+public interface PreProcessor {
     void process(QueryContext context);
-    @Override
-    default Object process(Object input, QueryContext context) {
-        process(context);
-        return null; 
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/processor/QueryProcessor.java
-
-```java
-@FunctionalInterface
-public interface QueryProcessor {
-    Object process(Object input, QueryContext context);
-    static QueryProcessor attributeFormatter(Function<Object, String> formatter) {
-        return (input, context) -> {
-            if (input == null) return null;
-            return formatter.apply(input);
-        };
-    }
-    static QueryProcessor calculator(BiFunction<QueryRow, QueryContext, Object> calc) {
-        return (input, context) -> {
-            if (!(input instanceof QueryRow)) {
-                throw new IllegalArgumentException("Calculator processor requires QueryRow input");
-            }
-            return calc.apply((QueryRow) input, context);
-        };
-    }
-    static QueryProcessor paramProcessor(BiFunction<Object, QueryContext, Object> processor) {
-        return (input, context) -> processor.apply(input, context);
-    }
-    static QueryProcessor preProcessor(PreProcessorAction action) {
-        return (input, context) -> {
-            action.process(context);
-            return null; 
-        };
-    }
-    static QueryProcessor rowProcessor(RowProcessorAction action) {
-        return (input, context) -> {
-            if (!(input instanceof QueryRow)) {
-                throw new IllegalArgumentException("Row processor requires QueryRow input");
-            }
-            return action.process((QueryRow) input, context);
-        };
-    }
-    static QueryProcessor postProcessor(PostProcessorAction action) {
-        return (input, context) -> {
-            if (!(input instanceof QueryData)) {
-                throw new IllegalArgumentException("Post processor requires QueryData input");
-            }
-            return action.process((QueryData) input, context);
-        };
-    }
-    @FunctionalInterface
-    interface PreProcessorAction {
-        void process(QueryContext context);
-    }
-    @FunctionalInterface
-    interface RowProcessorAction {
-        QueryRow process(QueryRow row, QueryContext context);
-    }
-    @FunctionalInterface
-    interface PostProcessorAction {
-        QueryData process(QueryData result, QueryContext context);
-    }
 }```
 
 ---
@@ -1517,15 +1433,8 @@ public interface QueryProcessor {
 
 ```java
 @FunctionalInterface
-public interface RowProcessor extends QueryProcessor {
+public interface RowProcessor {
     QueryRow process(QueryRow row, QueryContext context);
-    @Override
-    default Object process(Object input, QueryContext context) {
-        if (!(input instanceof QueryRow)) {
-            throw new IllegalArgumentException("Row processor requires QueryRow input");
-        }
-        return process((QueryRow) input, context);
-    }
 }```
 
 ---
@@ -1560,13 +1469,11 @@ public class QueryExecutorImpl {
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final QueryRegistryImpl queryRegistry;
     private final QuerySqlBuilder sqlBuilder;
-    private final QueryRowMapperImpl rowMapper;
     public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistryImpl queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.queryRegistry = queryRegistry;
         this.sqlBuilder = sqlBuilder;
-        this.rowMapper = new QueryRowMapperImpl();
     }
     public QueryExecution execute(String queryName) {
         QueryDefinitionBuilder definition = queryRegistry.get(queryName);
@@ -1667,7 +1574,7 @@ public class QueryExecutorImpl {
                     List<QueryRow> results = new ArrayList<>();
                     int rowNum = 0;
                     while (rs.next()) {
-                        results.add(rowMapper.mapRow(rs, rowNum++, finalContext));
+                        results.add(mapRow(rs, rowNum++, finalContext));
                     }
                     return results;
                 }
@@ -1801,6 +1708,41 @@ public class QueryExecutorImpl {
         return result.toBuilder()
                 .metadata(metadata)
                 .build();
+    }
+    private QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
+        QueryDefinitionBuilder definition = context.getDefinition();
+        Map<String, Object> rawData = extractRawData(rs);
+        QueryRow row = QueryRow.create(rawData, rawData, context);
+        if (definition.hasAttributes()) {
+            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                AttributeDef<?> attr = entry.getValue();
+                if (attr.virtual() && attr.hasCalculator()) {
+                    try {
+                        Object calculatedValue = attr.calculator().calculate(row, context);
+                        row.set(entry.getKey(), calculatedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to calculate virtual attribute {}: {}", entry.getKey(), e.getMessage());
+                        row.set(entry.getKey(), null);
+                    }
+                }
+            }
+        }
+        return row;
+    }
+    private Map<String, Object> extractRawData(ResultSet rs) throws SQLException {
+        Map<String, Object> rawData = new HashMap<>();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnName(i).toUpperCase();
+            String columnLabel = metaData.getColumnLabel(i).toUpperCase();
+            Object value = rs.getObject(i);
+            rawData.put(columnName, value);
+            if (!columnName.equals(columnLabel)) {
+                rawData.put(columnLabel, value);
+            }
+        }
+        return rawData;
     }
 }
 ```
@@ -2241,9 +2183,9 @@ public class OracleHRQueryConfig {
                                         System.out.println("@@@@@@@@@rowProcessor@@@@@@@@");
                                         return row;
                                 })
-                                .postProcessor((queryResult, context) -> {
+                                .postProcessor((queryData, context) -> {
                                         System.out.println("@@@@@@@@@postProcessor@@@@@@@@");
-                                        return queryResult;
+                                        return queryData;
                                 })
                                 .defaultPageSize(20)
                                 .maxPageSize(100)
@@ -2536,7 +2478,7 @@ public class QueryService {
                 if (filter.getValues() != null && !filter.getValues().isEmpty()) {
                     execution.withFilter(filter.getAttribute(), filter.getOperator(), filter.getValues());
                 } else if (filter.getValue2() != null) {
-                    execution.withFilter(filter.getAttribute(), filter.getOperator(), 
+                    execution.withFilter(filter.getAttribute(), filter.getOperator(),
                             filter.getValue(), filter.getValue2());
                 } else if (filter.getValue() != null) {
                     execution.withFilter(filter.getAttribute(), filter.getOperator(), filter.getValue());
@@ -2546,12 +2488,10 @@ public class QueryService {
             });
         }
         if (request.getSorts() != null) {
-            request.getSorts().forEach(sort -> 
-                execution.withSort(sort.getAttribute(), sort.getDirection())
-            );
+            request.getSorts().forEach(sort -> execution.withSort(sort.getAttribute(), sort.getDirection()));
         }
         if (request.getPagination() != null) {
-            execution.withPagination(request.getPagination().getOffset(), 
+            execution.withPagination(request.getPagination().getOffset(),
                     request.getPagination().getLimit());
         }
         return execution.execute();
@@ -3127,8 +3067,8 @@ public class QueryResponseBuilder {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
-    public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryResult) {
-        QueryResponse response = buildFormattedSelectResponse(queryResult);
+    public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryData) {
+        QueryResponse response = buildFormattedSelectResponse(queryData);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
@@ -3167,32 +3107,33 @@ public class QueryResponseBuilder {
                 .success(result.isSuccess())
                 .build();
     }
-    private QueryResponse buildFormattedSelectResponse(QueryData queryResult) {
-        QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
+    private QueryResponse buildFormattedSelectResponse(QueryData queryData) {
+        QueryDefinitionBuilder definition = queryData.getContext().getDefinition();
         String valueAttr = definition.getValueAttribute();
         String labelAttr = definition.getLabelAttribute();
         if (valueAttr == null || labelAttr == null) {
             throw new QueryException("Select query must have value and label attributes defined",
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
-        Object securityContext = queryResult.getContext() != null ? queryResult.getContext().getSecurityContext() : null;
+        Object securityContext = queryData.getContext() != null ? queryData.getContext().getSecurityContext()
+                : null;
         List<SelectItem> selectItems = new ArrayList<>();
-        for (QueryRow row : queryResult.getRows()) {
+        for (QueryRow row : queryData.getRows()) {
             Map<String, Object> formattedRow = formatter.formatRow(row, definition, securityContext);
             String value = String.valueOf(formattedRow.get(valueAttr));
             String label = String.valueOf(formattedRow.get(labelAttr));
             selectItems.add(SelectItem.of(value, label));
         }
         QueryMetadata selectMetadata = null;
-        if (queryResult.hasMetadata() && queryResult.getMetadata().getPagination() != null) {
+        if (queryData.hasMetadata() && queryData.getMetadata().getPagination() != null) {
             selectMetadata = QueryMetadata.builder()
-                    .pagination(queryResult.getMetadata().getPagination())
+                    .pagination(queryData.getMetadata().getPagination())
                     .build();
         }
         return QueryResponse.builder()
                 .data(selectItems)
                 .metadata(selectMetadata)
-                .count(queryResult.getCount())
+                .count(queryData.getCount())
                 .success(true)
                 .build();
     }
@@ -3392,22 +3333,25 @@ public class SelectController {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(buildErrorResponse(new QueryException(
-                                selectName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Select query not found: " + selectName)));
+                                selectName, QueryException.ErrorCode.QUERY_NOT_FOUND,
+                                "Select query not found: " + selectName)));
             }
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, "none", queryDefinition);
             if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
                 log.warn("Query {} not configured for select mode, using default attributes", selectName);
             }
-            String valueAttr = queryDefinition.getValueAttribute() != null ? queryDefinition.getValueAttribute() : "value";
-            String labelAttr = queryDefinition.getLabelAttribute() != null ? queryDefinition.getLabelAttribute() : "label";
+            String valueAttr = queryDefinition.getValueAttribute() != null ? queryDefinition.getValueAttribute()
+                    : "value";
+            String labelAttr = queryDefinition.getLabelAttribute() != null ? queryDefinition.getLabelAttribute()
+                    : "label";
             if (id != null && !id.isEmpty()) {
                 log.debug("Fetching by IDs: {}", id);
                 queryRequest.getFilters().put(valueAttr,
-                    QueryContext.Filter.builder()
-                        .attribute(valueAttr)
-                        .operator(FilterOp.IN)
-                        .values(id.stream().map(s -> (Object) s).toList())
-                        .build());
+                        QueryContext.Filter.builder()
+                                .attribute(valueAttr)
+                                .operator(FilterOp.IN)
+                                .values(id.stream().map(s -> (Object) s).toList())
+                                .build());
             }
             else if (search != null && !search.isEmpty()) {
                 log.debug("Searching with term: {}", search);
@@ -3418,15 +3362,15 @@ public class SelectController {
                     queryRequest.getParams().put("search", "%" + search + "%");
                 } else {
                     queryRequest.getFilters().put(labelAttr,
-                        QueryContext.Filter.builder()
-                            .attribute(labelAttr)
-                            .operator(FilterOp.LIKE)
-                            .value("%" + search + "%")
-                            .build());
+                            QueryContext.Filter.builder()
+                                    .attribute(labelAttr)
+                                    .operator(FilterOp.LIKE)
+                                    .value("%" + search + "%")
+                                    .build());
                 }
             }
-            QueryData queryResult = queryService.executeAsSelect(selectName, queryRequest);
-            return responseBuilder.buildSelectResponse(queryResult);
+            QueryData queryData = queryService.executeAsSelect(selectName, queryRequest);
+            return responseBuilder.buildSelectResponse(queryData);
         } catch (QueryException e) {
             log.error("Select execution failed: {}", e.getMessage());
             return ResponseEntity

@@ -52,8 +52,8 @@ public class QueryResponseBuilder {
      * Build JSON response for select/dropdown queries
      * Converts QueryData to select response format with SelectItem objects
      */
-    public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryResult) {
-        QueryResponse response = buildFormattedSelectResponse(queryResult);
+    public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryData) {
+        QueryResponse response = buildFormattedSelectResponse(queryData);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -101,8 +101,8 @@ public class QueryResponseBuilder {
                 .build();
     }
 
-    private QueryResponse buildFormattedSelectResponse(QueryData queryResult) {
-        QueryDefinitionBuilder definition = queryResult.getContext().getDefinition();
+    private QueryResponse buildFormattedSelectResponse(QueryData queryData) {
+        QueryDefinitionBuilder definition = queryData.getContext().getDefinition();
 
         // Check if query has value and label attributes
         String valueAttr = definition.getValueAttribute();
@@ -113,11 +113,11 @@ public class QueryResponseBuilder {
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
 
-        Object securityContext = queryResult.getContext() != null ? queryResult.getContext().getSecurityContext()
+        Object securityContext = queryData.getContext() != null ? queryData.getContext().getSecurityContext()
                 : null;
 
         List<SelectItem> selectItems = new ArrayList<>();
-        for (QueryRow row : queryResult.getRows()) {
+        for (QueryRow row : queryData.getRows()) {
             Map<String, Object> formattedRow = formatter.formatRow(row, definition, securityContext);
 
             // Get value and label using the configured attribute names
@@ -129,16 +129,16 @@ public class QueryResponseBuilder {
         }
 
         QueryMetadata selectMetadata = null;
-        if (queryResult.hasMetadata() && queryResult.getMetadata().getPagination() != null) {
+        if (queryData.hasMetadata() && queryData.getMetadata().getPagination() != null) {
             selectMetadata = QueryMetadata.builder()
-                    .pagination(queryResult.getMetadata().getPagination())
+                    .pagination(queryData.getMetadata().getPagination())
                     .build();
         }
 
         return QueryResponse.builder()
                 .data(selectItems)
                 .metadata(selectMetadata)
-                .count(queryResult.getCount())
+                .count(queryData.getCount())
                 .success(true)
                 .build();
     }

@@ -21,10 +21,10 @@ import java.util.Set;
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:oracle:thin:@localhost:1521:ORCLCDB",
-    "spring.datasource.username=hr",
-    "spring.datasource.password=oracle",
-    "spring.datasource.driver-class-name=oracle.jdbc.OracleDriver"
+        "spring.datasource.url=jdbc:oracle:thin:@localhost:1521:ORCLCDB",
+        "spring.datasource.username=hr",
+        "spring.datasource.password=oracle",
+        "spring.datasource.driver-class-name=oracle.jdbc.OracleDriver"
 })
 public class QueryPrewarmTest {
 
@@ -57,16 +57,16 @@ public class QueryPrewarmTest {
 
             try {
                 // Execute with empty params and minimal pagination
-                QueryData queryResult = queryExecutor.execute(queryName)
-                    .withPagination(0, 1) // Only fetch 1 row to minimize load
-                    .includeMetadata(false) // Skip metadata for performance
-                    .execute();
+                QueryData queryData = queryExecutor.execute(queryName)
+                        .withPagination(0, 1) // Only fetch 1 row to minimize load
+                        .includeMetadata(false) // Skip metadata for performance
+                        .execute();
 
                 long executionTime = System.currentTimeMillis() - startTime;
 
                 result.success = true;
                 result.executionTimeMs = executionTime;
-                result.rowCount = queryResult.size();
+                result.rowCount = queryData.size();
 
                 log.info("✓ Query '{}' executed successfully", queryName);
                 log.info("  - Execution time: {} ms", executionTime);
@@ -114,9 +114,9 @@ public class QueryPrewarmTest {
 
         log.info("Total queries tested: {}", results.size());
         log.info("Successful: {} ({}%)", successCount,
-            results.isEmpty() ? 0 : (successCount * 100 / results.size()));
+                results.isEmpty() ? 0 : (successCount * 100 / results.size()));
         log.info("Failed: {} ({}%)", failureCount,
-            results.isEmpty() ? 0 : (failureCount * 100 / results.size()));
+                results.isEmpty() ? 0 : (failureCount * 100 / results.size()));
         log.info("Total execution time: {} ms", totalTime);
 
         if (!results.isEmpty()) {
@@ -139,14 +139,14 @@ public class QueryPrewarmTest {
             log.info("\n----------------------------------------");
             log.info("SUCCESSFUL QUERIES:");
             results.entrySet().stream()
-                .filter(e -> e.getValue().success)
-                .sorted((a, b) -> Long.compare(b.getValue().executionTimeMs, a.getValue().executionTimeMs))
-                .forEach(entry -> {
-                    log.info("  - {} ({} ms, {} rows)",
-                        entry.getKey(),
-                        entry.getValue().executionTimeMs,
-                        entry.getValue().rowCount);
-                });
+                    .filter(e -> e.getValue().success)
+                    .sorted((a, b) -> Long.compare(b.getValue().executionTimeMs, a.getValue().executionTimeMs))
+                    .forEach(entry -> {
+                        log.info("  - {} ({} ms, {} rows)",
+                                entry.getKey(),
+                                entry.getValue().executionTimeMs,
+                                entry.getValue().rowCount);
+                    });
         }
 
         log.info("\n========================================");

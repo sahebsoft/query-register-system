@@ -1,7 +1,10 @@
 package com.balsam.oasis.common.registry.engine.query;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.common.SqlResult;
+import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
@@ -31,14 +35,12 @@ public class QueryExecutorImpl {
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final QueryRegistryImpl queryRegistry;
     private final QuerySqlBuilder sqlBuilder;
-    private final QueryRowMapperImpl rowMapper;
 
     public QueryExecutorImpl(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder, QueryRegistryImpl queryRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.queryRegistry = queryRegistry;
         this.sqlBuilder = sqlBuilder;
-        this.rowMapper = new QueryRowMapperImpl();
     }
 
     public QueryExecution execute(String queryName) {
@@ -188,7 +190,7 @@ public class QueryExecutorImpl {
                     List<QueryRow> results = new ArrayList<>();
                     int rowNum = 0;
                     while (rs.next()) {
-                        results.add(rowMapper.mapRow(rs, rowNum++, finalContext));
+                        results.add(mapRow(rs, rowNum++, finalContext));
                     }
                     return results;
                 }
@@ -378,5 +380,60 @@ public class QueryExecutorImpl {
         return result.toBuilder()
                 .metadata(metadata)
                 .build();
+    }
+
+    /**
+     * Map a ResultSet row to QueryRow with minimal processing.
+     * Consolidated from QueryRowMapperImpl for simpler architecture.
+     */
+    private QueryRow mapRow(ResultSet rs, int rowNum, QueryContext context) throws SQLException {
+        QueryDefinitionBuilder definition = context.getDefinition();
+
+        // Extract all raw data from ResultSet
+        Map<String, Object> rawData = extractRawData(rs);
+
+        // Create QueryRow with raw data
+        QueryRow row = QueryRow.create(rawData, rawData, context);
+
+        // Apply calculators for virtual attributes if any
+        if (definition.hasAttributes()) {
+            for (Map.Entry<String, AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+                AttributeDef<?> attr = entry.getValue();
+                if (attr.virtual() && attr.hasCalculator()) {
+                    try {
+                        Object calculatedValue = attr.calculator().calculate(row, context);
+                        row.set(entry.getKey(), calculatedValue);
+                    } catch (Exception e) {
+                        log.warn("Failed to calculate virtual attribute {}: {}", entry.getKey(), e.getMessage());
+                        row.set(entry.getKey(), null);
+                    }
+                }
+            }
+        }
+
+        return row;
+    }
+
+    /**
+     * Extract raw data from ResultSet without metadata cache.
+     * Consolidated from QueryRowMapperImpl for simpler architecture.
+     */
+    private Map<String, Object> extractRawData(ResultSet rs) throws SQLException {
+        Map<String, Object> rawData = new HashMap<>();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnName(i).toUpperCase();
+            String columnLabel = metaData.getColumnLabel(i).toUpperCase();
+            Object value = rs.getObject(i);
+
+            rawData.put(columnName, value);
+            if (!columnName.equals(columnLabel)) {
+                rawData.put(columnLabel, value);
+            }
+        }
+
+        return rawData;
     }
 }
