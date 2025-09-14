@@ -73,7 +73,7 @@ This document tracks the systematic reduction of the query-register-system libra
 ### 🚧 **PREPARED BUT DEFERRED**
 
 #### Phase X: Data Model Unification (Created but not implemented)
-- **Goal**: Merge `QueryResult`, `SqlResult`, `QueryRow` into `QueryData`
+- **Goal**: Merge `QueryData`, `SqlResult`, `QueryRow` into `QueryData`
 - **Status**: `QueryData` class created with all functionality
 - **Reason for deferral**: Would require extensive breaking changes across codebase
 - **Files ready**: `src/main/java/com/balsam/oasis/common/registry/domain/common/QueryData.java`

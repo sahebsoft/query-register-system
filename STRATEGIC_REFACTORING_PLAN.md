@@ -67,7 +67,7 @@ public interface RowProcessor {
     Row process(Row row, QueryContext context);
 }
 public interface PostProcessor {
-    QueryResult process(QueryResult result, QueryContext context);
+    QueryData process(QueryData result, QueryContext context);
 }
 // Plus AttributeProcessor, ParamProcessor
 ```

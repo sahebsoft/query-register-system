@@ -9,7 +9,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -57,7 +57,7 @@ public class QueryPrewarmTest {
 
             try {
                 // Execute with empty params and minimal pagination
-                QueryResult queryResult = queryExecutor.execute(queryName)
+                QueryData queryResult = queryExecutor.execute(queryName)
                     .withPagination(0, 1) // Only fetch 1 row to minimize load
                     .includeMetadata(false) // Skip metadata for performance
                     .execute();

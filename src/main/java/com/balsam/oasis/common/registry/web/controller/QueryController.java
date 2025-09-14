@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
@@ -115,7 +115,7 @@ public class QueryController {
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
 
             // Execute query through service
-            QueryResult result = queryService.executeQuery(queryName, queryRequest);
+            QueryData result = queryService.executeQuery(queryName, queryRequest);
 
             // Build JSON response
             return responseBuilder.build(result, queryName);
@@ -151,7 +151,7 @@ public class QueryController {
                     .build();
             
             // Execute query through service
-            QueryResult result = queryService.executeQuery(queryName, queryRequest);
+            QueryData result = queryService.executeQuery(queryName, queryRequest);
 
             // Build JSON response
             return responseBuilder.build(result, queryName);
@@ -205,7 +205,7 @@ public class QueryController {
                     .build();
             
             // Execute through service
-            QueryResult result = queryService.executeQuery(queryName, queryRequest);
+            QueryData result = queryService.executeQuery(queryName, queryRequest);
 
             // Build single object response
             return responseBuilder.buildSingle(result, queryName);

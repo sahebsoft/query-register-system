@@ -17,7 +17,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/config/QueryProperties.java](#src-main-java-com-balsam-oasis-common-registry-config-queryproperties-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/Pagination.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-pagination-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryData.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-querydata-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/common/QueryResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-queryresult-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/common/SqlResult.java](#src-main-java-com-balsam-oasis-common-registry-domain-common-sqlresult-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/AttributeDef.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-attributedef-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/definition/CacheConfig.java](#src-main-java-com-balsam-oasis-common-registry-domain-definition-cacheconfig-java)
@@ -562,53 +561,6 @@ public class QueryData {
                 .rowData(new HashMap<>(data))
                 .context(context)
                 .build();
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/common/QueryResult.java
-
-```java
-@Value
-@Builder(toBuilder = true)
-public class QueryResult {
-    @Builder.Default
-    List<QueryRow> rows = ImmutableList.of();
-    QueryMetadata metadata;
-    QueryContext context;
-    Long executionTimeMs;
-    public boolean isEmpty() {
-        return rows == null || rows.isEmpty();
-    }
-    public int size() {
-        return rows != null ? rows.size() : 0;
-    }
-    public int getCount() {
-        if (metadata != null && metadata.getPagination() != null) {
-            return metadata.getPagination().getTotal();
-        }
-        return size();
-    }
-    public boolean hasMetadata() {
-        return metadata != null;
-    }
-    public QueryRow getFirstRow() {
-        if (!isEmpty()) {
-            return rows.get(0);
-        }
-        return null;
-    }
-    public List<Map<String, Object>> getData() {
-        if (rows != null && !rows.isEmpty()) {
-            return rows.stream()
-                    .map(QueryRow::toMap)
-                    .collect(ImmutableList.toImmutableList());
-        }
-        return ImmutableList.of();
-    }
-    public boolean isSuccess() {
-        return true; 
     }
 }```
 
@@ -1649,7 +1601,7 @@ public class QueryExecutorImpl {
                     .rows(ImmutableList.copyOf(rows))
                     .context(context)
                     .build();
-            runResultAwareParamProcessors(context, result);
+            runResultAwareParamProcessors(context);
             result = runPostProcessors(context, result);
             if (context.isIncludeMetadata()) {
                 result = addMetadata(context, result);
@@ -1678,7 +1630,7 @@ public class QueryExecutorImpl {
             definition.getPreProcessors().forEach(processor -> processor.process(context));
         }
     }
-    private void runResultAwareParamProcessors(QueryContext context, QueryData result) {
+    private void runResultAwareParamProcessors(QueryContext context) {
         QueryDefinitionBuilder definition = context.getDefinition();
         if (!definition.hasParams()) {
             return;
@@ -1741,68 +1693,76 @@ public class QueryExecutorImpl {
     }
     private List<QueryRow> runRowProcessors(QueryContext context, List<QueryRow> rows) {
         QueryDefinitionBuilder definition = context.getDefinition();
-        List<QueryRow> processedRows = recalculateVirtualAttributesWithFullContext(context, rows);
-        if (definition.hasRowProcessors()) {
-            List<QueryRow> tempProcessedRows = new ArrayList<>();
-            for (QueryRow row : processedRows) {
-                QueryRow processedRow = row;
-                for (var processor : definition.getRowProcessors()) {
-                    processedRow = processor.process(processedRow, context);
-                }
-                tempProcessedRows.add(processedRow);
-            }
-            processedRows = tempProcessedRows;
+        boolean hasAggregateCalculators = definition.hasAttributes() &&
+                definition.getAttributes().values().stream()
+                    .anyMatch(attr -> attr.virtual() && attr.hasCalculator());
+        boolean hasCustomRowProcessors = definition.hasRowProcessors();
+        boolean hasFormatters = definition.hasAttributes() &&
+                definition.getAttributes().values().stream()
+                    .anyMatch(com.balsam.oasis.common.registry.domain.definition.AttributeDef::hasFormatter);
+        if (!hasAggregateCalculators && !hasCustomRowProcessors && !hasFormatters) {
+            return rows;
         }
-        processedRows = applyAttributeFormatters(context, processedRows);
+        List<QueryRow> processedRows = new ArrayList<>(rows);
+        if (processedRows.size() > 1000) {
+            processBatchedRows(processedRows, hasAggregateCalculators, hasCustomRowProcessors, hasFormatters, context, definition);
+        } else {
+            for (int i = 0; i < processedRows.size(); i++) {
+                QueryRow row = processedRows.get(i);
+                row = processRowWithAllSteps(row, processedRows, hasAggregateCalculators, hasCustomRowProcessors, hasFormatters, context, definition);
+                processedRows.set(i, row);
+            }
+        }
         return processedRows;
     }
-    private List<QueryRow> recalculateVirtualAttributesWithFullContext(QueryContext context, List<QueryRow> rows) {
-        QueryDefinitionBuilder definition = context.getDefinition();
-        if (!definition.hasAttributes()) {
-            return rows;
+    private QueryRow processRowWithAllSteps(QueryRow row, List<QueryRow> allRows,
+                                          boolean hasAggregateCalculators, boolean hasCustomRowProcessors,
+                                          boolean hasFormatters, QueryContext context, QueryDefinitionBuilder definition) {
+        if (hasAggregateCalculators) {
+            row = applyAggregateCalculations(row, allRows, context, definition);
         }
-        boolean hasAggregateCalculators = definition.getAttributes().values().stream()
-                .anyMatch(attr -> attr.virtual() && attr.hasCalculator());
-        if (!hasAggregateCalculators) {
-            return rows;
+        if (hasCustomRowProcessors) {
+            for (var processor : definition.getRowProcessors()) {
+                row = processor.process(row, context);
+            }
         }
-        List<QueryRow> enhancedRows = new ArrayList<>();
-        for (QueryRow row : rows) {
-            QueryRow enhancedRow = row;
-            for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
-                String attrName = entry.getKey();
-                var attr = entry.getValue();
-                if (attr.virtual() && attr.hasCalculator()) {
-                    try {
-                        @SuppressWarnings("unchecked")
-                        var calculator = (com.balsam.oasis.common.registry.domain.processor.Calculator<Object>) attr.calculator();
-                        Object enhancedValue = calculator.calculateWithAllRows(enhancedRow, rows, context);
-                        enhancedRow.set(attrName, enhancedValue);
-                    } catch (Exception e) {
-                        log.warn("Failed to recalculate virtual attribute {}: {}", attrName, e.getMessage());
-                    }
+        if (hasFormatters) {
+            row = applyRowAttributeFormatters(row, definition);
+        }
+        return row;
+    }
+    private void processBatchedRows(List<QueryRow> processedRows,
+                                   boolean hasAggregateCalculators, boolean hasCustomRowProcessors,
+                                   boolean hasFormatters, QueryContext context, QueryDefinitionBuilder definition) {
+        final int BATCH_SIZE = 100;
+        for (int startIndex = 0; startIndex < processedRows.size(); startIndex += BATCH_SIZE) {
+            int endIndex = Math.min(startIndex + BATCH_SIZE, processedRows.size());
+            for (int i = startIndex; i < endIndex; i++) {
+                QueryRow row = processedRows.get(i);
+                row = processRowWithAllSteps(row, processedRows, hasAggregateCalculators, hasCustomRowProcessors, hasFormatters, context, definition);
+                processedRows.set(i, row);
+            }
+            if (processedRows.size() > 5000) {
+                System.gc(); 
+            }
+        }
+    }
+    private QueryRow applyAggregateCalculations(QueryRow row, List<QueryRow> allRows, QueryContext context, QueryDefinitionBuilder definition) {
+        for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
+            String attrName = entry.getKey();
+            var attr = entry.getValue();
+            if (attr.virtual() && attr.hasCalculator()) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    var calculator = (com.balsam.oasis.common.registry.domain.processor.Calculator<Object>) attr.calculator();
+                    Object enhancedValue = calculator.calculateWithAllRows(row, allRows, context);
+                    row.set(attrName, enhancedValue);
+                } catch (Exception e) {
+                    log.warn("Failed to recalculate virtual attribute {}: {}", attrName, e.getMessage());
                 }
             }
-            enhancedRows.add(enhancedRow);
         }
-        return enhancedRows;
-    }
-    private List<QueryRow> applyAttributeFormatters(QueryContext context, List<QueryRow> rows) {
-        QueryDefinitionBuilder definition = context.getDefinition();
-        if (!definition.hasAttributes()) {
-            return rows;
-        }
-        boolean hasFormatters = definition.getAttributes().values().stream()
-                .anyMatch(com.balsam.oasis.common.registry.domain.definition.AttributeDef::hasFormatter);
-        if (!hasFormatters) {
-            return rows;
-        }
-        List<QueryRow> formattedRows = new ArrayList<>();
-        for (QueryRow row : rows) {
-            QueryRow formattedRow = applyRowAttributeFormatters(row, definition);
-            formattedRows.add(formattedRow);
-        }
-        return formattedRows;
+        return row;
     }
     private QueryRow applyRowAttributeFormatters(QueryRow row, QueryDefinitionBuilder definition) {
         for (Map.Entry<String, com.balsam.oasis.common.registry.domain.definition.AttributeDef<?>> entry : definition.getAttributes().entrySet()) {
@@ -1954,7 +1914,7 @@ public class QueryRow {
     private final Map<String, Object> data;
     private final QueryContext context;
     private QueryRow(Map<String, Object> data, QueryContext context) {
-        this.data = new HashMap<>(data);
+        this.data = data; 
         this.context = context;
     }
     public static QueryRow create(Map<String, Object> data, Map<String, Object> rawData, QueryContext context) {
@@ -3277,7 +3237,7 @@ public class QueryController {
                                 new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND, "Query not found: " + queryName)));
             }
             QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
-            QueryResult result = queryService.executeQuery(queryName, queryRequest);
+            QueryData result = queryService.executeQuery(queryName, queryRequest);
             return responseBuilder.build(result, queryName);
         } catch (QueryException e) {
             log.error("Query execution failed: {}", e.getMessage());
@@ -3304,7 +3264,7 @@ public class QueryController {
                     .sorts(body.getSorts())
                     .pagination(body.getStart(), body.getEnd())
                     .build();
-            QueryResult result = queryService.executeQuery(queryName, queryRequest);
+            QueryData result = queryService.executeQuery(queryName, queryRequest);
             return responseBuilder.build(result, queryName);
         } catch (QueryException e) {
             log.error("Query execution failed: {}", e.getMessage());
@@ -3344,7 +3304,7 @@ public class QueryController {
                     .params(params)
                     .pagination(0, 1) 
                     .build();
-            QueryResult result = queryService.executeQuery(queryName, queryRequest);
+            QueryData result = queryService.executeQuery(queryName, queryRequest);
             return responseBuilder.buildSingle(result, queryName);
         } catch (QueryException e) {
             log.error("Find-by-key execution failed: {}", e.getMessage());
@@ -3465,7 +3425,7 @@ public class SelectController {
                             .build());
                 }
             }
-            QueryResult queryResult = queryService.executeAsSelect(selectName, queryRequest);
+            QueryData queryResult = queryService.executeAsSelect(selectName, queryRequest);
             return responseBuilder.buildSelectResponse(queryResult);
         } catch (QueryException e) {
             log.error("Select execution failed: {}", e.getMessage());

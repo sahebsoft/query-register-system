@@ -50,7 +50,7 @@ public class QueryResponseBuilder {
 
     /**
      * Build JSON response for select/dropdown queries
-     * Converts QueryResult to select response format with SelectItem objects
+     * Converts QueryData to select response format with SelectItem objects
      */
     public ResponseEntity<QueryResponse> buildSelectResponse(QueryData queryResult) {
         QueryResponse response = buildFormattedSelectResponse(queryResult);
@@ -113,7 +113,8 @@ public class QueryResponseBuilder {
                     "INVALID_SELECT_DEFINITION", definition.getName());
         }
 
-        Object securityContext = queryResult.getContext() != null ? queryResult.getContext().getSecurityContext() : null;
+        Object securityContext = queryResult.getContext() != null ? queryResult.getContext().getSecurityContext()
+                : null;
 
         List<SelectItem> selectItems = new ArrayList<>();
         for (QueryRow row : queryResult.getRows()) {

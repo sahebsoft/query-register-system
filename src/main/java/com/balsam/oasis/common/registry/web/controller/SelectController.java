@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
@@ -122,7 +122,7 @@ public class SelectController {
             }
 
             // Execute through service as select mode
-            QueryResult queryResult = queryService.executeAsSelect(selectName, queryRequest);
+            QueryData queryResult = queryService.executeAsSelect(selectName, queryRequest);
             return responseBuilder.buildSelectResponse(queryResult);
 
         } catch (QueryException e) {

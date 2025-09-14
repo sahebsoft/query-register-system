@@ -13,8 +13,10 @@ import java.util.Map;
 
 /**
  * Unified data container for query operations.
- * Consolidates functionality of QueryResult, SqlResult, and QueryRow into a single class.
- * Supports row-level data access, SQL building results, and query execution results.
+ * Consolidates functionality of QueryData, SqlResult, and QueryRow into a
+ * single class.
+ * Supports row-level data access, SQL building results, and query execution
+ * results.
  */
 @Value
 @Builder(toBuilder = true)
@@ -88,7 +90,8 @@ public class QueryData {
     // ============= ROW DATA METHODS =============
 
     public Object get(String key) {
-        if (rowData == null) return null;
+        if (rowData == null)
+            return null;
         Object value = rowData.get(key);
         if (value != null) {
             return value;
@@ -97,7 +100,8 @@ public class QueryData {
     }
 
     public Object getRaw(String columnName) {
-        if (rowData == null) return null;
+        if (rowData == null)
+            return null;
         return rowData.get(columnName.toUpperCase());
     }
 
@@ -148,8 +152,9 @@ public class QueryData {
 
     // ============= FACTORY METHODS =============
 
-    // Create as QueryResult
-    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata, Long executionTime) {
+    // Create as QueryData
+    public static QueryData asResult(List<QueryRow> rows, QueryContext context, QueryMetadata metadata,
+            Long executionTime) {
         return QueryData.builder()
                 .rows(rows)
                 .context(context)

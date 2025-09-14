@@ -136,7 +136,7 @@ sequenceDiagram
     QE->>QE: Run RowProcessors
     QE->>QE: Run PostProcessors
     
-    QE-->>API: QueryResult
+    QE-->>API: QueryData
     API-->>Client: JSON response
 ```
 
@@ -213,7 +213,7 @@ flowchart TD
         
         Meta -->|Yes| AddMeta[Add Metadata]
         Meta -->|No| Result
-        AddMeta --> Result([QueryResult])
+        AddMeta --> Result([QueryData])
     end
 ```
 
@@ -270,7 +270,7 @@ graph LR
     subgraph "Core Components"
         QD[QueryDefinition]
         QC[QueryContext]
-        QR[QueryResult]
+        QR[QueryData]
         QRow[QueryRow]
     end
     

@@ -14,7 +14,7 @@ public class QueryRow {
     private final QueryContext context;
 
     private QueryRow(Map<String, Object> data, QueryContext context) {
-        this.data = new HashMap<>(data);
+        this.data = data; // Use the data directly to avoid copying
         this.context = context;
     }
 

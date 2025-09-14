@@ -21,7 +21,7 @@ QueryExecutor (Interface)
 private QueryExecutor queryExecutor;
 
 // Execute by query name
-QueryResult result = queryExecutor.execute("employees")
+QueryData result = queryExecutor.execute("employees")
     .withParam("deptId", 100)
     .withPagination(0, 50)
     .execute();
@@ -133,7 +133,7 @@ QueryResult result = queryExecutor.execute("employees")
 
 ### Standard Execution
 ```java
-QueryResult result = queryExecutor.execute("employees")
+QueryData result = queryExecutor.execute("employees")
     .withParam("deptId", 100)
     .execute();
 ```
@@ -147,15 +147,15 @@ QueryRow employee = queryExecutor.execute("employees")
 
 ### Async Execution
 ```java
-CompletableFuture<QueryResult> future = queryExecutor.execute("employees")
+CompletableFuture<QueryData> future = queryExecutor.execute("employees")
     .withParam("deptId", 100)
     .executeAsync();
 ```
 
-## QueryResult Structure
+## QueryData Structure
 
 ```java
-public class QueryResult {
+public class QueryData {
     List<QueryRow> rows;        // Query results
     QueryMetadata metadata;     // Execution metadata
     Map<String, Object> summary;// Summary data
@@ -168,7 +168,7 @@ public class QueryResult {
 ### Accessing Results
 
 ```java
-QueryResult result = queryExecutor.execute("employees").execute();
+QueryData result = queryExecutor.execute("employees").execute();
 
 // Get rows
 List<QueryRow> rows = result.getRows();
@@ -232,7 +232,7 @@ public class EmployeeService {
             int pageSize) {
         
         try {
-            QueryResult result = queryExecutor.execute("employees")
+            QueryData result = queryExecutor.execute("employees")
                 // Parameters
                 .withParam("status", "ACTIVE")
                 .withParam("deptId", departmentId)
@@ -309,7 +309,7 @@ The executor automatically validates:
 
 ```java
 try {
-    QueryResult result = queryExecutor.execute("employees")
+    QueryData result = queryExecutor.execute("employees")
         .withParam("requiredParam", null) // Will fail if required
         .validate() // Explicit validation
         .execute();
@@ -323,7 +323,7 @@ try {
 
 ```java
 @Transactional(readOnly = true)
-public QueryResult executeInTransaction(String queryName) {
+public QueryData executeInTransaction(String queryName) {
     return queryExecutor.execute(queryName).execute();
 }
 ```

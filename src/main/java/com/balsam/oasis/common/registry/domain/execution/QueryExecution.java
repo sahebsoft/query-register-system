@@ -42,7 +42,7 @@ import com.balsam.oasis.common.registry.engine.query.QueryRow;
  * </p>
  * 
  * <pre>
- * QueryResult result = queryExecution
+ * QueryData result = queryExecution
  *         .withParam("minSalary", 50000)
  *         .withFilter("department", FilterOp.IN, Arrays.asList("IT", "HR"))
  *         .filterIf(includeInactive, "status", FilterOp.EQUALS, "INACTIVE")
@@ -56,7 +56,7 @@ import com.balsam.oasis.common.registry.engine.query.QueryRow;
  * @since 1.0
  * @see QueryExecutor
  * @see QueryContext
- * @see QueryResult
+ * @see QueryData
  */
 public class QueryExecution {
 
@@ -168,7 +168,6 @@ public class QueryExecution {
         context.setIncludeMetadata(include);
         return this;
     }
-
 
     // Validation
     public QueryExecution validate() {

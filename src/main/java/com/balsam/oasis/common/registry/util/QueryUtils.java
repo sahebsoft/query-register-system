@@ -1,7 +1,7 @@
 package com.balsam.oasis.common.registry.util;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryResult;
+import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.*;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;

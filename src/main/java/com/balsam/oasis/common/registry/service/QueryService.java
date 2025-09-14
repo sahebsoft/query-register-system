@@ -23,9 +23,9 @@ import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
  */
 @Service
 public class QueryService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(QueryService.class);
-    
+
     private final QueryExecutorImpl queryExecutor;
     private final QueryRegistryImpl queryRegistry;
 
@@ -33,44 +33,45 @@ public class QueryService {
         this.queryExecutor = queryExecutor;
         this.queryRegistry = queryRegistry;
     }
-    
+
     /**
      * Execute a query with the provided request parameters.
      *
      * @param queryName The name of the registered query
-     * @param request The parsed query request containing parameters, filters, etc.
-     * @return QueryResult containing the execution results
+     * @param request   The parsed query request containing parameters, filters,
+     *                  etc.
+     * @return QueryData containing the execution results
      * @throws QueryException if query not found or execution fails
      */
     public QueryData executeQuery(String queryName, QueryRequest request) {
         log.info("Executing query: {} with params: {}", queryName, request.getParams());
-        
+
         // Get the query definition
         QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
-        
+
         if (queryDefinition == null) {
             throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
                     "Query not found: " + queryName);
         }
-        
+
         // Validate request
         validateRequest(queryDefinition, request);
-        
+
         // Create execution
         QueryExecution execution = queryExecutor.execute(queryDefinition);
-        
+
         // Apply parameters
         if (request.getParams() != null) {
             request.getParams().forEach(execution::withParam);
         }
-        
+
         // Apply filters
         if (request.getFilters() != null) {
             request.getFilters().forEach((key, filter) -> {
                 if (filter.getValues() != null && !filter.getValues().isEmpty()) {
                     execution.withFilter(filter.getAttribute(), filter.getOperator(), filter.getValues());
                 } else if (filter.getValue2() != null) {
-                    execution.withFilter(filter.getAttribute(), filter.getOperator(), 
+                    execution.withFilter(filter.getAttribute(), filter.getOperator(),
                             filter.getValue(), filter.getValue2());
                 } else if (filter.getValue() != null) {
                     execution.withFilter(filter.getAttribute(), filter.getOperator(), filter.getValue());
@@ -79,35 +80,33 @@ public class QueryService {
                 }
             });
         }
-        
+
         // Apply sorting
         if (request.getSorts() != null) {
-            request.getSorts().forEach(sort -> 
-                execution.withSort(sort.getAttribute(), sort.getDirection())
-            );
+            request.getSorts().forEach(sort -> execution.withSort(sort.getAttribute(), sort.getDirection()));
         }
-        
+
         // Apply pagination
         if (request.getPagination() != null) {
-            execution.withPagination(request.getPagination().getOffset(), 
+            execution.withPagination(request.getPagination().getOffset(),
                     request.getPagination().getLimit());
         }
-        
+
         // Execute and return result
         return execution.execute();
     }
-    
+
     /**
      * Execute a query with default empty parameters.
      *
      * @param queryName The name of the registered query
-     * @return QueryResult containing the execution results
+     * @return QueryData containing the execution results
      * @throws QueryException if query not found or execution fails
      */
     public QueryData executeQuery(String queryName) {
         return executeQuery(queryName, QueryRequest.builder().build());
     }
-    
+
     /**
      * Execute a query with direct execution object.
      * Used for programmatic query execution.
@@ -120,10 +119,10 @@ public class QueryService {
             throw new QueryException(QueryException.ErrorCode.QUERY_NOT_FOUND,
                     "Query definition cannot be null");
         }
-        
+
         return queryExecutor.execute(queryDefinition);
     }
-    
+
     /**
      * Get a registered query definition.
      *
@@ -133,7 +132,7 @@ public class QueryService {
     public QueryDefinitionBuilder getQueryDefinition(String queryName) {
         return queryRegistry.get(queryName);
     }
-    
+
     /**
      * Check if a query is registered.
      *
@@ -143,7 +142,7 @@ public class QueryService {
     public boolean isQueryRegistered(String queryName) {
         return queryRegistry.get(queryName) != null;
     }
-    
+
     /**
      * Get all registered query names.
      *
@@ -159,8 +158,9 @@ public class QueryService {
      * This method is used by SelectController to execute queries in select mode.
      *
      * @param queryName The name of the registered query
-     * @param request The parsed query request containing parameters, filters, etc.
-     * @return QueryResult containing the execution results formatted for select
+     * @param request   The parsed query request containing parameters, filters,
+     *                  etc.
+     * @return QueryData containing the execution results formatted for select
      * @throws QueryException if query not found or not configured for select mode
      */
     public QueryData executeAsSelect(String queryName, QueryRequest request) {
@@ -190,7 +190,7 @@ public class QueryService {
     private void validateRequest(QueryDefinitionBuilder queryDefinition, QueryRequest request) {
         // Note: QueryDefinitionBuilder doesn't expose a way to get all parameters
         // Parameter validation will be done at execution level
-        
+
         // Validate filters against attributes
         if (request.getFilters() != null) {
             request.getFilters().forEach((key, filter) -> {
@@ -207,7 +207,7 @@ public class QueryService {
                 }
             });
         }
-        
+
         // Validate sorts against attributes
         if (request.getSorts() != null) {
             request.getSorts().forEach(sort -> {
