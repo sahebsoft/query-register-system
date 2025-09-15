@@ -2,7 +2,6 @@ package com.balsam.oasis.common.registry.web.controller;
 
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.balsam.oasis.common.registry.domain.common.Pagination;
-import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 import com.balsam.oasis.common.registry.service.QueryService;
@@ -58,9 +56,9 @@ public class SelectController extends QueryBaseController {
                 selectName, _id, _search, _start, _end);
 
         return executeQueryList(() -> {
-            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, "none",
+            QueryContext queryContext = requestParser.parseForSelect(allParams, _id, _search, _start, _end,
                     queryService.getQueryDefinition(selectName));
-            return queryService.executeAsSelect(selectName, _search, _id, _start, _end, queryRequest.getParams());
+            return queryService.executeQuery(queryContext);
         });
     }
 }

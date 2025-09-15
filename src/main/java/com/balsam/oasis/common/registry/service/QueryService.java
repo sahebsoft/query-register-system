@@ -11,9 +11,6 @@ import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
-import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
-import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
-import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 
 import java.util.List;
 import java.util.Map;
@@ -39,38 +36,24 @@ public class QueryService {
     }
 
     /**
-     * Execute a query with the provided request parameters.
+     * Execute a query with the provided QueryContext.
      *
-     * @param queryName The name of the registered query
-     * @param request   The parsed query request containing parameters, filters,
-     *                  etc.
+     * @param queryContext The QueryContext containing all execution parameters
      * @return QueryData containing the execution results
      * @throws QueryException if query not found or execution fails
      */
-    public QueryData executeQuery(String queryName, QueryRequest request) {
-        log.info("Executing query: {} with params: {}", queryName, request.getParams());
+    public QueryData executeQuery(QueryContext queryContext) {
+        log.info("Executing query: {} with params: {}",
+                queryContext.getDefinition().getName(), queryContext.getParams());
 
-        var query = queryExecutor.execute(queryName);
+        QueryData result = queryExecutor.doExecute(queryContext);
 
-        // queryExecutor.doExecute(null)
-
-        if (request.getParams() != null) {
-            query.withParams(request.getParams());
+        // Handle select mode transformation if needed
+        if (isSelectMode(queryContext)) {
+            result = transformForSelect(result, queryContext);
         }
 
-        if (request.getFilters() != null) {
-            query.withFilters(request.getFilters());
-        }
-
-        if (request.getSorts() != null) {
-            query.withSort(request.getSorts());
-        }
-
-        if (request.getPagination() != null) {
-            query.withPagination(request.getPagination().getStart(), request.getPagination().getEnd());
-        }
-
-        return query.execute();
+        return result;
     }
 
     /**
@@ -94,62 +77,18 @@ public class QueryService {
     }
 
     /**
-     * Execute a select query with flexible options (search, IDs, or general
-     * execution).
-     * This is a unified method that handles all select use cases.
-     *
-     * @param queryName        The name of the registered select query
-     * @param searchTerm       The search term to apply (optional)
-     * @param ids              The IDs to fetch (optional, takes precedence over
-     *                         search)
-     * @param additionalParams Additional query parameters (optional)
-     * @param pagination       Pagination settings (optional)
-     * @return QueryData containing the execution results
+     * Check if the QueryContext indicates select mode.
      */
-    public QueryData executeAsSelect(String queryName, String searchTerm, List<String> ids,
-            Integer start,
-            Integer end,
-            Map<String, Object> additionalParams) {
-        log.info("Executing select: {} with ids: {}, search: {}", queryName, ids, searchTerm);
+    private boolean isSelectMode(QueryContext queryContext) {
+        return queryContext.getParams() != null &&
+                Boolean.TRUE.equals(queryContext.getParams().get("_selectMode"));
+    }
 
-        QueryDefinitionBuilder queryDefinition = getQueryDefinition(queryName);
-
-        if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
-            throw new QueryException(queryName, QueryException.ErrorCode.DEFINITION_ERROR,
-                    "Query must define value and label attributes for select mode. Use asSelect() or valueAttribute()/labelAttribute() when building the query.");
-        }
-
-        QueryExecution execution = queryExecutor.execute(queryDefinition);
-        // Add additional params if provided
-        if (additionalParams != null) {
-            execution.withParams(additionalParams);
-        }
-
-        // Apply ID filtering (takes precedence over search)
-        if (ids != null && !ids.isEmpty()) {
-            List<Object> idObjects = ids.stream().map(s -> (Object) s).toList();
-            execution.withFilter("value", FilterOp.IN, idObjects);
-        }
-        // Apply search logic if no IDs provided
-        else if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
-            boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
-                    queryDefinition.getCriteria().containsKey("searchFilter");
-
-            if (hasSearchParam || hasSearchCriteria) {
-                // Use parameter approach - query has explicit search support
-                execution.withParam("search", "%" + searchTerm.trim() + "%");
-            } else {
-                execution.withFilter("label", FilterOp.LIKE, "%" + searchTerm.trim() + "%");
-            }
-        }
-
-        // Apply pagination
-        if (start != null && end != null) {
-            execution.withPagination(start, end);
-        }
-
-        QueryData result = execution.execute();
+    /**
+     * Transform query results for select mode by ensuring value and label fields are present.
+     */
+    private QueryData transformForSelect(QueryData result, QueryContext queryContext) {
+        QueryDefinitionBuilder queryDefinition = queryContext.getDefinition();
 
         List<QueryRow> transformedRows = new ArrayList<>();
         for (QueryRow row : result.getRows()) {

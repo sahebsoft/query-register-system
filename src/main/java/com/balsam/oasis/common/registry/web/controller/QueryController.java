@@ -1,6 +1,5 @@
 package com.balsam.oasis.common.registry.web.controller;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
-import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 import com.balsam.oasis.common.registry.web.dto.response.QueryResponse;
 import com.balsam.oasis.common.registry.web.parser.QueryRequestParser;
 import com.balsam.oasis.common.registry.service.QueryService;
@@ -92,12 +91,8 @@ public class QueryController extends QueryBaseController {
 
         return executeQueryList(() -> {
             QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
-            if (queryDefinition == null) {
-                throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
-                        "Query not found: " + queryName);
-            }
-            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
-            return queryService.executeQuery(queryName, queryRequest);
+            QueryContext queryContext = requestParser.parseForQuery(allParams, _start, _end, _meta, queryDefinition);
+            return queryService.executeQuery(queryContext);
         });
     }
 

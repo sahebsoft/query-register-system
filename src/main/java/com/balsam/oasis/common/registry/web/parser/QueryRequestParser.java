@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.springframework.util.MultiValueMap;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
+import com.balsam.oasis.common.registry.domain.common.Pagination;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
@@ -26,7 +27,6 @@ import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.util.QueryUtils;
-import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
 
 /**
  * Parses HTTP request parameters into query execution parameters.
@@ -40,17 +40,59 @@ public class QueryRequestParser {
     private static final Pattern FILTER_PATTERN = Pattern.compile("^filter\\.(.+?)(?:\\.(\\w+))?$");
     private static final Pattern SORT_PATTERN = Pattern.compile("^([^.]+)\\.(asc|desc)$");
 
-    public QueryRequest parse(MultiValueMap<String, String> allParams, Integer start, Integer end,
-            String metadataLevel) {
-        return parse(allParams, start, end, metadataLevel, null);
+    public QueryContext parseForQuery(MultiValueMap<String, String> allParams, Integer start, Integer end,
+            String metadataLevel, QueryDefinitionBuilder queryDefinition) {
+        return parse(allParams, start, end, metadataLevel, queryDefinition, false, null, null);
     }
 
-    public QueryRequest parse(MultiValueMap<String, String> allParams, Integer start, Integer end, String metadataLevel,
-            QueryDefinitionBuilder queryDefinition) {
+    public QueryContext parseForSelect(MultiValueMap<String, String> allParams, List<String> ids, String searchTerm,
+            Integer start, Integer end, QueryDefinitionBuilder queryDefinition) {
+        return parse(allParams, start, end, "none", queryDefinition, true, ids, searchTerm);
+    }
+
+    private QueryContext parse(MultiValueMap<String, String> allParams, Integer start, Integer end, String metadataLevel,
+            QueryDefinitionBuilder queryDefinition, boolean isSelectMode, List<String> selectIds, String selectSearchTerm) {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();
         List<QueryContext.SortSpec> sorts = new ArrayList<>();
         Set<String> selectedFields = null;
+
+        // Handle select-specific logic first
+        if (isSelectMode && queryDefinition != null) {
+            // Validate that query has value/label attributes for select mode
+            if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
+                throw new QueryException(queryDefinition.getName(), QueryException.ErrorCode.DEFINITION_ERROR,
+                        "Query must define value and label attributes for select mode. Use selectProps() when building the query.");
+            }
+
+            // Handle IDs filtering
+            if (selectIds != null && !selectIds.isEmpty()) {
+                List<Object> idObjects = selectIds.stream().map(s -> (Object) s).collect(Collectors.toList());
+                filters.put("value", QueryContext.Filter.builder()
+                        .attribute("value")
+                        .operator(FilterOp.IN)
+                        .values(idObjects)
+                        .build());
+            }
+            // Handle search term filtering
+            else if (selectSearchTerm != null && !selectSearchTerm.trim().isEmpty()) {
+                boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
+                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
+                        queryDefinition.getCriteria().containsKey("searchFilter");
+
+                if (hasSearchParam || hasSearchCriteria) {
+                    // Use search parameter/criteria
+                    params.put("search", "%" + selectSearchTerm.trim() + "%");
+                } else {
+                    // Apply LIKE filter on label attribute
+                    filters.put("label", QueryContext.Filter.builder()
+                            .attribute("label")
+                            .operator(FilterOp.LIKE)
+                            .value("%" + selectSearchTerm.trim() + "%")
+                            .build());
+                }
+            }
+        }
 
         // Parse each parameter
         for (Map.Entry<String, List<String>> entry : allParams.entrySet()) {
@@ -153,7 +195,7 @@ public class QueryRequestParser {
                         }
                     } catch (IllegalArgumentException e) {
                         // Invalid operator - throw validation error instead of silently converting
-                        throw new QueryException(queryDefinition.getName(),
+                        throw new QueryException(queryDefinition != null ? queryDefinition.getName() : "unknown",
                                 QueryException.ErrorCode.VALIDATION_ERROR,
                                 "Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
                     }
@@ -205,14 +247,33 @@ public class QueryRequestParser {
             }
         }
 
-        return QueryRequest.builder()
+        // Build pagination if provided
+        Pagination pagination = null;
+        if (start != null && end != null) {
+            pagination = Pagination.builder()
+                    .start(start)
+                    .end(end)
+                    .build();
+        }
+
+        // Determine metadata inclusion
+        boolean includeMetadata = !"none".equals(metadataLevel);
+
+        // Build and return QueryContext
+        QueryContext.QueryContextBuilder contextBuilder = QueryContext.builder()
+                .definition(queryDefinition)
                 .params(params)
                 .filters(filters)
                 .sorts(sorts)
-                .pagination(start, end)
-                .metadataLevel(metadataLevel)
-                .selectedFields(selectedFields)
-                .build();
+                .pagination(pagination)
+                .includeMetadata(includeMetadata);
+
+        // Add a flag to indicate if this is select mode for result transformation
+        if (isSelectMode) {
+            params.put("_selectMode", true);
+        }
+
+        return contextBuilder.build();
     }
 
     private void parseSimpleFilter(String attribute, List<String> values, Map<String, QueryContext.Filter> filters,

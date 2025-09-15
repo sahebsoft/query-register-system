@@ -3117,22 +3117,14 @@ public class QueryService {
         this.queryExecutor = queryExecutor;
         this.queryRegistry = queryRegistry;
     }
-    public QueryData executeQuery(String queryName, QueryRequest request) {
-        log.info("Executing query: {} with params: {}", queryName, request.getParams());
-        var query = queryExecutor.execute(queryName);
-        if (request.getParams() != null) {
-            query.withParams(request.getParams());
+    public QueryData executeQuery(QueryContext queryContext) {
+        log.info("Executing query: {} with params: {}",
+                queryContext.getDefinition().getName(), queryContext.getParams());
+        QueryData result = queryExecutor.doExecute(queryContext);
+        if (isSelectMode(queryContext)) {
+            result = transformForSelect(result, queryContext);
         }
-        if (request.getFilters() != null) {
-            query.withFilters(request.getFilters());
-        }
-        if (request.getSorts() != null) {
-            query.withSort(request.getSorts());
-        }
-        if (request.getPagination() != null) {
-            query.withPagination(request.getPagination().getStart(), request.getPagination().getEnd());
-        }
-        return query.execute();
+        return result;
     }
     public QueryDefinitionBuilder getQueryDefinition(String queryName) {
         QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
@@ -3145,38 +3137,12 @@ public class QueryService {
     public QueryRow executeSingle(String queryName, Map<String, Object> params) {
         return queryExecutor.execute(queryName).withParams(params).executeSingle();
     }
-    public QueryData executeAsSelect(String queryName, String searchTerm, List<String> ids,
-            Integer start,
-            Integer end,
-            Map<String, Object> additionalParams) {
-        log.info("Executing select: {} with ids: {}, search: {}", queryName, ids, searchTerm);
-        QueryDefinitionBuilder queryDefinition = getQueryDefinition(queryName);
-        if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
-            throw new QueryException(queryName, QueryException.ErrorCode.DEFINITION_ERROR,
-                    "Query must define value and label attributes for select mode. Use asSelect() or valueAttribute()/labelAttribute() when building the query.");
-        }
-        QueryExecution execution = queryExecutor.execute(queryDefinition);
-        if (additionalParams != null) {
-            execution.withParams(additionalParams);
-        }
-        if (ids != null && !ids.isEmpty()) {
-            List<Object> idObjects = ids.stream().map(s -> (Object) s).toList();
-            execution.withFilter("value", FilterOp.IN, idObjects);
-        }
-        else if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
-            boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
-                    queryDefinition.getCriteria().containsKey("searchFilter");
-            if (hasSearchParam || hasSearchCriteria) {
-                execution.withParam("search", "%" + searchTerm.trim() + "%");
-            } else {
-                execution.withFilter("label", FilterOp.LIKE, "%" + searchTerm.trim() + "%");
-            }
-        }
-        if (start != null && end != null) {
-            execution.withPagination(start, end);
-        }
-        QueryData result = execution.execute();
+    private boolean isSelectMode(QueryContext queryContext) {
+        return queryContext.getParams() != null &&
+                Boolean.TRUE.equals(queryContext.getParams().get("_selectMode"));
+    }
+    private QueryData transformForSelect(QueryData result, QueryContext queryContext) {
+        QueryDefinitionBuilder queryDefinition = queryContext.getDefinition();
         List<QueryRow> transformedRows = new ArrayList<>();
         for (QueryRow row : result.getRows()) {
             Map<String, Object> rowData = new HashMap<>(row.toMap());
@@ -3800,12 +3766,8 @@ public class QueryController extends QueryBaseController {
         log.info("Executing query: {} with params: {}", queryName, allParams);
         return executeQueryList(() -> {
             QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
-            if (queryDefinition == null) {
-                throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
-                        "Query not found: " + queryName);
-            }
-            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, _meta, queryDefinition);
-            return queryService.executeQuery(queryName, queryRequest);
+            QueryContext queryContext = requestParser.parseForQuery(allParams, _start, _end, _meta, queryDefinition);
+            return queryService.executeQuery(queryContext);
         });
     }
     @GetMapping("/{queryName}/find-by-key")
@@ -3860,9 +3822,9 @@ public class SelectController extends QueryBaseController {
         log.info("Executing select: {} with ids: {}, search: {}, pagination: {}-{}",
                 selectName, _id, _search, _start, _end);
         return executeQueryList(() -> {
-            QueryRequest queryRequest = requestParser.parse(allParams, _start, _end, "none",
+            QueryContext queryContext = requestParser.parseForSelect(allParams, _id, _search, _start, _end,
                     queryService.getQueryDefinition(selectName));
-            return queryService.executeAsSelect(selectName, _search, _id, _start, _end, queryRequest.getParams());
+            return queryService.executeQuery(queryContext);
         });
     }
 }```
@@ -3951,16 +3913,48 @@ public class QueryResponse<T> {
 public class QueryRequestParser {
     private static final Pattern FILTER_PATTERN = Pattern.compile("^filter\\.(.+?)(?:\\.(\\w+))?$");
     private static final Pattern SORT_PATTERN = Pattern.compile("^([^.]+)\\.(asc|desc)$");
-    public QueryRequest parse(MultiValueMap<String, String> allParams, Integer start, Integer end,
-            String metadataLevel) {
-        return parse(allParams, start, end, metadataLevel, null);
+    public QueryContext parseForQuery(MultiValueMap<String, String> allParams, Integer start, Integer end,
+            String metadataLevel, QueryDefinitionBuilder queryDefinition) {
+        return parse(allParams, start, end, metadataLevel, queryDefinition, false, null, null);
     }
-    public QueryRequest parse(MultiValueMap<String, String> allParams, Integer start, Integer end, String metadataLevel,
-            QueryDefinitionBuilder queryDefinition) {
+    public QueryContext parseForSelect(MultiValueMap<String, String> allParams, List<String> ids, String searchTerm,
+            Integer start, Integer end, QueryDefinitionBuilder queryDefinition) {
+        return parse(allParams, start, end, "none", queryDefinition, true, ids, searchTerm);
+    }
+    private QueryContext parse(MultiValueMap<String, String> allParams, Integer start, Integer end, String metadataLevel,
+            QueryDefinitionBuilder queryDefinition, boolean isSelectMode, List<String> selectIds, String selectSearchTerm) {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();
         List<QueryContext.SortSpec> sorts = new ArrayList<>();
         Set<String> selectedFields = null;
+        if (isSelectMode && queryDefinition != null) {
+            if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
+                throw new QueryException(queryDefinition.getName(), QueryException.ErrorCode.DEFINITION_ERROR,
+                        "Query must define value and label attributes for select mode. Use selectProps() when building the query.");
+            }
+            if (selectIds != null && !selectIds.isEmpty()) {
+                List<Object> idObjects = selectIds.stream().map(s -> (Object) s).collect(Collectors.toList());
+                filters.put("value", QueryContext.Filter.builder()
+                        .attribute("value")
+                        .operator(FilterOp.IN)
+                        .values(idObjects)
+                        .build());
+            }
+            else if (selectSearchTerm != null && !selectSearchTerm.trim().isEmpty()) {
+                boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
+                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
+                        queryDefinition.getCriteria().containsKey("searchFilter");
+                if (hasSearchParam || hasSearchCriteria) {
+                    params.put("search", "%" + selectSearchTerm.trim() + "%");
+                } else {
+                    filters.put("label", QueryContext.Filter.builder()
+                            .attribute("label")
+                            .operator(FilterOp.LIKE)
+                            .value("%" + selectSearchTerm.trim() + "%")
+                            .build());
+                }
+            }
+        }
         for (Map.Entry<String, List<String>> entry : allParams.entrySet()) {
             String paramName = entry.getKey();
             List<String> values = entry.getValue();
@@ -4036,7 +4030,7 @@ public class QueryRequestParser {
                                     .build());
                         }
                     } catch (IllegalArgumentException e) {
-                        throw new QueryException(queryDefinition.getName(),
+                        throw new QueryException(queryDefinition != null ? queryDefinition.getName() : "unknown",
                                 QueryException.ErrorCode.VALIDATION_ERROR,
                                 "Invalid filter operator '" + opPart + "' for attribute '" + attribute + "'");
                     }
@@ -4071,14 +4065,25 @@ public class QueryRequestParser {
                 }
             }
         }
-        return QueryRequest.builder()
+        Pagination pagination = null;
+        if (start != null && end != null) {
+            pagination = Pagination.builder()
+                    .start(start)
+                    .end(end)
+                    .build();
+        }
+        boolean includeMetadata = !"none".equals(metadataLevel);
+        QueryContext.QueryContextBuilder contextBuilder = QueryContext.builder()
+                .definition(queryDefinition)
                 .params(params)
                 .filters(filters)
                 .sorts(sorts)
-                .pagination(start, end)
-                .metadataLevel(metadataLevel)
-                .selectedFields(selectedFields)
-                .build();
+                .pagination(pagination)
+                .includeMetadata(includeMetadata);
+        if (isSelectMode) {
+            params.put("_selectMode", true);
+        }
+        return contextBuilder.build();
     }
     private void parseSimpleFilter(String attribute, List<String> values, Map<String, QueryContext.Filter> filters,
             Class<?> targetType) {
