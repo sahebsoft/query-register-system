@@ -7,15 +7,10 @@ import java.util.List;
 import org.springframework.context.annotation.Configuration;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
-import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.AttributeDef;
 import com.balsam.oasis.common.registry.domain.definition.CriteriaDef;
 import com.balsam.oasis.common.registry.domain.definition.ParamDef;
-import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.domain.processor.AttributeFormatter;
-import com.balsam.oasis.common.registry.util.QueryUtils;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 public class OracleHRQueryConfig {
 
         private final QueryRegistryImpl queryRegistry;
-        private final QueryExecutorImpl queryExecutor;
 
         @PostConstruct
         public void registerQueries() {
@@ -196,28 +190,6 @@ public class OracleHRQueryConfig {
                                 .parameter(ParamDef.name("jobIds", List.class).build())
                                 .parameter(ParamDef.name("minSalary", BigDecimal.class).build())
                                 .parameter(ParamDef.name("hiredAfter", LocalDate.class)
-                                                .processor((value, ctx) -> {
-                                                        System.out.println("processing hiredAfter: '" + value
-                                                                        + "' (String input)");
-                                                        if (value == null) {
-                                                                return null;
-                                                        }
-                                                        try {
-                                                                // Try parsing as number of days
-                                                                int days = Integer.parseInt(value);
-                                                                return LocalDate.now().minusDays(days);
-                                                        } catch (NumberFormatException e) {
-                                                                // Try parsing as ISO date string
-                                                                try {
-                                                                        return LocalDate.parse(value);
-                                                                } catch (Exception ex) {
-                                                                        throw new QueryException(
-                                                                                        "Invalid hiredAfter value: '"
-                                                                                                        + value
-                                                                                                        + "'. Expected number of days (e.g., '10') or ISO date (e.g., '2023-01-01')");
-                                                                }
-                                                        }
-                                                })
                                                 .build())
 
                                 // Criteria
@@ -377,10 +349,11 @@ public class OracleHRQueryConfig {
                                                 --departmentFilter
                                                 --searchFilter
                                                 """)
-                                .description("Employee select for dropdowns with search and department filtering")
-                                .selectProps("employee_id", "full_name")
-                                .attribute(AttributeDef.name("value", Integer.class).aliasName("employee_id").build())
-                                .attribute(AttributeDef.name("label", String.class).aliasName("full_name").build())
+                                .selectProps("employeeId", "fullName")
+                                .attribute(AttributeDef.name("employeeId", Integer.class).aliasName("employee_id")
+                                                .build())
+                                .attribute(AttributeDef.name("fullName", String.class).aliasName("full_name")
+                                                .visible(false).build())
                                 .attribute(AttributeDef.name("email", String.class).aliasName("email").build())
                                 .attribute(AttributeDef.name("department_name", String.class)
                                                 .aliasName("department_name").build())

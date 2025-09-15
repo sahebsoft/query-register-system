@@ -41,21 +41,4 @@ public class PlsqlService {
         return execution.execute();
     }
 
-
-    public PlsqlExecution preparePlsql(String plsqlName) {
-        return plsqlExecutor.execute(plsqlName);
-    }
-
-    public PlsqlDefinitionBuilder getPlsqlDefinition(String plsqlName) {
-        return plsqlRegistry.get(plsqlName);
-    }
-
-
-    public boolean exists(String plsqlName) {
-        return plsqlRegistry.get(plsqlName) != null;
-    }
-
-    public int getRegisteredCount() {
-        return plsqlRegistry.size();
-    }
 }

@@ -50,8 +50,10 @@ public class QueryRequestParser {
         return parse(allParams, start, end, "none", queryDefinition, true, ids, searchTerm);
     }
 
-    private QueryContext parse(MultiValueMap<String, String> allParams, Integer start, Integer end, String metadataLevel,
-            QueryDefinitionBuilder queryDefinition, boolean isSelectMode, List<String> selectIds, String selectSearchTerm) {
+    private QueryContext parse(MultiValueMap<String, String> allParams, Integer start, Integer end,
+            String metadataLevel,
+            QueryDefinitionBuilder queryDefinition, boolean isSelectMode, List<String> selectIds,
+            String selectSearchTerm) {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();
         List<QueryContext.SortSpec> sorts = new ArrayList<>();
@@ -68,8 +70,9 @@ public class QueryRequestParser {
             // Handle IDs filtering
             if (selectIds != null && !selectIds.isEmpty()) {
                 List<Object> idObjects = selectIds.stream().map(s -> (Object) s).collect(Collectors.toList());
-                filters.put("value", QueryContext.Filter.builder()
-                        .attribute("value")
+
+                filters.put(queryDefinition.getValueAttribute(), QueryContext.Filter.builder()
+                        .attribute(queryDefinition.getValueAttribute())
                         .operator(FilterOp.IN)
                         .values(idObjects)
                         .build());
@@ -77,16 +80,15 @@ public class QueryRequestParser {
             // Handle search term filtering
             else if (selectSearchTerm != null && !selectSearchTerm.trim().isEmpty()) {
                 boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
-                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
-                        queryDefinition.getCriteria().containsKey("searchFilter");
+                boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("searchFilter");
 
                 if (hasSearchParam || hasSearchCriteria) {
                     // Use search parameter/criteria
                     params.put("search", "%" + selectSearchTerm.trim() + "%");
                 } else {
                     // Apply LIKE filter on label attribute
-                    filters.put("label", QueryContext.Filter.builder()
-                            .attribute("label")
+                    filters.put(queryDefinition.getLabelAttribute(), QueryContext.Filter.builder()
+                            .attribute(queryDefinition.getLabelAttribute())
                             .operator(FilterOp.LIKE)
                             .value("%" + selectSearchTerm.trim() + "%")
                             .build());
@@ -221,9 +223,6 @@ public class QueryRequestParser {
 
                 // Only process if the parameter is defined in the query
                 if (paramType != null) {
-                    // Check if parameter has a processor - if so, don't pre-convert
-                    boolean hasProcessor = hasParamProcessor(queryDefinition, paramName);
-
                     // Handle List parameters for IN clause criteria
                     if (List.class.isAssignableFrom(paramType)) {
                         // Parse comma-separated values into a list
@@ -235,11 +234,8 @@ public class QueryRequestParser {
                         } else {
                             params.put(paramName, Collections.singletonList(value.trim()));
                         }
-                    } else if (hasProcessor) {
-                        // ALWAYS pass strings to processors - they handle their own type conversion
-                        params.put(paramName, value.trim());
                     } else {
-                        // Only non-processor parameters get pre-converted
+                        // Convert parameter to appropriate type
                         params.put(paramName, parseValue(value, paramType));
                     }
                 }
@@ -348,14 +344,6 @@ public class QueryRequestParser {
         }
         ParamDef<?> paramDef = queryDefinition.getParam(paramName);
         return paramDef != null ? paramDef.type() : null;
-    }
-
-    private boolean hasParamProcessor(QueryDefinitionBuilder queryDefinition, String paramName) {
-        if (queryDefinition == null) {
-            return false;
-        }
-        ParamDef<?> paramDef = queryDefinition.getParam(paramName);
-        return paramDef != null && paramDef.hasProcessor();
     }
 
     /**

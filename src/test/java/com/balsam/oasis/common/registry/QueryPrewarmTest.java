@@ -26,7 +26,7 @@ import java.util.Set;
         "spring.datasource.password=oracle",
         "spring.datasource.driver-class-name=oracle.jdbc.OracleDriver"
 })
-public class QueryPrewarmTest {
+class QueryPrewarmTest {
 
     private static final Logger log = LoggerFactory.getLogger(QueryPrewarmTest.class);
 
@@ -37,7 +37,7 @@ public class QueryPrewarmTest {
     private QueryExecutorImpl queryExecutor;
 
     @Test
-    public void prewarmAllQueries() {
+    void prewarmAllQueries() {
         Set<String> queryNames = queryRegistry.getQueryNames();
 
         log.info("========================================");

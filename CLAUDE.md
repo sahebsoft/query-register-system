@@ -34,7 +34,6 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/domain/metadata/QueryMetadata.java](#src-main-java-com-balsam-oasis-common-registry-domain-metadata-querymetadata-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/AttributeFormatter.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-attributeformatter-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/Calculator.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-calculator-java)
-- [src/main/java/com/balsam/oasis/common/registry/domain/processor/ParamProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-paramprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PlsqlPostProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-plsqlpostprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PlsqlPreProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-plsqlpreprocessor-java)
 - [src/main/java/com/balsam/oasis/common/registry/domain/processor/PostProcessor.java](#src-main-java-com-balsam-oasis-common-registry-domain-processor-postprocessor-java)
@@ -51,11 +50,8 @@ This document contains all Java source files from the project.
 - [src/main/java/com/balsam/oasis/common/registry/service/PlsqlService.java](#src-main-java-com-balsam-oasis-common-registry-service-plsqlservice-java)
 - [src/main/java/com/balsam/oasis/common/registry/service/QueryService.java](#src-main-java-com-balsam-oasis-common-registry-service-queryservice-java)
 - [src/main/java/com/balsam/oasis/common/registry/util/QueryUtils.java](#src-main-java-com-balsam-oasis-common-registry-util-queryutils-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/controller/PlsqlController.java](#src-main-java-com-balsam-oasis-common-registry-web-controller-plsqlcontroller-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/controller/QueryBaseController.java](#src-main-java-com-balsam-oasis-common-registry-web-controller-querybasecontroller-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/controller/QueryController.java](#src-main-java-com-balsam-oasis-common-registry-web-controller-querycontroller-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/controller/SelectController.java](#src-main-java-com-balsam-oasis-common-registry-web-controller-selectcontroller-java)
-- [src/main/java/com/balsam/oasis/common/registry/web/dto/request/QueryRequest.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-request-queryrequest-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/dto/response/QueryResponse.java](#src-main-java-com-balsam-oasis-common-registry-web-dto-response-queryresponse-java)
 - [src/main/java/com/balsam/oasis/common/registry/web/parser/QueryRequestParser.java](#src-main-java-com-balsam-oasis-common-registry-web-parser-queryrequestparser-java)
 
@@ -425,7 +421,6 @@ public class QueryDefinitionBuilder {
 
 ```java
 @Configuration
-@EnableConfigurationProperties(QueryProperties.class)
 public class QueryConfiguration {
     @Bean
     QuerySqlBuilder sqlBuilder() {
@@ -437,8 +432,7 @@ public class QueryConfiguration {
     }
     @Bean
     QueryExecutorImpl queryExecutor(JdbcTemplate jdbcTemplate, QuerySqlBuilder sqlBuilder,
-            QueryRegistryImpl queryRegistry,
-            QueryProperties properties) {
+            QueryRegistryImpl queryRegistry) {
         return new QueryExecutorImpl(jdbcTemplate, sqlBuilder, queryRegistry);
     }
     @Bean
@@ -452,13 +446,9 @@ public class QueryConfiguration {
     @Bean
     QueryController queryController(
             QueryService queryService,
-            QueryRequestParser requestParser) {
-        return new QueryController(queryService, requestParser);
-    }
-    @Bean
-    SelectController selectController(QueryService queryService,
-            QueryRequestParser requestParser) {
-        return new SelectController(queryService, requestParser);
+            QueryRequestParser requestParser,
+            PlsqlService plsqlService) {
+        return new QueryController(queryService, requestParser, plsqlService);
     }
     @Bean
     PlsqlRegistryImpl plsqlRegistry() {
@@ -471,10 +461,6 @@ public class QueryConfiguration {
     @Bean
     PlsqlService plsqlService(PlsqlExecutorImpl plsqlExecutor, PlsqlRegistryImpl plsqlRegistry) {
         return new PlsqlService(plsqlExecutor, plsqlRegistry);
-    }
-    @Bean
-    PlsqlController plsqlController(PlsqlService plsqlService) {
-        return new PlsqlController(plsqlService);
     }
 }```
 
@@ -879,31 +865,19 @@ public record ParamDef<T>(
         String name,
         Class<T> type,
         T defaultValue,
-        boolean required,
-        ParamProcessor<T> processor) {
+        boolean required) {
     public static <T> ParamDefBuilder<T> name(String name) {
         return ParamDef.<T>builder().name(name);
     }
     public static <T> ParamDefBuilder<T> name(String name, Class<T> type) {
         return ParamDef.<T>builder().name(name).type(type);
     }
-    public boolean hasProcessor() {
-        return processor != null;
-    }
     public boolean hasDefaultValue() {
         return defaultValue != null;
     }
-    public boolean isValid(T value, QueryContext context) {
+    public boolean isValid(T value) {
         if (value == null) {
             return !required;
-        }
-        if (hasProcessor()) {
-            try {
-                T processed = processor.process((String) value, context);
-                return processed != null;
-            } catch (Exception e) {
-                return false;
-            }
         }
         return true;
     }
@@ -920,7 +894,6 @@ public record PlsqlParamDef<T>(
         Class<T> type,
         T defaultValue,
         boolean required,
-        ParamProcessor<T> processor,
         ParamMode mode,
         String plsqlDefault,
         int sqlType) {
@@ -932,29 +905,15 @@ public record PlsqlParamDef<T>(
     public ParamMode mode() {
         return mode != null ? mode : ParamMode.IN;
     }
-    public boolean hasProcessor() {
-        return processor != null;
-    }
     public boolean hasDefaultValue() {
         return defaultValue != null;
     }
     public boolean hasPlsqlDefault() {
         return plsqlDefault != null && !plsqlDefault.trim().isEmpty();
     }
-    public boolean isValid(T value, PlsqlContext context) {
+    public boolean isValid(T value) {
         if (value == null) {
             return !required;
-        }
-        if (hasProcessor()) {
-            try {
-                var queryContext = com.balsam.oasis.common.registry.domain.execution.QueryContext.builder()
-                        .params(context.getParams())
-                        .build();
-                T processed = processor.process((String) value, queryContext);
-                return processed != null;
-            } catch (Exception e) {
-                return false;
-            }
         }
         return true;
     }
@@ -1348,22 +1307,8 @@ public class QueryExecution {
             }
             if (context.hasParam(name)) {
                 Object value = context.getParam(name);
-                if (paramDef.hasProcessor()) {
-                    try {
-                        ParamProcessor<?> processor = paramDef.processor();
-                        Object processedValue = processor.process((String) value, context);
-                        if (processedValue == null && paramDef.hasDefaultValue()) {
-                            context.addParam(name, paramDef.defaultValue());
-                        } else {
-                            context.addParam(name, processedValue);
-                        }
-                    } catch (Exception e) {
-                        violations.add("Parameter validation/processing failed for " + name + ": " + e.getMessage());
-                    }
-                } else {
-                    if (paramDef.required() && value == null) {
-                        violations.add("Parameter validation failed: " + name);
-                    }
+                if (paramDef.required() && value == null) {
+                    violations.add("Required parameter cannot be null: " + name);
                 }
             }
         });
@@ -1577,17 +1522,6 @@ public interface Calculator<T> {
         T calculate(QueryRow currentRow, java.util.List<QueryRow> allRows, QueryContext context);
     }
 }```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/domain/processor/ParamProcessor.java
-
-```java
-@FunctionalInterface
-public interface ParamProcessor<T> {
-    T process(String value, QueryContext context);
-}
-```
 
 ---
 
@@ -2128,7 +2062,7 @@ public class QueryExecutorImpl {
     }
     private int executeTotalCountQuery(QueryContext context, Map<String, Object> processedParams) {
         try {
-            String countSql = sqlBuilder.buildCountQueryWithProcessedParams(context, processedParams);
+            String countSql = sqlBuilder.buildCountQuery(context);
             log.debug("Executing count query: {}", countSql);
             Integer count = namedJdbcTemplate.queryForObject(countSql, processedParams, Integer.class);
             return count != null ? count : 0;
@@ -2507,15 +2441,6 @@ public class QuerySqlBuilder {
         sql = QueryUtils.cleanPlaceholders(sql);
         return QueryUtils.wrapForCount(sql);
     }
-    public String buildCountQueryWithProcessedParams(QueryContext context, Map<String, Object> processedParams) {
-        QueryDefinitionBuilder definition = context.getDefinition();
-        String sql = definition.getSql();
-        Map<String, Object> bindParams = new HashMap<>(processedParams);
-        sql = QueryUtils.applyCriteria(sql, context, bindParams);
-        sql = QueryUtils.applyFilters(sql, context, bindParams);
-        sql = QueryUtils.cleanPlaceholders(sql);
-        return QueryUtils.wrapForCount(sql);
-    }
 }```
 
 ---
@@ -2769,26 +2694,6 @@ public class OracleHRQueryConfig {
                                 .parameter(ParamDef.name("jobIds", List.class).build())
                                 .parameter(ParamDef.name("minSalary", BigDecimal.class).build())
                                 .parameter(ParamDef.name("hiredAfter", LocalDate.class)
-                                                .processor((value, ctx) -> {
-                                                        System.out.println("processing hiredAfter: '" + value
-                                                                        + "' (String input)");
-                                                        if (value == null) {
-                                                                return null;
-                                                        }
-                                                        try {
-                                                                int days = Integer.parseInt(value);
-                                                                return LocalDate.now().minusDays(days);
-                                                        } catch (NumberFormatException e) {
-                                                                try {
-                                                                        return LocalDate.parse(value);
-                                                                } catch (Exception ex) {
-                                                                        throw new QueryException(
-                                                                                        "Invalid hiredAfter value: '"
-                                                                                                        + value
-                                                                                                        + "'. Expected number of days (e.g., '10') or ISO date (e.g., '2023-01-01')");
-                                                                }
-                                                        }
-                                                })
                                                 .build())
                                 .criteria(CriteriaDef.name("departmentFilter")
                                                 .sql("AND e.department_id = :deptId")
@@ -3088,18 +2993,6 @@ public class PlsqlService {
             params.forEach(execution::withParam);
         }
         return execution.execute();
-    }
-    public PlsqlExecution preparePlsql(String plsqlName) {
-        return plsqlExecutor.execute(plsqlName);
-    }
-    public PlsqlDefinitionBuilder getPlsqlDefinition(String plsqlName) {
-        return plsqlRegistry.get(plsqlName);
-    }
-    public boolean exists(String plsqlName) {
-        return plsqlRegistry.get(plsqlName) != null;
-    }
-    public int getRegisteredCount() {
-        return plsqlRegistry.size();
     }
 }```
 
@@ -3641,48 +3534,14 @@ public class QueryUtils {
 
 ---
 
-## src/main/java/com/balsam/oasis/common/registry/web/controller/PlsqlController.java
-
-```java
-@RestController
-@RequestMapping("/api/plsql/v2")
-@Tag(name = "PL/SQL API", description = "PL/SQL Block Execution System API")
-public class PlsqlController extends QueryBaseController {
-    private static final Logger log = LoggerFactory.getLogger(PlsqlController.class);
-    private final PlsqlService plsqlService;
-    public PlsqlController(PlsqlService plsqlService) {
-        this.plsqlService = plsqlService;
-    }
-    @PostMapping("/execute/{name}")
-    @Operation(summary = "Execute PL/SQL block", description = "Execute a registered PL/SQL block with parameters")
-    public ResponseEntity<QueryResponse<Map<String, Object>>> execute(
-            @PathVariable @Parameter(description = "Name of the registered PL/SQL block") String name,
-            @RequestBody(required = false) Map<String, Object> params) {
-        log.info("Executing PL/SQL: {} with params: {}", name, params);
-        Map<String, Object> finalParams = params != null ? params : Map.of();
-        return execute(() -> plsqlService.executePlsql(name, finalParams));
-    }
-    @PostMapping("/execute/{name}/simple")
-    @Operation(summary = "Execute PL/SQL with simple params", description = "Execute PL/SQL with parameters as map")
-    public ResponseEntity<QueryResponse<Map<String, Object>>> executeSimple(
-            @PathVariable @Parameter(description = "Name of the registered PL/SQL block") String name,
-            @RequestBody(required = false) Map<String, Object> params) {
-        log.info("Executing PL/SQL (simple): {} with params: {}", name, params);
-        Map<String, Object> finalParams = params != null ? params : Map.of();
-        return execute(() -> plsqlService.executePlsql(name, finalParams));
-    }
-}```
-
----
-
 ## src/main/java/com/balsam/oasis/common/registry/web/controller/QueryBaseController.java
 
 ```java
 public abstract class QueryBaseController {
     private static final Logger log = LoggerFactory.getLogger(QueryBaseController.class);
     protected <T> ResponseEntity<QueryResponse<T>> execute(Supplier<T> supplier) {
-        return executeWithTimer(supplier, (result, time) ->
-            ResponseEntity.ok(QueryResponse.single(result, null, time, null)));
+        return executeWithTimer(supplier,
+                (result, time) -> ResponseEntity.ok(QueryResponse.single(result, null, time, null)));
     }
     protected ResponseEntity<QueryResponse<List<Map<String, Object>>>> executeQueryList(Supplier<QueryData> supplier) {
         return executeWithTimer(supplier, (queryData, time) -> {
@@ -3700,12 +3559,6 @@ public abstract class QueryBaseController {
             return ResponseEntity.ok(QueryResponse.single(data, null, time, queryData.getMetadata()));
         });
     }
-    protected <T> ResponseEntity<QueryResponse<T>> executeQueryCustom(Supplier<QueryData> supplier, Function<QueryData, T> mapper) {
-        return executeWithTimer(supplier, (queryData, time) -> {
-            T data = mapper.apply(queryData);
-            return ResponseEntity.ok(QueryResponse.single(data, null, time, queryData.getMetadata()));
-        });
-    }
     private <T, R> ResponseEntity<QueryResponse<R>> executeWithTimer(Supplier<T> supplier,
             java.util.function.BiFunction<T, Long, ResponseEntity<QueryResponse<R>>> responseBuilder) {
         long startTime = System.currentTimeMillis();
@@ -3716,26 +3569,14 @@ public abstract class QueryBaseController {
         } catch (QueryException e) {
             log.error("Query execution failed: {}", e.getMessage());
             return ResponseEntity
-                    .status(determineHttpStatus(e))
+                    .status(HttpStatus.OK)
                     .body(QueryResponse.error(e.getErrorCode(), e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage(), e);
             return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .status(HttpStatus.OK)
                     .body(QueryResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
-    }
-    private HttpStatus determineHttpStatus(QueryException e) {
-        String errorCode = e.getErrorCode();
-        if (errorCode == null) {
-            return HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-        return switch (errorCode) {
-            case "NOT_FOUND", "QRY001" -> HttpStatus.NOT_FOUND;
-            case "VALIDATION_ERROR", "DEFINITION_ERROR", "QRY006", "QRY005", "LOV_NOT_SUPPORTED" -> HttpStatus.BAD_REQUEST;
-            case "TIMEOUT_ERROR", "QRY003" -> HttpStatus.REQUEST_TIMEOUT;
-            default -> HttpStatus.INTERNAL_SERVER_ERROR;
-        };
     }
 }```
 
@@ -3744,37 +3585,35 @@ public abstract class QueryBaseController {
 ## src/main/java/com/balsam/oasis/common/registry/web/controller/QueryController.java
 
 ```java
+@RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/query/v2")
+@RequestMapping("/api/v2")
 @Tag(name = "Query API", description = "Query Registration System API")
 public class QueryController extends QueryBaseController {
     private static final Logger log = LoggerFactory.getLogger(QueryController.class);
     private final QueryService queryService;
     private final QueryRequestParser requestParser;
-    public QueryController(QueryService queryService, QueryRequestParser requestParser) {
-        this.queryService = queryService;
-        this.requestParser = requestParser;
-    }
-    @GetMapping("/{queryName}")
+    private final PlsqlService plsqlService;
+    @GetMapping("/query/{queryName}")
     @Operation(summary = "Execute a query", description = "Execute a registered query with filters, sorting, and pagination")
     public ResponseEntity<QueryResponse<List<Map<String, Object>>>> executeQuery(
             @PathVariable @Parameter(description = "Name of the registered query") String queryName,
-            @RequestParam(defaultValue = "0") @Parameter(description = "Start index for pagination") int _start,
-            @RequestParam(defaultValue = "50") @Parameter(description = "End index for pagination") int _end,
-            @RequestParam(defaultValue = "full") @Parameter(description = "Metadata level: full, minimal, none") String _meta,
+            @RequestParam(name = "_start", defaultValue = "0") @Parameter(description = "Start index for pagination") Integer start,
+            @RequestParam(name = "_end", defaultValue = "50") @Parameter(description = "End index for pagination") Integer end,
+            @RequestParam(name = "_meta", defaultValue = "full") @Parameter(description = "Metadata level: full, minimal, none") String meta,
             @RequestParam MultiValueMap<String, String> allParams) {
         log.info("Executing query: {} with params: {}", queryName, allParams);
         return executeQueryList(() -> {
             QueryDefinitionBuilder queryDefinition = queryService.getQueryDefinition(queryName);
-            QueryContext queryContext = requestParser.parseForQuery(allParams, _start, _end, _meta, queryDefinition);
+            QueryContext queryContext = requestParser.parseForQuery(allParams, start, end, meta, queryDefinition);
             return queryService.executeQuery(queryContext);
         });
     }
-    @GetMapping("/{queryName}/find-by-key")
+    @GetMapping("/query/{queryName}/find-by-key")
     @Operation(summary = "Find by key", description = "Find a single record using key criteria")
     public ResponseEntity<QueryResponse<Map<String, Object>>> findByKey(
             @PathVariable @Parameter(description = "Name of the registered query") String queryName,
-            @RequestParam(defaultValue = "false") @Parameter(description = "Include metadata") boolean _meta,
+            @RequestParam(name = "_meta", defaultValue = "false") @Parameter(description = "Include metadata") boolean meta,
             @RequestParam Map<String, Object> params) {
         log.info("Finding by key for query: {} with params: {}", queryName, params);
         return execute(() -> {
@@ -3785,32 +3624,7 @@ public class QueryController extends QueryBaseController {
             return result.toMap();
         });
     }
-    @GetMapping("/{queryName}/metadata")
-    @Operation(summary = "Get query metadata", description = "Get metadata for a registered query without executing it")
-    public ResponseEntity<QueryResponse<Map<String, Object>>> getQueryMetadata(@PathVariable String queryName) {
-        return execute(() -> Map.of(
-                "queryName", queryName,
-                "message", "Metadata endpoint - to be implemented"));
-    }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/controller/SelectController.java
-
-```java
-@RestController
-@RequestMapping("/api/select/v2")
-@Tag(name = "Select API", description = "List of Values endpoints for dropdowns and select components")
-public class SelectController extends QueryBaseController {
-    private static final Logger log = LoggerFactory.getLogger(SelectController.class);
-    private final QueryService queryService;
-    private final QueryRequestParser requestParser;
-    public SelectController(QueryService queryService, QueryRequestParser requestParser) {
-        this.queryService = queryService;
-        this.requestParser = requestParser;
-    }
-    @GetMapping("/{selectName}")
+    @GetMapping("/select/{selectName}")
     @Operation(summary = "Get list of values", description = "Execute a select query for dropdowns/selects")
     public ResponseEntity<QueryResponse<List<Map<String, Object>>>> getListOfValues(
             @PathVariable @Parameter(description = "Name of the registered select") String selectName,
@@ -3827,32 +3641,21 @@ public class SelectController extends QueryBaseController {
             return queryService.executeQuery(queryContext);
         });
     }
-}```
-
----
-
-## src/main/java/com/balsam/oasis/common/registry/web/dto/request/QueryRequest.java
-
-```java
-@Data
-@Builder
-public class QueryRequest {
-    private Map<String, Object> params;
-    private Map<String, QueryContext.Filter> filters;
-    private List<QueryContext.SortSpec> sorts;
-    private Pagination pagination;
-    private String metadataLevel;
-    private Set<String> selectedFields;
-    public static class QueryRequestBuilder {
-        public QueryRequestBuilder pagination(Integer start, Integer end) {
-            if (start == null || end == null)
-                return this;
-            this.pagination = Pagination.builder()
-                    .start(start)
-                    .end(end)
-                    .build();
-            return this;
-        }
+    @GetMapping("/query/{queryName}/metadata")
+    @Operation(summary = "Get query metadata", description = "Get metadata for a registered query without executing it")
+    public ResponseEntity<QueryResponse<Map<String, Object>>> getQueryMetadata(@PathVariable String queryName) {
+        return execute(() -> Map.of(
+                "queryName", queryName,
+                "message", "Metadata endpoint - to be implemented"));
+    }
+    @PostMapping("/execute/{name}")
+    @Operation(summary = "Execute PL/SQL block", description = "Execute a registered PL/SQL block with parameters")
+    public ResponseEntity<QueryResponse<Map<String, Object>>> execute(
+            @PathVariable @Parameter(description = "Name of the registered PL/SQL block") String name,
+            @RequestBody(required = false) Map<String, Object> params) {
+        log.info("Executing PL/SQL: {} with params: {}", name, params);
+        Map<String, Object> finalParams = params != null ? params : Map.of();
+        return execute(() -> plsqlService.executePlsql(name, finalParams));
     }
 }```
 
@@ -4047,7 +3850,6 @@ public class QueryRequestParser {
             if (value != null && !value.trim().isEmpty()) {
                 Class<?> paramType = getParamType(queryDefinition, paramName);
                 if (paramType != null) {
-                    boolean hasProcessor = hasParamProcessor(queryDefinition, paramName);
                     if (List.class.isAssignableFrom(paramType)) {
                         if (value.contains(",")) {
                             List<String> valueList = Arrays.stream(value.split(","))
@@ -4057,8 +3859,6 @@ public class QueryRequestParser {
                         } else {
                             params.put(paramName, Collections.singletonList(value.trim()));
                         }
-                    } else if (hasProcessor) {
-                        params.put(paramName, value.trim());
                     } else {
                         params.put(paramName, parseValue(value, paramType));
                     }
@@ -4139,13 +3939,6 @@ public class QueryRequestParser {
         }
         ParamDef<?> paramDef = queryDefinition.getParam(paramName);
         return paramDef != null ? paramDef.type() : null;
-    }
-    private boolean hasParamProcessor(QueryDefinitionBuilder queryDefinition, String paramName) {
-        if (queryDefinition == null) {
-            return false;
-        }
-        ParamDef<?> paramDef = queryDefinition.getParam(paramName);
-        return paramDef != null && paramDef.hasProcessor();
     }
     private Class<?> getAttributeType(QueryDefinitionBuilder queryDefinition, String attributeName) {
         if (queryDefinition == null) {

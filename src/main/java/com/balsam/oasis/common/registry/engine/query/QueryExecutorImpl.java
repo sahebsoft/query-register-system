@@ -176,8 +176,7 @@ public class QueryExecutorImpl {
 
     private int executeTotalCountQuery(QueryContext context, Map<String, Object> processedParams) {
         try {
-            // Build count query using already processed parameters to avoid double-processing
-            String countSql = sqlBuilder.buildCountQueryWithProcessedParams(context, processedParams);
+            String countSql = sqlBuilder.buildCountQuery(context);
 
             log.debug("Executing count query: {}", countSql);
 

@@ -10,7 +10,6 @@ import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.FilterOp;
 import com.balsam.oasis.common.registry.domain.definition.SortDir;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
-import com.balsam.oasis.common.registry.domain.processor.ParamProcessor;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRow;
 
@@ -184,32 +183,11 @@ public class QueryExecution {
                 violations.add("Required parameter missing: " + name);
             }
 
-            // Process and validate parameter values
+            // Validate parameter values
             if (context.hasParam(name)) {
                 Object value = context.getParam(name);
-
-                // Apply processor if exists (handles validation and transformation)
-                if (paramDef.hasProcessor()) {
-                    try {
-                        ParamProcessor<?> processor = paramDef.processor();
-                        Object processedValue = processor.process((String) value, context);
-                        // If processor returns null and there's a default value, use the default
-                        if (processedValue == null && paramDef.hasDefaultValue()) {
-                            context.addParam(name, paramDef.defaultValue());
-                        } else {
-                            // Update the parameter with processed value
-                            context.addParam(name, processedValue);
-                        }
-                    } catch (Exception e) {
-                        violations.add("Parameter validation/processing failed for " + name + ": " + e.getMessage());
-                    }
-                } else {
-                    // Use the built-in validation method
-                    // Since we don't have type information at runtime, we skip validation
-                    // for parameters without processors
-                    if (paramDef.required() && value == null) {
-                        violations.add("Parameter validation failed: " + name);
-                    }
+                if (paramDef.required() && value == null) {
+                    violations.add("Required parameter cannot be null: " + name);
                 }
             }
         });

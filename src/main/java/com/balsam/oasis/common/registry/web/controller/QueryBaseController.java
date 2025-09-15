@@ -2,7 +2,6 @@ package com.balsam.oasis.common.registry.web.controller;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -19,8 +18,8 @@ public abstract class QueryBaseController {
     private static final Logger log = LoggerFactory.getLogger(QueryBaseController.class);
 
     protected <T> ResponseEntity<QueryResponse<T>> execute(Supplier<T> supplier) {
-        return executeWithTimer(supplier, (result, time) ->
-            ResponseEntity.ok(QueryResponse.single(result, null, time, null)));
+        return executeWithTimer(supplier,
+                (result, time) -> ResponseEntity.ok(QueryResponse.single(result, null, time, null)));
     }
 
     protected ResponseEntity<QueryResponse<List<Map<String, Object>>>> executeQueryList(Supplier<QueryData> supplier) {
@@ -41,13 +40,6 @@ public abstract class QueryBaseController {
         });
     }
 
-    protected <T> ResponseEntity<QueryResponse<T>> executeQueryCustom(Supplier<QueryData> supplier, Function<QueryData, T> mapper) {
-        return executeWithTimer(supplier, (queryData, time) -> {
-            T data = mapper.apply(queryData);
-            return ResponseEntity.ok(QueryResponse.single(data, null, time, queryData.getMetadata()));
-        });
-    }
-
     private <T, R> ResponseEntity<QueryResponse<R>> executeWithTimer(Supplier<T> supplier,
             java.util.function.BiFunction<T, Long, ResponseEntity<QueryResponse<R>>> responseBuilder) {
         long startTime = System.currentTimeMillis();
@@ -58,27 +50,14 @@ public abstract class QueryBaseController {
         } catch (QueryException e) {
             log.error("Query execution failed: {}", e.getMessage());
             return ResponseEntity
-                    .status(determineHttpStatus(e))
+                    .status(HttpStatus.OK)
                     .body(QueryResponse.error(e.getErrorCode(), e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage(), e);
             return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .status(HttpStatus.OK)
                     .body(QueryResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
-    private HttpStatus determineHttpStatus(QueryException e) {
-        String errorCode = e.getErrorCode();
-        if (errorCode == null) {
-            return HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-
-        return switch (errorCode) {
-            case "NOT_FOUND", "QRY001" -> HttpStatus.NOT_FOUND;
-            case "VALIDATION_ERROR", "DEFINITION_ERROR", "QRY006", "QRY005", "LOV_NOT_SUPPORTED" -> HttpStatus.BAD_REQUEST;
-            case "TIMEOUT_ERROR", "QRY003" -> HttpStatus.REQUEST_TIMEOUT;
-            default -> HttpStatus.INTERNAL_SERVER_ERROR;
-        };
-    }
 }

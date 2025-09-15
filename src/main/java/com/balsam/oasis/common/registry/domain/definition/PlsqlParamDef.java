@@ -1,7 +1,5 @@
 package com.balsam.oasis.common.registry.domain.definition;
 
-import com.balsam.oasis.common.registry.domain.execution.PlsqlContext;
-import com.balsam.oasis.common.registry.domain.processor.ParamProcessor;
 import lombok.Builder;
 
 @Builder
@@ -10,7 +8,6 @@ public record PlsqlParamDef<T>(
         Class<T> type,
         T defaultValue,
         boolean required,
-        ParamProcessor<T> processor,
         ParamMode mode,
         String plsqlDefault,
         int sqlType) {
@@ -25,10 +22,6 @@ public record PlsqlParamDef<T>(
         return mode != null ? mode : ParamMode.IN;
     }
 
-    public boolean hasProcessor() {
-        return processor != null;
-    }
-
     public boolean hasDefaultValue() {
         return defaultValue != null;
     }
@@ -37,25 +30,10 @@ public record PlsqlParamDef<T>(
         return plsqlDefault != null && !plsqlDefault.trim().isEmpty();
     }
 
-
-    public boolean isValid(T value, PlsqlContext context) {
+    public boolean isValid(T value) {
         if (value == null) {
             return !required;
         }
-
-        if (hasProcessor()) {
-            try {
-                // Create a temporary QueryContext to maintain compatibility with existing processors
-                var queryContext = com.balsam.oasis.common.registry.domain.execution.QueryContext.builder()
-                        .params(context.getParams())
-                        .build();
-                T processed = processor.process((String) value, queryContext);
-                return processed != null;
-            } catch (Exception e) {
-                return false;
-            }
-        }
-
         return true;
     }
 
