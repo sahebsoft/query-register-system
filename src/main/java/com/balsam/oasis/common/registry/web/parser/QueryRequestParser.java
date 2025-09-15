@@ -40,11 +40,12 @@ public class QueryRequestParser {
     private static final Pattern FILTER_PATTERN = Pattern.compile("^filter\\.(.+?)(?:\\.(\\w+))?$");
     private static final Pattern SORT_PATTERN = Pattern.compile("^([^.]+)\\.(asc|desc)$");
 
-    public QueryRequest parse(MultiValueMap<String, String> allParams, int start, int end, String metadataLevel) {
+    public QueryRequest parse(MultiValueMap<String, String> allParams, Integer start, Integer end,
+            String metadataLevel) {
         return parse(allParams, start, end, metadataLevel, null);
     }
 
-    public QueryRequest parse(MultiValueMap<String, String> allParams, int start, int end, String metadataLevel,
+    public QueryRequest parse(MultiValueMap<String, String> allParams, Integer start, Integer end, String metadataLevel,
             QueryDefinitionBuilder queryDefinition) {
         Map<String, Object> params = new HashMap<>();
         Map<String, QueryContext.Filter> filters = new LinkedHashMap<>();

@@ -22,10 +22,12 @@ public class QueryRequest {
     private Pagination pagination;
     private String metadataLevel;
     private Set<String> selectedFields;
-    
+
     // Helper method to create pagination
     public static class QueryRequestBuilder {
-        public QueryRequestBuilder pagination(int start, int end) {
+        public QueryRequestBuilder pagination(Integer start, Integer end) {
+            if (start == null || end == null)
+                return this;
             this.pagination = Pagination.builder()
                     .start(start)
                     .end(end)

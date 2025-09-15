@@ -77,7 +77,7 @@ public class QueryPrewarmTest {
 
                 result.success = false;
                 result.executionTimeMs = executionTime;
-                result.errorMessage = e.getMessage();
+                result.message = e.getMessage();
 
                 log.error("✗ Query '{}' failed", queryName);
                 log.error("  - Error: {}", e.getMessage());
@@ -129,7 +129,7 @@ public class QueryPrewarmTest {
             log.info("FAILED QUERIES:");
             for (Map.Entry<String, TestResult> entry : results.entrySet()) {
                 if (!entry.getValue().success) {
-                    log.info("  - {}: {}", entry.getKey(), entry.getValue().errorMessage);
+                    log.info("  - {}: {}", entry.getKey(), entry.getValue().message);
                 }
             }
         }
@@ -160,6 +160,6 @@ public class QueryPrewarmTest {
         boolean success;
         long executionTimeMs;
         int rowCount;
-        String errorMessage;
+        String message;
     }
 }

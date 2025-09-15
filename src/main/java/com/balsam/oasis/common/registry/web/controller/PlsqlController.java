@@ -34,22 +34,26 @@ public class PlsqlController extends QueryBaseController {
     @Operation(summary = "Execute PL/SQL block", description = "Execute a registered PL/SQL block with parameters")
     public ResponseEntity<QueryResponse<Map<String, Object>>> execute(
             @PathVariable @Parameter(description = "Name of the registered PL/SQL block") String name,
-            @RequestBody Map<String, Object> params) {
+            @RequestBody(required = false) Map<String, Object> params) {
 
         log.info("Executing PL/SQL: {} with params: {}", name, params);
 
-        return handleSingleRequest(() -> plsqlService.executePlsql(name, params));
+        // Handle null params gracefully
+        Map<String, Object> finalParams = params != null ? params : Map.of();
+        return execute(() -> plsqlService.executePlsql(name, finalParams));
     }
 
     @PostMapping("/execute/{name}/simple")
     @Operation(summary = "Execute PL/SQL with simple params", description = "Execute PL/SQL with parameters as map")
     public ResponseEntity<QueryResponse<Map<String, Object>>> executeSimple(
             @PathVariable @Parameter(description = "Name of the registered PL/SQL block") String name,
-            @RequestBody Map<String, Object> params) {
+            @RequestBody(required = false) Map<String, Object> params) {
 
         log.info("Executing PL/SQL (simple): {} with params: {}", name, params);
 
-        return handleSingleRequest(() -> plsqlService.executePlsql(name, params));
+        // Handle null params gracefully
+        Map<String, Object> finalParams = params != null ? params : Map.of();
+        return execute(() -> plsqlService.executePlsql(name, finalParams));
     }
 
 }

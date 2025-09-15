@@ -7,10 +7,19 @@ import org.springframework.stereotype.Service;
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
+import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
+import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryExecution;
 import com.balsam.oasis.common.registry.web.dto.request.QueryRequest;
+import com.balsam.oasis.common.registry.domain.definition.FilterOp;
+
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Shared service for executing queries and selects.
@@ -41,65 +50,27 @@ public class QueryService {
     public QueryData executeQuery(String queryName, QueryRequest request) {
         log.info("Executing query: {} with params: {}", queryName, request.getParams());
 
-        // Get the query definition
-        QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
+        var query = queryExecutor.execute(queryName);
 
-        if (queryDefinition == null) {
-            throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
-                    "Query not found: " + queryName);
-        }
+        // queryExecutor.doExecute(null)
 
-        // Validate request
-        validateRequest(queryDefinition, request);
-
-        // Create execution
-        QueryExecution execution = queryExecutor.execute(queryDefinition);
-
-        // Apply parameters
         if (request.getParams() != null) {
-            request.getParams().forEach(execution::withParam);
+            query.withParams(request.getParams());
         }
 
-        // Apply filters
         if (request.getFilters() != null) {
-            request.getFilters().forEach((key, filter) -> {
-                if (filter.getValues() != null && !filter.getValues().isEmpty()) {
-                    execution.withFilter(filter.getAttribute(), filter.getOperator(), filter.getValues());
-                } else if (filter.getValue2() != null) {
-                    execution.withFilter(filter.getAttribute(), filter.getOperator(),
-                            filter.getValue(), filter.getValue2());
-                } else if (filter.getValue() != null) {
-                    execution.withFilter(filter.getAttribute(), filter.getOperator(), filter.getValue());
-                } else {
-                    execution.withFilter(filter.getAttribute(), filter.getOperator(), null);
-                }
-            });
+            query.withFilters(request.getFilters());
         }
 
-        // Apply sorting
         if (request.getSorts() != null) {
-            request.getSorts().forEach(sort -> execution.withSort(sort.getAttribute(), sort.getDirection()));
+            query.withSort(request.getSorts());
         }
 
-        // Apply pagination
         if (request.getPagination() != null) {
-            execution.withPagination(request.getPagination().getOffset(),
-                    request.getPagination().getLimit());
+            query.withPagination(request.getPagination().getStart(), request.getPagination().getEnd());
         }
 
-        // Execute and return result
-        return execution.execute();
-    }
-
-    /**
-     * Execute a query with default empty parameters.
-     *
-     * @param queryName The name of the registered query
-     * @return QueryExecution containing the execution results
-     * @throws QueryException if query not found or execution fails
-     */
-    public QueryExecution executeQuery(String queryName) {
-        return queryExecutor.execute(queryName);
+        return query.execute();
     }
 
     /**
@@ -109,79 +80,90 @@ public class QueryService {
      * @return QueryDefinitionBuilder or null if not found
      */
     public QueryDefinitionBuilder getQueryDefinition(String queryName) {
-        return queryRegistry.get(queryName);
-    }
-
-    /**
-     * Execute a query as a select/LOV query.
-     * This method is used by SelectController to execute queries in select mode.
-     *
-     * @param queryName The name of the registered query
-     * @param request   The parsed query request containing parameters, filters,
-     *                  etc.
-     * @return QueryData containing the execution results formatted for select
-     * @throws QueryException if query not found or not configured for select mode
-     */
-    public QueryData executeAsSelect(String queryName, QueryRequest request) {
-        log.info("Executing query as select: {} with params: {}", queryName, request.getParams());
-
-        // Get the query definition
         QueryDefinitionBuilder queryDefinition = queryRegistry.get(queryName);
-
         if (queryDefinition == null) {
             throw new QueryException(queryName, QueryException.ErrorCode.QUERY_NOT_FOUND,
                     "Query not found: " + queryName);
         }
 
-        // Check if query has value and label attributes defined
+        return queryDefinition;
+    }
+
+    public QueryRow executeSingle(String queryName, Map<String, Object> params) {
+        return queryExecutor.execute(queryName).withParams(params).executeSingle();
+    }
+
+    /**
+     * Execute a select query with flexible options (search, IDs, or general
+     * execution).
+     * This is a unified method that handles all select use cases.
+     *
+     * @param queryName        The name of the registered select query
+     * @param searchTerm       The search term to apply (optional)
+     * @param ids              The IDs to fetch (optional, takes precedence over
+     *                         search)
+     * @param additionalParams Additional query parameters (optional)
+     * @param pagination       Pagination settings (optional)
+     * @return QueryData containing the execution results
+     */
+    public QueryData executeAsSelect(String queryName, String searchTerm, List<String> ids,
+            Integer start,
+            Integer end,
+            Map<String, Object> additionalParams) {
+        log.info("Executing select: {} with ids: {}, search: {}", queryName, ids, searchTerm);
+
+        QueryDefinitionBuilder queryDefinition = getQueryDefinition(queryName);
+
         if (!queryDefinition.hasValueAttribute() || !queryDefinition.hasLabelAttribute()) {
             throw new QueryException(queryName, QueryException.ErrorCode.DEFINITION_ERROR,
                     "Query must define value and label attributes for select mode. Use asSelect() or valueAttribute()/labelAttribute() when building the query.");
         }
 
-        // Execute as normal query
-        return executeQuery(queryName, request);
-    }
-
-    /**
-     * Validate the request against the query definition.
-     */
-    private void validateRequest(QueryDefinitionBuilder queryDefinition, QueryRequest request) {
-        // Note: QueryDefinitionBuilder doesn't expose a way to get all parameters
-        // Parameter validation will be done at execution level
-
-        // Validate filters against attributes
-        if (request.getFilters() != null) {
-            request.getFilters().forEach((key, filter) -> {
-                var attr = queryDefinition.getAttribute(filter.getAttribute());
-                if (attr == null) {
-                    throw new QueryException(queryDefinition.getName(),
-                            QueryException.ErrorCode.VALIDATION_ERROR,
-                            "Unknown attribute for filter: " + filter.getAttribute());
-                }
-                if (!attr.filterable()) {
-                    throw new QueryException(queryDefinition.getName(),
-                            QueryException.ErrorCode.VALIDATION_ERROR,
-                            "Attribute '" + filter.getAttribute() + "' is not filterable");
-                }
-            });
+        QueryExecution execution = queryExecutor.execute(queryDefinition);
+        // Add additional params if provided
+        if (additionalParams != null) {
+            execution.withParams(additionalParams);
         }
 
-        // Validate sorts against attributes
-        if (request.getSorts() != null) {
-            request.getSorts().forEach(sort -> {
-                var attr = queryDefinition.getAttribute(sort.getAttribute());
-                if (attr == null) {
-                    throw new QueryException(queryDefinition.getName(),
-                            QueryException.ErrorCode.VALIDATION_ERROR,
-                            "Unknown attribute for sort: " + sort.getAttribute());
-                }
-                if (!attr.sortable()) {
-                    throw new QueryException(queryDefinition.getName(),
-                            QueryException.ErrorCode.VALIDATION_ERROR,
-                            "Attribute '" + sort.getAttribute() + "' is not sortable");
-                }
-            });
+        // Apply ID filtering (takes precedence over search)
+        if (ids != null && !ids.isEmpty()) {
+            List<Object> idObjects = ids.stream().map(s -> (Object) s).toList();
+            execution.withFilter("value", FilterOp.IN, idObjects);
         }
+        // Apply search logic if no IDs provided
+        else if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            boolean hasSearchParam = queryDefinition.getParameters().containsKey("search");
+            boolean hasSearchCriteria = queryDefinition.getCriteria().containsKey("search") ||
+                    queryDefinition.getCriteria().containsKey("searchFilter");
+
+            if (hasSearchParam || hasSearchCriteria) {
+                // Use parameter approach - query has explicit search support
+                execution.withParam("search", "%" + searchTerm.trim() + "%");
+            } else {
+                execution.withFilter("label", FilterOp.LIKE, "%" + searchTerm.trim() + "%");
+            }
+        }
+
+        // Apply pagination
+        if (start != null && end != null) {
+            execution.withPagination(start, end);
+        }
+
+        QueryData result = execution.execute();
+
+        List<QueryRow> transformedRows = new ArrayList<>();
+        for (QueryRow row : result.getRows()) {
+            Map<String, Object> rowData = new HashMap<>(row.toMap());
+            rowData.put("value", rowData.get(queryDefinition.getValueAttribute()));
+            rowData.put("label", rowData.get(queryDefinition.getLabelAttribute()));
+            transformedRows.add(QueryRow.create(rowData, result.getContext()));
+        }
+
+        return QueryData.builder()
+                .rows(ImmutableList.copyOf(transformedRows))
+                .context(result.getContext())
+                .metadata(result.getMetadata())
+                .build();
     }
+
 }

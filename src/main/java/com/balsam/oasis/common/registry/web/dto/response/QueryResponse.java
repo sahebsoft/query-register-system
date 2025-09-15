@@ -22,7 +22,7 @@ public class QueryResponse<T> {
     @Builder.Default
     private boolean success = true;
     private String errorCode;
-    private String errorMessage;
+    private String message;
     private long timestamp;
 
     public static <E> QueryResponse<List<E>> list(List<E> data, Long count, Long executionTime,
@@ -47,11 +47,11 @@ public class QueryResponse<T> {
                 .build();
     }
 
-    public static <T> QueryResponse<T> error(String errorCode, String errorMessage) {
+    public static <T> QueryResponse<T> error(String errorCode, String message) {
         return QueryResponse.<T>builder()
                 .success(false)
                 .errorCode(errorCode)
-                .errorMessage(errorMessage)
+                .message(message)
                 .timestamp(System.currentTimeMillis())
                 .build();
     }

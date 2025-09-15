@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUTPUT_FILE="MERGED.md"
+OUTPUT_FILE="CLAUDE.md"
 
 > "$OUTPUT_FILE"
 

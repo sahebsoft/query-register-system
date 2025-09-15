@@ -83,8 +83,6 @@ public class QueryDefinitionBuilder {
      */
     private final Integer fetchSize;
 
-
-
     /**
      * Attribute name to use as value in select mode
      */
@@ -149,8 +147,6 @@ public class QueryDefinitionBuilder {
         return postProcessors != null && !postProcessors.isEmpty();
     }
 
-
-
     /**
      * Creates a new builder for QueryDefinition
      */
@@ -189,7 +185,6 @@ public class QueryDefinitionBuilder {
         protected Boolean auditEnabled = true;
         protected Boolean metricsEnabled = true;
         protected Integer queryTimeout;
-
 
         // Select mode configuration
         protected String valueAttribute;
@@ -351,34 +346,17 @@ public class QueryDefinitionBuilder {
             return this;
         }
 
-
         /**
          * Configure this query as a select/LOV query with value and label attributes.
-         * @param valueAttribute The attribute name to use as the value (typically an ID)
+         * 
+         * @param valueAttribute The attribute name to use as the value (typically an
+         *                       ID)
          * @param labelAttribute The attribute name to use as the label (display text)
          */
-        public Builder asSelect(String valueAttribute, String labelAttribute) {
-            Preconditions.checkNotNull(valueAttribute, "Value attribute cannot be null");
-            Preconditions.checkNotNull(labelAttribute, "Label attribute cannot be null");
+        public Builder selectProps(String valueAttribute, String labelAttribute) {
             this.selectMode = true;
             this.valueAttribute = valueAttribute;
             this.labelAttribute = labelAttribute;
-            return this;
-        }
-
-        /**
-         * Set the value attribute for select mode.
-         */
-        public Builder valueAttribute(String attribute) {
-            this.valueAttribute = attribute;
-            return this;
-        }
-
-        /**
-         * Set the label attribute for select mode.
-         */
-        public Builder labelAttribute(String attribute) {
-            this.labelAttribute = attribute;
             return this;
         }
 

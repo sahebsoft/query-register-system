@@ -1,12 +1,10 @@
 package com.balsam.oasis.common.registry.util;
 
 import com.balsam.oasis.common.registry.builder.QueryDefinitionBuilder;
-import com.balsam.oasis.common.registry.domain.common.QueryData;
 import com.balsam.oasis.common.registry.domain.definition.*;
 import com.balsam.oasis.common.registry.domain.exception.QueryException;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext;
 import com.balsam.oasis.common.registry.domain.execution.QueryContext.Filter;
-import com.balsam.oasis.common.registry.engine.query.QueryRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +14,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -58,11 +55,6 @@ public class QueryUtils {
         return bindParams;
     }
 
-    public static boolean hasBindParameter(String sql, String paramName) {
-        Pattern pattern = Pattern.compile(":" + Pattern.quote(paramName) + "\\b");
-        return pattern.matcher(sql).find();
-    }
-
     public static String applyFilters(String sql, QueryContext context, Map<String, Object> params) {
         if (context.getFilters() == null || context.getFilters().isEmpty()) {
             return sql;
@@ -92,6 +84,7 @@ public class QueryUtils {
     private static String buildFilterCondition(Filter filter, AttributeDef<?> attr,
             Map<String, Object> params, int index) {
         String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
+
         String paramName = "filter_" + filter.getAttribute() + "_" + index;
 
         switch (filter.getOperator()) {
@@ -135,7 +128,7 @@ public class QueryUtils {
                 return column + " IS NOT NULL";
             default:
                 throw new QueryException(QueryException.ErrorCode.PARAMETER_ERROR,
-                    "Unsupported filter operator: " + filter.getOperator());
+                        "Unsupported filter operator: " + filter.getOperator());
         }
     }
 
@@ -145,20 +138,26 @@ public class QueryUtils {
         }
 
         String orderByClause = context.getSorts().stream()
-            .map(sort -> {
-                AttributeDef<?> attr = context.getDefinition().getAttribute(sort.getAttribute());
-                if (attr == null || !attr.sortable()) {
-                    log.warn("Attribute {} is not sortable or does not exist", sort.getAttribute());
-                    return null;
-                }
-                String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
-                return column + " " + sort.getDirection().name();
-            })
-            .filter(s -> s != null)
-            .collect(Collectors.joining(", "));
+                .map(sort -> {
+                    AttributeDef<?> attr = context.getDefinition().getAttribute(sort.getAttribute());
+                    if (attr == null || !attr.sortable()) {
+                        log.warn("Attribute {} is not sortable or does not exist", sort.getAttribute());
+                        return null;
+                    }
+                    String column = attr.aliasName() != null ? attr.aliasName() : attr.name();
+                    return column + " " + sort.getDirection().name();
+                })
+                .filter(s -> s != null)
+                .collect(Collectors.joining(", "));
 
         if (!orderByClause.isEmpty()) {
-            sql = replacePlaceholder(sql, "orderBy", "ORDER BY " + orderByClause);
+            // // Check if there's an --orderBy placeholder first
+            // if (sql.contains("--orderBy")) {
+            // sql = replacePlaceholder(sql, "orderBy", "ORDER BY " + orderByClause);
+            // } else {
+            // Wrap the query with ORDER BY for better handling of complex queries
+            sql = "SELECT * FROM (" + sql.trim() + ") ORDER BY " + orderByClause;
+            // }
         }
         return sql;
     }
@@ -184,12 +183,12 @@ public class QueryUtils {
         if (context.getPagination() == null) {
             return sql;
         }
-        int offset = context.getPagination().getOffset();
+        Integer offset = context.getPagination().getOffset();
         Integer limit = context.getPagination().getLimit();
         return applyOracle11gPagination(sql, offset, limit);
     }
 
-    private static String applyOracle11gPagination(String sql, int offset, Integer limit) {
+    private static String applyOracle11gPagination(String sql, Integer offset, Integer limit) {
         if (limit == null) {
             return sql;
         }

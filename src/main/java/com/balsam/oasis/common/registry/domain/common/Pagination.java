@@ -6,21 +6,21 @@ import lombok.Data;
 @Data
 @Builder
 public class Pagination {
-    private int start;
-    private int end;
-    private int total;
+    private Integer start;
+    private Integer end;
+    private Integer total;
     private boolean hasNext;
     private boolean hasPrevious;
 
-    public int getPageSize() {
+    public Integer getPageSize() {
         return end - start;
     }
 
-    public int getOffset() {
+    public Integer getOffset() {
         return start;
     }
 
-    public int getLimit() {
+    public Integer getLimit() {
         return getPageSize();
     }
 }

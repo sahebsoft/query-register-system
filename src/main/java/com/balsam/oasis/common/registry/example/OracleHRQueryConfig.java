@@ -110,6 +110,7 @@ public class OracleHRQueryConfig {
                                                 --employeeIdsFilter
                                                 --jobIdsFilter
                                                 --statusFilter
+                                                --findByKey
                                                 """)
                                 .description("Oracle HR Schema - Employee information with department and manager details")
 
@@ -185,8 +186,8 @@ public class OracleHRQueryConfig {
                                                 .build())
 
                                 // Parameters
-                                .parameter(ParamDef.name("deptId")
-                                                .build())
+                                .parameter(ParamDef.name("deptId", BigDecimal.class).build())
+                                .parameter(ParamDef.name("empId", BigDecimal.class).build())
 
                                 // Parameters for IN clause criteria
                                 .parameter(ParamDef.name("departmentIds", String.class)
@@ -224,15 +225,13 @@ public class OracleHRQueryConfig {
                                                 .sql("AND e.department_id = :deptId")
                                                 .condition(ctx -> ctx.hasParam("deptId"))
                                                 .build())
-                                .criteria(CriteriaDef.name("salaryFilter")
-                                                .sql("AND e.salary >= :minSalary")
-                                                .condition(ctx -> ctx.hasParam("minSalary"))
-                                                .build())
+                                .criteria(CriteriaDef.name("findByKey").sql("AND e.employee_id = :empId")
+                                                .condition(ctx -> ctx.hasParam("empId")).build())
+                                .criteria(CriteriaDef.name("salaryFilter").sql("AND e.salary >= :minSalary")
+                                                .condition(ctx -> ctx.hasParam("minSalary")).build())
                                 .criteria(CriteriaDef.name("hiredAfterFilter")
                                                 .sql("AND e.hire_date > :hiredAfter")
-                                                .condition(ctx -> ctx.hasParam("hiredAfter"))
-                                                .build())
-
+                                                .condition(ctx -> ctx.hasParam("hiredAfter")).build())
                                 // IN clause criteria examples
                                 .criteria(CriteriaDef.name("departmentIdsFilter")
                                                 .sql("AND e.department_id IN (:departmentIds)")
@@ -332,42 +331,19 @@ public class OracleHRQueryConfig {
                                                 .aliasName("country_name")
                                                 .build())
 
-                                // Proof of concept: Fetch all employees in this department
-                                .attribute(AttributeDef.name("departmentEmployees", List.class)
+                                // Removed N+1 query problem - use employee count instead
+                                // If you need employee details, fetch them separately in batch
+                                .attribute(AttributeDef.name("departmentSize", String.class)
                                                 .calculated((row, context) -> {
-                                                        System.out.println("Fetching employees for department");
-                                                        Integer deptId = (Integer) row.getRaw("DEPARTMENT_ID");
-                                                        if (deptId == null) {
-                                                                return List.of();
-                                                        }
-
-                                                        try {
-                                                                // Debug: Check what department we're querying
-                                                                System.out.println(
-                                                                                "Fetching employees for department ID: "
-                                                                                                + deptId);
-
-                                                                // Execute query to get all employees in this department
-                                                                // Use departmentIds parameter for IN clause instead of
-                                                                // deptId
-                                                                // Using select() to only get needed fields (performance
-                                                                // optimization)
-                                                                QueryData result = queryExecutor.execute("employees")
-                                                                                .withParam("departmentIds",
-                                                                                                List.of(deptId))
-                                                                                .withPagination(0, 100)
-                                                                                .execute();
-
-                                                                System.out.println("Found " + result.getRows().size()
-                                                                                + " employees for dept " + deptId);
-
-                                                                // Return simplified employee data
-                                                                return result.getData();
-                                                        } catch (Exception e) {
-                                                                System.err.println(
-                                                                                "Error fetching department employees: "
-                                                                                                + e.getMessage());
-                                                                return List.of();
+                                                        Integer count = (Integer) row.getRaw("EMPLOYEE_COUNT");
+                                                        if (count == null || count == 0) {
+                                                                return "No employees";
+                                                        } else if (count <= 5) {
+                                                                return "Small team (" + count + " employees)";
+                                                        } else if (count <= 20) {
+                                                                return "Medium team (" + count + " employees)";
+                                                        } else {
+                                                                return "Large team (" + count + " employees)";
                                                         }
                                                 })
                                                 .build())
@@ -402,23 +378,15 @@ public class OracleHRQueryConfig {
                                                 --searchFilter
                                                 """)
                                 .description("Employee select for dropdowns with search and department filtering")
-                                .asSelect("employee_id", "full_name")
-                                .attribute(AttributeDef.name("employee_id", Integer.class)
-                                                .aliasName("employee_id")
-                                                .build())
-                                .attribute(AttributeDef.name("full_name", String.class)
-                                                .aliasName("full_name")
-                                                .build())
-                                .attribute(AttributeDef.name("email", String.class)
-                                                .aliasName("email")
-                                                .build())
+                                .selectProps("employee_id", "full_name")
+                                .attribute(AttributeDef.name("value", Integer.class).aliasName("employee_id").build())
+                                .attribute(AttributeDef.name("label", String.class).aliasName("full_name").build())
+                                .attribute(AttributeDef.name("email", String.class).aliasName("email").build())
                                 .attribute(AttributeDef.name("department_name", String.class)
-                                                .aliasName("department_name")
-                                                .build())
+                                                .aliasName("department_name").build())
                                 .criteria(CriteriaDef.name("departmentFilter")
                                                 .sql("AND d.department_id = :departmentId")
-                                                .condition(ctx -> ctx.hasParam("departmentId"))
-                                                .build())
+                                                .condition(ctx -> ctx.hasParam("departmentId")).build())
                                 .criteria(CriteriaDef.name("searchFilter")
                                                 .sql("AND LOWER(e.first_name || ' ' || e.last_name) LIKE LOWER(:search)")
                                                 .condition(ctx -> ctx.hasParam("search"))
@@ -448,11 +416,11 @@ public class OracleHRQueryConfig {
                                                 --locationFilter
                                                 """)
                                 .description("Department select with location information")
-                                .asSelect("department_id", "department_name")
-                                .attribute(AttributeDef.name("department_id", Integer.class)
+                                .selectProps("departmentId", "departmentName")
+                                .attribute(AttributeDef.name("departmentId", Integer.class)
                                                 .aliasName("department_id")
                                                 .build())
-                                .attribute(AttributeDef.name("department_name", String.class)
+                                .attribute(AttributeDef.name("departmentName", String.class)
                                                 .aliasName("department_name")
                                                 .build())
                                 .attribute(AttributeDef.name("city", String.class)
@@ -485,7 +453,7 @@ public class OracleHRQueryConfig {
                                                 ORDER BY job_title
                                                 """)
                                 .description("Job titles for dropdowns")
-                                .asSelect("job_id", "job_title")
+                                .selectProps("job_id", "job_title")
                                 .attribute(AttributeDef.name("job_id", String.class)
                                                 .aliasName("job_id")
                                                 .build())
@@ -516,7 +484,7 @@ public class OracleHRQueryConfig {
                                                 --searchFilter
                                                 """)
                                 .description("Managers only for selection")
-                                .asSelect("employee_id", "full_name")
+                                .selectProps("employee_id", "full_name")
                                 .attribute(AttributeDef.name("employee_id", Integer.class)
                                                 .aliasName("employee_id")
                                                 .build())

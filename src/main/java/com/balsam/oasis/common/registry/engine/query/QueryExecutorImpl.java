@@ -272,10 +272,8 @@ public class QueryExecutorImpl {
                 processedRows.set(i, row);
             }
 
-            // Allow garbage collection between batches for very large result sets
-            if (processedRows.size() > 5000) {
-                System.gc(); // Suggest GC for very large result sets
-            }
+            // Let JVM handle memory management automatically
+            // Removed System.gc() call - JVM knows better when to collect garbage
         }
     }
 

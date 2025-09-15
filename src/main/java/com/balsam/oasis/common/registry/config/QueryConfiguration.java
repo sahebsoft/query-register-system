@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.balsam.oasis.common.registry.engine.query.QueryExecutorImpl;
 import com.balsam.oasis.common.registry.engine.query.QueryRegistryImpl;
 import com.balsam.oasis.common.registry.engine.query.QuerySqlBuilder;
-import com.balsam.oasis.common.registry.web.builder.QueryResponseBuilder;
 import com.balsam.oasis.common.registry.service.QueryService;
 import com.balsam.oasis.common.registry.web.controller.QueryController;
 import com.balsam.oasis.common.registry.web.controller.SelectController;
@@ -48,11 +47,6 @@ public class QueryConfiguration {
     }
 
     @Bean
-    QueryResponseBuilder queryResponseBuilder() {
-        return new QueryResponseBuilder();
-    }
-
-    @Bean
     QueryService queryService(QueryExecutorImpl queryExecutor, QueryRegistryImpl queryRegistry) {
         return new QueryService(queryExecutor, queryRegistry);
     }
@@ -65,8 +59,7 @@ public class QueryConfiguration {
     }
 
     @Bean
-    SelectController selectController(
-            QueryService queryService,
+    SelectController selectController(QueryService queryService,
             QueryRequestParser requestParser) {
         return new SelectController(queryService, requestParser);
     }
